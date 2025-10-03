@@ -1,0 +1,101 @@
+:root {
+  /* Tipografia moderna e legível */
+  font-family: "Inter", system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.6;
+  font-weight: 400;
+
+  /* Tema escuro com contraste suave */
+  color-scheme: dark;
+  color: rgba(240, 240, 240, 0.92);
+  background-color: #1e1e1e;
+
+  /* Suavização de fontes */
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  /* Espaçamento base */
+  --spacing-xs: 0.4rem;
+  --spacing-sm: 0.8rem;
+  --spacing-md: 1.2rem;
+  --spacing-lg: 2rem;
+
+  /* Paleta de cores refinada */
+  --primary: #7f5af0;
+  --primary-hover: #2cb67d;
+  --accent: #2cb67d;
+  --background-panel: rgba(255, 255, 255, 0.04);
+  --border-light: rgba(255, 255, 255, 0.08);
+  --shadow-soft: 0 0 20px rgba(0, 0, 0, 0.3);
+}
+
+body {
+  background-color: var(--background-color);
+  background: radial-gradient(circle at top left, #1e1e1e, #121212);
+  color: rgba(240, 240, 240, 0.92);
+  font-family: var(--font-family);
+  font-weight: var(--font-weight);
+  line-height: var(--line-height);
+}
+
+a {
+  font-weight: 500;
+  color: var(--primary);
+  text-decoration: none;
+  transition: color 0.2s ease-in-out;
+}
+a:hover {
+  color: var(--primary-hover);
+}
+
+h1,
+h2,
+h3 {
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+h1 {
+  font-size: 2.8rem;
+}
+h2 {
+  font-size: 2rem;
+}
+h3 {
+  font-size: 1.5rem;
+}
+
+button {
+  border-radius: 8px;
+  border: 1px solid var(--border-light);
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: 1rem;
+  font-weight: 500;
+  font-family: inherit;
+  background-color: #2a2a2a;
+  color: rgba(255, 255, 255, 0.9);
+  cursor: pointer;
+  transition: border-color 0.25s, background-color 0.25s, transform 0.2s;
+  box-shadow: var(--shadow-soft);
+}
+button:hover {
+  border-color: var(--primary);
+  color: var(--primary-hover);
+  background-color: #3a3a3a;
+  transform: translateY(-2px);
+}
+button:focus,
+button:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: 2px;
+}
+input {
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.199);
+  padding: 0.6em 1.2em;
+  font-size: 1em;
+  font-weight: 500;
+  font-family: inherit;
+  background-color: #1a1a1a;
+}
