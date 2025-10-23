@@ -1,3 +1,6 @@
+import { FaEye } from "react-icons/fa6";
+//  FaEyeSlash
+
 import styles from "../css/Login.module.css";
 
 export default function LoginPage() {
@@ -9,12 +12,15 @@ export default function LoginPage() {
 
           <div className={styles.formContainer}>
             <form>
-              <input type="text" placeholder="email" />
-              <input type="password" placeholder="password" />
+              <input type="email" placeholder="email" />
+              <label htmlFor="password">
+                <input type="password" placeholder="password" maxLength={8} />
+                <FaEye />
+              </label>
               <button type="submit">Entrar</button>
             </form>
             <a href="http://">Esqueceu a senha?</a>
-            <a href="http://">Criar conta</a>{" "}
+            <a href="http://">Criar conta</a>
           </div>
         </div>
       </div>
