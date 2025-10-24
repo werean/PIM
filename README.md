@@ -1,7 +1,5 @@
 # PIM - Projeto de sistema de tickets integrado com IA
 
-## Como rodar o projeto
-
 ### Pré-requisitos
 
 - Bun Runtime ou Node.js (v18.0+)
@@ -74,7 +72,6 @@ cd PIM
 ---
 
 ## Sobre o projeto
-
 
 ### Backend
 
