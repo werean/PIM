@@ -1,7 +1,5 @@
 # PIM - Projeto de sistema de tickets integrado com IA
 
----
-
 ## Como rodar o projeto
 
 ### Pré-requisitos
