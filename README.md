@@ -3,11 +3,13 @@
 ## Como rodar o projeto
 
 ### Pré-requisitos
-- Bun Runtime ou Node.js (v18.0+) 
+
+- Bun Runtime ou Node.js (v18.0+)
 - bun, npm ou yarn
 - Banco de dados SQLite3 ou PostgreSQL.
 
 ### 1. Clonar o repositório
+
 ```bash
 git clone https://github.com/werean/PIM.git
 cd PIM
@@ -73,19 +75,31 @@ cd PIM
 
 ## Sobre o projeto
 
+
 ### Backend
+
 - API RESTful para autenticação, gerenciamento de usuários e tickets.
 - Utiliza Knex.js para migrations e queries SQL.
 - Estrutura modular com controllers, services, middlewares e rotas.
 - Suporte a WebSocket para interação com Ollama em tempo real.
 
+#### Documentação da API (Swagger)
+
+O backend disponibiliza uma documentação interativa da API utilizando Swagger. Com ela, é possível visualizar todos os endpoints, parâmetros, respostas e testar requisições diretamente pelo navegador.
+
+- Após iniciar o backend, acesse:  
+   `http://localhost:8080/api-docs`  
+   (ou a porta configurada no seu ambiente)
+
+Recomenda-se utilizar o Swagger para explorar e testar a API durante o desenvolvimento e integração.
+
 ### Frontend
+
 - Interface desenvolvida em React com Vite.
 - Páginas de login e gerenciamento de tickets.
 - Consome a API do backend para autenticação e operações CRUD.
 
 ### Estrutura de Pastas
+
 - `backend/`: Código-fonte do servidor, configurações, migrations e rotas da API.
 - `frontend/`: Código-fonte da interface web, assets, páginas e estilos.
-
-
