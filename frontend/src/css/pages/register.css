@@ -1,0 +1,3 @@
+.page--register .form__group:first-child .form__input {
+  text-transform: none;
+}

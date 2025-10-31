@@ -1,27 +1,17 @@
 :root {
-  /* Tipografia moderna e legível */
-  font-family: "Inter", system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.6;
-  font-weight: 400;
+  --font-family: "Inter", system-ui, Avenir, Helvetica, Arial, sans-serif;
+  --line-height: 1.6;
+  --font-weight: 400;
 
-  /* Tema escuro com contraste suave */
   color-scheme: dark;
-  color: rgba(240, 240, 240, 0.92);
-  background-color: #1e1e1e;
+  --text-color: rgba(240, 240, 240, 0.92);
+  --background-color: #1e1e1e;
 
-  /* Suavização de fontes */
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-
-  /* Espaçamento base */
   --spacing-xs: 0.4rem;
   --spacing-sm: 0.8rem;
   --spacing-md: 1.2rem;
   --spacing-lg: 2rem;
 
-  /* Paleta de cores refinada */
   --primary: #7f5af0;
   --primary-hover: #2cb67d;
   --accent: #2cb67d;
@@ -33,10 +23,11 @@
 body {
   background-color: var(--background-color);
   background: radial-gradient(circle at top left, #1e1e1e, #121212);
-  color: rgba(240, 240, 240, 0.92);
+  color: var(--text-color);
   font-family: var(--font-family);
   font-weight: var(--font-weight);
   line-height: var(--line-height);
+  margin: 0;
 }
 
 a {
@@ -55,7 +46,6 @@ h3 {
   font-weight: 600;
   line-height: 1.2;
 }
-
 h1 {
   font-size: 2.8rem;
 }
@@ -90,12 +80,35 @@ button:focus-visible {
   outline: 3px solid var(--primary);
   outline-offset: 2px;
 }
-input {
+
+input,
+select,
+textarea {
   border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, 0.199);
   padding: 0.6em 1.2em;
   font-size: 1em;
-  font-weight: 500;
   font-family: inherit;
   background-color: #1a1a1a;
+  color: var(--text-color);
+}
+
+.page {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: var(--spacing-lg) var(--spacing-md);
+}
+.page__title {
+  margin-top: 0;
+  margin-bottom: var(--spacing-md);
+}
+.page__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+}
+.page__actions {
+  display: flex;
+  gap: var(--spacing-md);
 }

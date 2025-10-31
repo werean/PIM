@@ -1,0 +1,16 @@
+.ticket-card {
+  border: 1px solid var(--border-light);
+  background: var(--background-panel);
+  border-radius: 10px;
+  padding: var(--spacing-md);
+}
+.ticket-card__title {
+  margin: 0 0 var(--spacing-xs);
+}
+.ticket-card__meta {
+  font-size: 0.9rem;
+  opacity: 0.8;
+}
+.ticket-card__body {
+  margin: var(--spacing-xs) 0 0;
+}

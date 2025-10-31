@@ -1,0 +1,35 @@
+.form {
+  display: grid;
+  gap: var(--spacing-md);
+  background: var(--background-panel);
+  border: 1px solid var(--border-light);
+  border-radius: 12px;
+  padding: var(--spacing-lg);
+  box-shadow: var(--shadow-soft);
+}
+.form__group {
+  display: grid;
+  gap: var(--spacing-xs);
+}
+.form__label {
+  font-size: 0.95rem;
+  opacity: 0.9;
+}
+.form__input,
+.form__select,
+.form__textarea {
+  width: 100%;
+}
+.form__actions {
+  display: flex;
+  gap: var(--spacing-sm);
+}
+.form__message {
+  margin: 0;
+}
+.form__message--success {
+  color: var(--accent);
+}
+.form__message--error {
+  color: #ff6b6b;
+}

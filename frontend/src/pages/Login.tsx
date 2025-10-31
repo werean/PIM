@@ -1,29 +1,28 @@
-import { FaEye } from "react-icons/fa6";
-//  FaEyeSlash
-
-import styles from "../css/Login.module.css";
-
 export default function LoginPage() {
   return (
-    <>
-      <div className={styles.wrapper}>
-        <div className={styles.container}>
-          <h1>Ticket AI</h1>
-
-          <div className={styles.formContainer}>
-            <form>
-              <input type="email" placeholder="email" />
-              <label htmlFor="password">
-                <input type="password" placeholder="password" maxLength={8} />
-                <FaEye />
-              </label>
+    <main className="login">
+      <section className="login__container" aria-labelledby="login-title">
+        <h1 id="login-title" className="login__title">Ticket AI</h1>
+        <div className="login__form-container">
+          <form className="form" aria-label="Formulário de Login">
+            <div className="form__group">
+              <label className="form__label" htmlFor="login-email">E-mail</label>
+              <input id="login-email" className="form__input" type="email" placeholder="seuemail@empresa.com" />
+            </div>
+            <div className="form__group">
+              <label className="form__label" htmlFor="login-password">Senha</label>
+              <input id="login-password" className="form__input" type="password" placeholder="Senha" />
+            </div>
+            <div className="form__actions">
               <button type="submit">Entrar</button>
-            </form>
-            <a href="http://">Esqueceu a senha?</a>
-            <a href="http://">Criar conta</a>
-          </div>
+            </div>
+          </form>
+          <nav className="login__links" aria-label="Links de ajuda">
+            <a className="login__link" href="#">Esqueceu a senha?</a>
+            <a className="login__link" href="/register">Criar conta</a>
+          </nav>
         </div>
-      </div>
-    </>
+      </section>
+    </main>
   );
 }
