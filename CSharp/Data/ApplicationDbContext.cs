@@ -52,7 +52,7 @@ namespace CSharp.Data
                 .HasOne(c => c.User)
                 .WithMany(u => u.Comments)
                 .HasForeignKey(c => c.UserId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.Cascade);
 
             // Attachment
             modelBuilder.Entity<Attachment>()
