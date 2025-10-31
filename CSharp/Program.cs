@@ -27,6 +27,8 @@ builder.Services.AddScoped<TicketService>();
 builder.Services.AddScoped<CommentService>();
 builder.Services.AddScoped<AttachmentService>();
 builder.Services.AddScoped<AuthService>();
+builder.Services.AddScoped<TicketAISessionService>();
+builder.Services.AddHttpClient();
 
 // Configuração JWT
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -87,7 +89,7 @@ builder.Services.AddSwaggerGen(c =>
 
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAll", b => b.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod());
+    options.AddPolicy("AllowAll", b => b.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod().AllowAnyMethod());
 });
 
 // Filtro global de tratamento de erros
@@ -106,6 +108,7 @@ builder.Services.Configure<ApiBehaviorOptions>(options =>
 var app = builder.Build();
 
 app.UseCors("AllowAll");
+app.UseWebSockets();
 app.UseAuthentication();
 app.UseAuthorization();
 

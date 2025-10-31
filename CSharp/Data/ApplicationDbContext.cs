@@ -15,6 +15,7 @@ namespace CSharp.Data
         public DbSet<Ticket> Tickets { get; set; }
         public DbSet<Comment> Comments { get; set; }
         public DbSet<Attachment> Attachments { get; set; }
+        public DbSet<TicketAISession> TicketAISessions { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -59,6 +60,13 @@ namespace CSharp.Data
                 .HasOne(a => a.Ticket)
                 .WithMany(t => t.Attachments)
                 .HasForeignKey(a => a.TicketId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // TicketAISession
+            modelBuilder.Entity<TicketAISession>()
+                .HasOne(s => s.Ticket)
+                .WithMany()
+                .HasForeignKey(s => s.TicketId)
                 .OnDelete(DeleteBehavior.Cascade);
         }
     }
