@@ -1,90 +1,123 @@
-import { useState, type ChangeEvent, type FormEvent } from "react";
-import { apiPost } from "../services/api";
-import type { CreateTicketPayload } from "../services/api";
+import { useEffect, useRef, useState, type FormEvent } from "react";
+import logoLJFT from "../assets/images/logoLJFT.png";
+
+interface Message {
+  id: number;
+  role: "user" | "assistant";
+  content: string;
+}
 
 export default function RegisterTicketPage() {
-  const [form, setForm] = useState<CreateTicketPayload>({
-    title: "",
-    ticket_body: "",
-    urgency: 1,
-  });
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      id: 1,
+      role: "assistant",
+      content:
+        "Olá! Sou o assistente de abertura de chamados. Como posso ajudá-lo hoje? Descreva o problema que está enfrentando.",
+    },
+  ]);
+  const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  function handleChange(
-    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
-  ) {
-    const { name, value } = e.target as HTMLInputElement & HTMLTextAreaElement & HTMLSelectElement;
-    setForm((prev: CreateTicketPayload) => ({
-      ...prev,
-      [name]: name === "urgency" ? (Number(value) as 1 | 2 | 3) : value,
-    }));
-  }
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
+    if (!input.trim()) return;
+
+    const userMessage: Message = {
+      id: messages.length + 1,
+      role: "user",
+      content: input.trim(),
+    };
+
+    setMessages((prev) => [...prev, userMessage]);
+    setInput("");
     setLoading(true);
-    setMessage(null);
-    setError(null);
-    try {
-      const res = await apiPost<{ message?: string }>("/ticket", form);
-      setMessage(res.message ?? "Ticket criado com sucesso.");
-      setForm({ title: "", ticket_body: "", urgency: 1 });
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Erro ao criar ticket";
-      setError(msg);
-    } finally {
+
+    // Simula resposta da IA (depois você conecta com backend real)
+    setTimeout(() => {
+      const aiResponse: Message = {
+        id: messages.length + 2,
+        role: "assistant",
+        content:
+          "Entendi seu problema. Vou criar um chamado para você. Por favor, confirme os detalhes:\n\n• Título: " +
+          userMessage.content.substring(0, 50) +
+          "\n• Urgência: Média\n\nPosso prosseguir com a criação do chamado?",
+      };
+      setMessages((prev) => [...prev, aiResponse]);
       setLoading(false);
-    }
+    }, 1000);
   }
 
   return (
-    <main className="page page--ticket-new">
-      <h2 className="page__title">Novo Ticket</h2>
-      <form onSubmit={handleSubmit} className="form" aria-label="Formulário de Ticket">
-        <div className="form__group">
-          <label className="form__label" htmlFor="ticket-title">Título</label>
+    <div className="chat-page">
+      <header className="chat-page__header">
+        <img src={logoLJFT} alt="Logo LIFT" className="chat-page__logo" />
+        <h1 className="chat-page__title">Assistente de Chamados</h1>
+      </header>
+
+      <main className="chat-page__main">
+        <div className="chat-messages">
+          {messages.map((msg) => (
+            <div
+              key={msg.id}
+              className={`chat-message chat-message--${msg.role}`}
+            >
+              <div className="chat-message__avatar">
+                {msg.role === "assistant" ? "🤖" : "👤"}
+              </div>
+              <div className="chat-message__content">
+                <div className="chat-message__role">
+                  {msg.role === "assistant" ? "Assistente" : "Você"}
+                </div>
+                <div className="chat-message__text">{msg.content}</div>
+              </div>
+            </div>
+          ))}
+          {loading && (
+            <div className="chat-message chat-message--assistant">
+              <div className="chat-message__avatar">🤖</div>
+              <div className="chat-message__content">
+                <div className="chat-message__role">Assistente</div>
+                <div className="chat-message__text chat-message__text--loading">
+                  <span className="chat-loader"></span>
+                  <span className="chat-loader"></span>
+                  <span className="chat-loader"></span>
+                </div>
+              </div>
+            </div>
+          )}
+          <div ref={messagesEndRef} />
+        </div>
+      </main>
+
+      <footer className="chat-page__footer">
+        <form onSubmit={handleSubmit} className="chat-input-form">
           <input
-            id="ticket-title"
-            className="form__input"
-            name="title"
             type="text"
-            value={form.title}
-            onChange={handleChange}
-            placeholder="Ex.: Erro ao acessar o sistema"
-            required
+            className="chat-input-form__input"
+            placeholder="Descreva seu problema aqui..."
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            disabled={loading}
           />
-        </div>
-        <div className="form__group">
-          <label className="form__label" htmlFor="ticket-body">Descrição</label>
-          <textarea
-            id="ticket-body"
-            className="form__textarea"
-            name="ticket_body"
-            value={form.ticket_body}
-            onChange={handleChange}
-            placeholder="Explique o problema com detalhes"
-            rows={5}
-            required
-          />
-        </div>
-        <div className="form__group">
-          <label className="form__label" htmlFor="ticket-urgency">Urgência</label>
-          <select id="ticket-urgency" className="form__select" name="urgency" value={form.urgency} onChange={handleChange}>
-            <option value={1}>1 - Baixa</option>
-            <option value={2}>2 - Média</option>
-            <option value={3}>3 - Alta</option>
-          </select>
-        </div>
-        <div className="form__actions">
-          <button type="submit" disabled={loading}>
-            {loading ? "Enviando..." : "Criar Ticket"}
+          <button
+            type="submit"
+            className="chat-input-form__submit"
+            disabled={loading || !input.trim()}
+          >
+            Enviar
           </button>
-        </div>
-      </form>
-      {message && <p className="form__message form__message--success">{message}</p>}
-      {error && <p className="form__message form__message--error">{error}</p>}
-    </main>
+        </form>
+      </footer>
+    </div>
   );
 }

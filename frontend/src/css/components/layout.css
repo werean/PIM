@@ -1,0 +1,20 @@
+/* Layout container */
+.layout {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+  background-color: #f7f7f8;
+  color: #222;
+}
+.layout__main {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  background-color: #ebebeb;
+}
+.layout__content {
+  flex: 1 1 auto;
+  display: block;
+  padding: 24px 32px;
+  overflow-y: auto;
+}

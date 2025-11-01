@@ -3,26 +3,25 @@
   --line-height: 1.6;
   --font-weight: 400;
 
-  color-scheme: dark;
-  --text-color: rgba(240, 240, 240, 0.92);
-  --background-color: #1e1e1e;
+  color-scheme: light;
+  --text-color: #222;
+  --background-color: #f7f7f8;
 
   --spacing-xs: 0.4rem;
   --spacing-sm: 0.8rem;
   --spacing-md: 1.2rem;
   --spacing-lg: 2rem;
 
-  --primary: #7f5af0;
-  --primary-hover: #2cb67d;
-  --accent: #2cb67d;
-  --background-panel: rgba(255, 255, 255, 0.04);
-  --border-light: rgba(255, 255, 255, 0.08);
-  --shadow-soft: 0 0 20px rgba(0, 0, 0, 0.3);
+  --primary: #6f5683;
+  --primary-hover: #5a3b8a;
+  --accent: #2ab849;
+  --background-panel: #ffffff;
+  --border-light: rgba(0, 0, 0, 0.1);
+  --shadow-soft: 0 0 20px rgba(0, 0, 0, 0.06);
 }
 
 body {
   background-color: var(--background-color);
-  background: radial-gradient(circle at top left, #1e1e1e, #121212);
   color: var(--text-color);
   font-family: var(--font-family);
   font-weight: var(--font-weight);
@@ -47,13 +46,13 @@ h3 {
   line-height: 1.2;
 }
 h1 {
-  font-size: 2.8rem;
+  font-size: 2.2rem;
 }
 h2 {
-  font-size: 2rem;
+  font-size: 1.8rem;
 }
 h3 {
-  font-size: 1.5rem;
+  font-size: 1.4rem;
 }
 
 button {
@@ -63,8 +62,8 @@ button {
   font-size: 1rem;
   font-weight: 500;
   font-family: inherit;
-  background-color: #2a2a2a;
-  color: rgba(255, 255, 255, 0.9);
+  background-color: #ffffff;
+  color: #222;
   cursor: pointer;
   transition: border-color 0.25s, background-color 0.25s, transform 0.2s;
   box-shadow: var(--shadow-soft);
@@ -72,8 +71,8 @@ button {
 button:hover {
   border-color: var(--primary);
   color: var(--primary-hover);
-  background-color: #3a3a3a;
-  transform: translateY(-2px);
+  background-color: #f6f1ff;
+  transform: translateY(-1px);
 }
 button:focus,
 button:focus-visible {
@@ -85,12 +84,12 @@ input,
 select,
 textarea {
   border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.199);
+  border: 1px solid #aaa;
   padding: 0.6em 1.2em;
   font-size: 1em;
   font-family: inherit;
-  background-color: #1a1a1a;
-  color: var(--text-color);
+  background-color: #ffffff;
+  color: #222;
 }
 
 .page {

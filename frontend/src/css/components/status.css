@@ -1,0 +1,31 @@
+/* Status indicators */
+.status-cards {
+  display: flex;
+  gap: 12px;
+  margin: 24px 32px 20px 32px;
+}
+.status-cards__item {
+  flex: 1 1 0;
+  padding: 10px 0;
+  border-radius: 6px;
+  color: #fff;
+  font-weight: 700;
+  font-size: 14px;
+  text-align: center;
+}
+.status-cards__item--green {
+  background-color: #a4d36a;
+  color: #155724;
+}
+.status-cards__item--orange {
+  background-color: #f5be3a;
+  color: #856404;
+}
+.status-cards__item--red {
+  background-color: #eb5f5f;
+  color: #721c24;
+}
+.status-cards__item--gray {
+  background-color: #8a8a8a;
+  color: #e6e6e6;
+}

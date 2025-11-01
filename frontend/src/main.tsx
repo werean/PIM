@@ -11,13 +11,9 @@ import LoginPage from "./pages/Login";
 import RegisterTicketPage from "./pages/RegisterTicket";
 import RegisterUserPage from "./pages/RegisterUser";
 
-// Componentes
-import AppHeader from "./components/AppHeader";
-
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <BrowserRouter>
-      <AppHeader />
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<LoginPage />} />

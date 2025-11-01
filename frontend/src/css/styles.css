@@ -6,6 +6,12 @@
 @import "./components/form.css";
 @import "./components/list.css";
 @import "./components/card.css";
+@import "./components/layout.css";
+@import "./components/sidenav.css";
+@import "./components/topbar.css";
+@import "./components/status.css";
+@import "./components/filters.css";
+@import "./components/table.css";
 
 /* Páginas */
 @import "./pages/login.css";

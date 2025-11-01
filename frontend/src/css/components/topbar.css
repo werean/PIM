@@ -1,0 +1,55 @@
+/* Topbar */
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  color: #555;
+  padding: 24px 32px 0 32px;
+}
+.topbar__breadcrumb strong {
+  color: #222;
+}
+.topbar__controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.topbar__search-input {
+  padding: 6px 10px;
+  border-radius: 20px;
+  border: 1px solid #aaa;
+  outline: none;
+  font-size: 13px;
+  width: 160px;
+  background: #fff;
+  color: #222;
+}
+.topbar__search-button {
+  background: transparent;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+}
+.user-badge {
+  background: #6f5683;
+  border-radius: 20px;
+  color: #fff;
+  font-size: 13px;
+  padding: 5px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+.user-badge__initials {
+  width: 30px;
+  height: 30px;
+  background-color: #ad92a6;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-weight: 700;
+  font-size: 14px;
+}
