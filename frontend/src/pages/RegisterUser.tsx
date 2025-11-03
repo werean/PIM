@@ -1,8 +1,12 @@
 import { useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
-import logoLJFT from "../assets/images/logoLJFT.png";
-import type { CreateUserPayload, Role } from "../services/api";
+
+// API Request
 import { apiPost } from "../services/api";
+import type { CreateUserPayload, Role } from "../services/api";
+
+// Imagens
+import logoLJFT from "../assets/images/logoLJFT.png";
 
 export default function RegisterUserPage() {
   const [form, setForm] = useState<CreateUserPayload>({
@@ -45,7 +49,7 @@ export default function RegisterUserPage() {
   return (
     <div className="register-page">
       <div className="register-page__card">
-        <img src={logoLJFT} alt="Logo LIFT" className="register-page__logo" />
+        <img src={logoLJFT} alt="Logo LJFT" className="register-page__logo" />
         <form onSubmit={handleSubmit} className="register-form">
           <h2 className="register-form__title">Crie sua conta</h2>
 
@@ -60,7 +64,7 @@ export default function RegisterUserPage() {
               type="text"
               value={form.username}
               onChange={handleChange}
-              placeholder="Seu nome de usuário"
+              placeholder="Seu nome de usuário..."
               required
             />
           </div>
@@ -92,7 +96,8 @@ export default function RegisterUserPage() {
               type="password"
               value={form.password}
               onChange={handleChange}
-              placeholder="Senha forte"
+              placeholder="Senha de até 8 caracteres..."
+              maxLength={8}
               required
             />
           </div>
