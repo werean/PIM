@@ -1,5 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
+
+// Imagens
 import logoLJFT from "../assets/images/logoLJFT.png";
 
 export default function LoginPage() {
@@ -25,28 +27,25 @@ export default function LoginPage() {
             </label>
             <input
               id="usuario"
-              type="text"
+              type="email"
               className="login-form__input"
-              placeholder="Celular, e-mail ou nome de usuário..."
+              placeholder="Digite seu e-mail..."
               value={usuario}
               onChange={(e) => setUsuario(e.target.value)}
               required
-            />
+              />
           </div>
 
           <div className="login-form__group">
-            <div className="login-form__label-row">
               <label htmlFor="senha" className="login-form__label">
                 Senha
               </label>
-              <Link to="#" className="login-form__link">
-                Esqueceu sua senha?
-              </Link>
-            </div>
             <input
               id="senha"
               type="password"
               className="login-form__input"
+              placeholder="Digite sua senha..."
+              maxLength={8}
               value={senha}
               onChange={(e) => setSenha(e.target.value)}
               required

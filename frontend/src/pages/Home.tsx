@@ -181,10 +181,10 @@ export default function HomePage() {
                 <thead className="data-table__head">
                   <tr>
                     <th>ID</th>
-                    <th>STATUS</th>
                     <th>TÍTULO</th>
+                    <th>STATUS</th>
                     <th>DATA DE ABERTURA</th>
-                    <th>REQUERENTE</th>
+                    <th>URGÊNCIA</th>
                   </tr>
                 </thead>
                 <tbody className="data-table__body">
