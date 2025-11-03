@@ -1,4 +1,3 @@
-/* Sidebar (sidenav) */
 .sidenav {
   background-color: #3c2357;
   width: 240px;
@@ -10,17 +9,26 @@
 }
 .sidenav__brand {
   display: flex;
+  justify-content: space-between;
   align-items: center;
   gap: 10px;
   margin-bottom: 40px;
 }
 .sidenav__brand-image {
-  height: 40px;
+  height: 60px;
 }
-.sidenav__brand-text {
-  font-weight: 700;
-  font-size: 20px;
-  color: #ad929e;
+.sidenav__toggle {
+  background: transparent;
+  border: none;
+  color: #ab92a6;
+  cursor: pointer;
+  font-size: 13px;
+  padding: 8px 20px;
+  text-align: left;
+  transition: all color 0.3s;
+}
+.sidenav__toggle:hover {
+  color: #3c2357;
 }
 .sidenav__nav {
   flex: 1 1 auto;
@@ -35,16 +43,9 @@
   text-transform: uppercase;
   color: #9a8eb0;
 }
-.sidenav__item {
-  padding: 10px 20px;
-  font-size: 14px;
-  color: #ddd;
-}
-.sidenav__group--open {
-  background-color: #4c3567;
-}
 .sidenav__submenu {
-  list-style: none;
+  display: flex;
+  flex-direction: column;
   margin: 6px 0 0 10px;
   padding-left: 0;
 }
@@ -56,18 +57,5 @@
 .sidenav__submenu-item:hover,
 .sidenav__submenu-item--active {
   background-color: #6f5683;
-  color: #fff;
-}
-.sidenav__toggle {
-  background: transparent;
-  border: none;
-  color: #ab92a6;
-  cursor: pointer;
-  font-size: 13px;
-  padding: 8px 20px;
-  text-align: left;
-  transition: color 0.2s;
-}
-.sidenav__toggle:hover {
-  color: #fff;
+  color: #3c2357;
 }

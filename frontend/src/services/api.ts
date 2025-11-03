@@ -31,7 +31,6 @@ export async function apiPost<T>(
   return res.json() as Promise<T>;
 }
 
-// Shared types (aligned with backend DTOs)
 export type Role = 5 | 10 | 15;
 
 export interface CreateUserPayload {

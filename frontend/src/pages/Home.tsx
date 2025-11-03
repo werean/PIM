@@ -1,9 +1,14 @@
 ﻿import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import logoLJFT from "../assets/images/logoLJFT.png";
+
+// API Request
 import type { Ticket } from "../services/api";
 import { apiGet } from "../services/api";
 
+// Imagens
+import logoLJFT from "../assets/images/logoLJFT.png";
+
+// Tipagem
 type TicketsResponse = { tickets: Ticket[] } | { message: string };
 type StatusKind = "Novo" | "Pendente" | "Atrasado" | "Concluido";
 
@@ -98,14 +103,6 @@ export default function HomePage() {
     return base;
   }, [derived]);
 
-  const uniqueDates = useMemo(
-    () =>
-      Array.from(new Set(derived.map((t) => t._date))).filter(
-        (d) => d && d !== "-"
-      ),
-    [derived]
-  );
-
   const filtered = useMemo(
     () =>
       derived.filter((t) => {
@@ -123,57 +120,39 @@ export default function HomePage() {
           <img
             className="sidenav__brand-image"
             src={logoLJFT}
-            alt="Logo LIFT"
+            alt="Logo LJFT"
           />
+          <button className="sidenav__toggle" type="button">
+            {"<< Recolher menu"}
+          </button>
         </div>
         <nav className="sidenav__nav" aria-label="Navegação">
           <p className="sidenav__section">Menu</p>
-          <div className="sidenav__group sidenav__group--open">
-            <span className="sidenav__item">Assistência</span>
-            <ul className="sidenav__submenu">
-              <li className="sidenav__submenu-item sidenav__submenu-item--active">
-                <Link to="/">Chamados</Link>
-              </li>
-              <li className="sidenav__submenu-item">
-                <Link to="/ticket/new">Criar chamados</Link>
-              </li>
-              <li className="sidenav__submenu-item">
-                <a href="#">Estatísticas</a>
-              </li>
-              <li className="sidenav__submenu-item">
-                <a href="#">Base de conhecimento</a>
-              </li>
-            </ul>
-          </div>
-          <p className="sidenav__section">Ferramentas</p>
-          <div className="sidenav__item">
-            <Link to="/register">Configurações</Link>
+          <div className="sidenav__submenu">
+            <Link
+              to="/"
+              className="sidenav__submenu-item sidenav__submenu-item--active"
+            >
+              Chamados
+            </Link>
+            <Link to="/ticket/new" className="sidenav__submenu-item">
+              Criar chamados
+            </Link>
           </div>
         </nav>
-        <button className="sidenav__toggle" type="button">
-          {"<< Receber menu"}
-        </button>
       </aside>
 
       <div className="layout__main">
         <header className="topbar">
           <div className="topbar__breadcrumb">
-            Home / Assistência / <strong>Chamados</strong>
+            Home / <strong>Chamados</strong>
           </div>
-          <div className="topbar__controls">
-            <input
-              className="topbar__search-input"
-              type="search"
-              placeholder="Pesquisar..."
-              aria-label="Pesquisar"
-            />
-            <button className="topbar__search-button" aria-label="Buscar">
-              🔍
-            </button>
+
+          <Link to="/login" className="topbar__controls">
             <div className="user-badge">
               Técnico <UserBadge />
             </div>
-          </div>
+          </Link>
         </header>
 
         <main className="layout__content">
@@ -191,43 +170,6 @@ export default function HomePage() {
               <div className="status-cards__item status-cards__item--gray">
                 {statusCounts.Concluido} Chamados solucionados
               </div>
-            </div>
-
-            <div className="filters" role="region" aria-label="Filtros">
-              <div className="filters__field">
-                <label className="filters__label">Status do chamado</label>
-                <select
-                  className="filters__select"
-                  value={statusFilter}
-                  onChange={(e) =>
-                    setStatusFilter(e.target.value as StatusKind | "")
-                  }
-                >
-                  <option value="">Selecionar...</option>
-                  <option value="Novo">Novo</option>
-                  <option value="Pendente">Pendente</option>
-                  <option value="Atrasado">Atrasado</option>
-                  <option value="Concluido">Concluido</option>
-                </select>
-              </div>
-              <div className="filters__field">
-                <label className="filters__label">Data de abertura</label>
-                <select
-                  className="filters__select"
-                  value={dateFilter}
-                  onChange={(e) => setDateFilter(e.target.value)}
-                >
-                  <option value="">Selecionar...</option>
-                  {uniqueDates.map((d) => (
-                    <option key={d} value={d}>
-                      {d}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <button className="filters__submit" onClick={() => {}}>
-                Buscar <span className="filters__loader" />
-              </button>
             </div>
 
             <div
