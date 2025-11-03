@@ -11,7 +11,14 @@ export default function LoginPage() {
 
   function handleLogin(e: FormEvent) {
     e.preventDefault();
-    alert(`Usuário: ${usuario}\nSenha: ${senha}\nLembrar de mim: ${lembrar}`);
+
+    if (lembrar) {
+      localStorage.setItem("usuario", usuario);
+    } else {
+      localStorage.removeItem("usuario");
+    }
+
+    window.location.href = "/";
   }
 
   return (
