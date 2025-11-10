@@ -6,9 +6,8 @@ namespace CSharp.Entities
 {
     public enum UserRole
     {
-        User = 5,
-        Moderator = 10,
-        Admin = 15
+        User = 5,        // Usuário comum
+        Technician = 10  // Técnico
     }
 
     public class User

@@ -114,7 +114,6 @@ export default function RegisterUserPage() {
             >
               <option value={5}>Usuário</option>
               <option value={10}>Técnico</option>
-              <option value={15}>Admin</option>
             </select>
           </div>
 

@@ -43,11 +43,19 @@ namespace CSharp.Services
 
         public async Task<User?> CreateAsync(UserCreateDTO dto)
         {
+            // Validar role (apenas 5 ou 10 são permitidos)
+            if (dto.Role != 5 && dto.Role != 10)
+            {
+                _logger.LogWarning($"Tentativa de criar usuário com role inválida: {dto.Role}. Usando role padrão (5).");
+                dto.Role = 5;
+            }
+
             var user = new User
             {
                 Username = dto.Username,
                 Email = dto.Email,
-                Password = dto.Password // Hash em AuthService
+                Password = dto.Password, // Hash em AuthService
+                Role = (UserRole)dto.Role
             };
             _context.Users.Add(user);
             await _context.SaveChangesAsync();

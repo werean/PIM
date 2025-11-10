@@ -50,7 +50,7 @@ export async function apiPost<T>(path: string, body: unknown, init?: RequestInit
   return res.json() as Promise<T>;
 }
 
-export type Role = 5 | 10 | 15;
+export type Role = 5 | 10; // 5 = Usuário, 10 = Técnico
 
 export interface CreateUserPayload {
   username: string;

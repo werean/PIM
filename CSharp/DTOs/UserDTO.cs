@@ -17,6 +17,9 @@ namespace CSharp.DTOs
         [Required]
         [StringLength(255)]
         public string Password { get; set; } = string.Empty;
+
+        [Required]
+        public int Role { get; set; } = 5; // Default: User
     }
 
     public class UserUpdateDTO
