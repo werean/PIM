@@ -57,7 +57,7 @@ export default function HomePage() {
     let mounted = true;
     (async () => {
       try {
-        const data = await apiGet<TicketsResponse>("/ticket");
+        const data = await apiGet<TicketsResponse>("/tickets");
         if (!mounted) return;
         if ("tickets" in data) {
           setTickets(data.tickets);

@@ -1,5 +1,8 @@
 import { useState, type FormEvent } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+
+// API
+import { apiPost } from "../services/api";
 
 // Imagens
 import logoLJFT from "../assets/images/logoLJFT.png";
@@ -8,17 +11,27 @@ export default function LoginPage() {
   const [usuario, setUsuario] = useState("");
   const [senha, setSenha] = useState("");
   const [lembrar, setLembrar] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
 
-  function handleLogin(e: FormEvent) {
+  async function handleLogin(e: FormEvent) {
     e.preventDefault();
-
-    if (lembrar) {
-      localStorage.setItem("usuario", usuario);
-    } else {
-      localStorage.removeItem("usuario");
+    setError(null);
+    try {
+      await apiPost<{ success?: boolean; message?: string }>("/auth/login", {
+        email: usuario,
+        password: senha,
+      });
+      if (lembrar) {
+        localStorage.setItem("usuario", usuario);
+      } else {
+        localStorage.removeItem("usuario");
+      }
+      // After successful login, navigate to the home page
+      navigate("/home");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao efetuar login");
     }
-
-    window.location.href = "/";
   }
 
   return (
@@ -40,24 +53,25 @@ export default function LoginPage() {
               value={usuario}
               onChange={(e) => setUsuario(e.target.value)}
               required
-              />
+            />
           </div>
 
           <div className="login-form__group">
-              <label htmlFor="senha" className="login-form__label">
-                Senha
-              </label>
+            <label htmlFor="senha" className="login-form__label">
+              Senha
+            </label>
             <input
               id="senha"
               type="password"
               className="login-form__input"
               placeholder="Digite sua senha..."
-              maxLength={8}
               value={senha}
               onChange={(e) => setSenha(e.target.value)}
               required
             />
           </div>
+
+          {error && <p className="login-form__error">{error}</p>}
 
           <div className="login-form__checkbox">
             <input

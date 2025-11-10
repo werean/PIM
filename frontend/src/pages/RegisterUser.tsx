@@ -2,8 +2,8 @@ import { useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 
 // API Request
-import { apiPost } from "../services/api";
 import type { CreateUserPayload, Role } from "../services/api";
+import { apiPost } from "../services/api";
 
 // Imagens
 import logoLJFT from "../assets/images/logoLJFT.png";
@@ -35,7 +35,7 @@ export default function RegisterUserPage() {
     setMessage(null);
     setError(null);
     try {
-      const res = await apiPost<{ message?: string }>("/user/create", form);
+      const res = await apiPost<{ message?: string }>("/users", form);
       setMessage(res.message ?? "Usuário criado com sucesso.");
       setForm({ username: "", email: "", password: "", role: 5 });
     } catch (err) {
@@ -96,8 +96,7 @@ export default function RegisterUserPage() {
               type="password"
               value={form.password}
               onChange={handleChange}
-              placeholder="Senha de até 8 caracteres..."
-              maxLength={8}
+              placeholder="Senha (mín. 8 chars, maiúscula, minúscula, número, especial)"
               required
             />
           </div>

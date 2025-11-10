@@ -1,4 +1,10 @@
-export const BASE_URL = "http://localhost:8080";
+const _meta = (
+  import.meta as unknown as {
+    env?: { VITE_API_URL?: string; DEV?: boolean };
+  }
+).env;
+export const BASE_URL =
+  _meta?.VITE_API_URL ?? (_meta?.DEV ? "http://localhost:8080" : "");
 
 export async function apiGet<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE_URL}${path}`, {
@@ -26,7 +32,13 @@ export async function apiPost<T>(
   });
   if (!res.ok) {
     const text = await res.text();
-    throw new Error(`POST ${path} failed: ${res.status} ${text}`);
+    try {
+      const data = JSON.parse(text);
+      const msg = data?.message ?? JSON.stringify(data);
+      throw new Error(`POST ${path} failed: ${res.status} ${msg}`);
+    } catch {
+      throw new Error(`POST ${path} failed: ${res.status} ${text}`);
+    }
   }
   return res.json() as Promise<T>;
 }
