@@ -47,7 +47,7 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
     ws.onopen = () => {
       console.log("WebSocket conectado");
       setIsConnected(true);
-      
+
       // Pré-preencher o campo de input com a mensagem inicial
       const initialPrompt = `me ajude com esse problema "${ticketBody}"`;
       setInputMessage(initialPrompt);
@@ -55,17 +55,17 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
 
     ws.onmessage = (event) => {
       const text = event.data;
-      
+
       // Verifica se é o marcador de fim de stream
       if (text === "[FIM]") {
         if (isFinalizingMessage.current) return; // Evita dupla finalização
         isFinalizingMessage.current = true;
-        
+
         // Adiciona a mensagem completa
         if (currentStreamText.current.trim()) {
           addMessage(currentStreamText.current, false);
         }
-        
+
         // Limpa o streaming
         currentStreamText.current = "";
         setStreamingMessage("");
@@ -73,26 +73,26 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
         isFinalizingMessage.current = false;
         return;
       }
-      
+
       // Limpa timeout anterior
       if (streamTimeoutRef.current) {
         clearTimeout(streamTimeoutRef.current);
       }
-      
+
       // Acumula os tokens que chegam em streaming
       currentStreamText.current += text;
       setStreamingMessage(currentStreamText.current);
-      
+
       // Define timeout de segurança para finalizar a mensagem caso não receba [FIM]
       streamTimeoutRef.current = window.setTimeout(() => {
         if (isFinalizingMessage.current) return; // Evita dupla finalização
         isFinalizingMessage.current = true;
-        
+
         // Adiciona a mensagem completa
         if (currentStreamText.current.trim()) {
           addMessage(currentStreamText.current, false);
         }
-        
+
         // Limpa o streaming
         currentStreamText.current = "";
         setStreamingMessage("");
@@ -110,7 +110,7 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
     ws.onclose = () => {
       console.log("WebSocket desconectado");
       setIsConnected(false);
-      
+
       // Limpa estados ao fechar
       currentStreamText.current = "";
       setStreamingMessage("");
@@ -316,7 +316,7 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
                     </div>
                   </div>
                 ))}
-                
+
                 {/* Mensagem em streaming (sendo recebida em tempo real) */}
                 {streamingMessage && (
                   <div
@@ -387,13 +387,10 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
                   border: "none",
                   borderRadius: "8px",
                   cursor:
-                    !isConnected || isSending || !inputMessage.trim()
-                      ? "not-allowed"
-                      : "pointer",
+                    !isConnected || isSending || !inputMessage.trim() ? "not-allowed" : "pointer",
                   fontSize: "14px",
                   fontWeight: "500",
-                  opacity:
-                    !isConnected || isSending || !inputMessage.trim() ? 0.6 : 1,
+                  opacity: !isConnected || isSending || !inputMessage.trim() ? 0.6 : 1,
                 }}
               >
                 {isSending ? "..." : "Enviar"}
