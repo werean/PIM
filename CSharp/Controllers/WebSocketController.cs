@@ -187,6 +187,23 @@ namespace CSharp.Controllers
                     if (receiveResult.MessageType == WebSocketMessageType.Text)
                     {
                         var message = Encoding.UTF8.GetString(buffer, 0, receiveResult.Count);
+                        string promptText = message;
+
+                        // Tentar parsear como JSON para extrair o campo "prompt"
+                        try
+                        {
+                            using var doc = JsonDocument.Parse(message);
+                            var root = doc.RootElement;
+                            if (root.TryGetProperty("prompt", out var promptProperty))
+                            {
+                                promptText = promptProperty.GetString() ?? message;
+                            }
+                        }
+                        catch
+                        {
+                            // Se não for JSON válido, usa a mensagem como está
+                            promptText = message;
+                        }
 
                         try
                         {
@@ -202,7 +219,7 @@ namespace CSharp.Controllers
                             var requestBody = new
                             {
                                 model = "qwen3:0.6b",
-                                prompt = message,
+                                prompt = promptText,
                                 stream = true
                             };
 

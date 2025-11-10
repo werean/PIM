@@ -6,10 +6,12 @@ import {
   getCurrentUserId,
   getCurrentUserName,
   getCurrentUserRole,
+  isTechnician,
 } from "../services/api";
 import type { Ticket, CreateCommentPayload } from "../services/api";
 import { isAuthenticated, deleteCookie } from "../utils/cookies";
 import logoLJFT from "../assets/images/logoLJFT.png";
+import AIChat from "../components/AIChat";
 
 function UserBadge() {
   const userName = getCurrentUserName();
@@ -466,6 +468,15 @@ export default function TicketDetailPage() {
           </div>
         </main>
       </div>
+
+      {/* Chat com IA - apenas para técnicos */}
+      {isTechnician() && ticket && (
+        <AIChat
+          ticketId={id || ""}
+          ticketTitle={ticket.title}
+          ticketBody={ticket.ticketBody || ""}
+        />
+      )}
     </div>
   );
 }
