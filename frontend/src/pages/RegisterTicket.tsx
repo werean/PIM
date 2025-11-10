@@ -33,7 +33,7 @@ export default function RegisterTicketPage() {
       });
 
       setSuccess(true);
-      
+
       // Redireciona para home após 2 segundos
       setTimeout(() => {
         navigate("/home");

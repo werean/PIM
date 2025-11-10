@@ -156,7 +156,10 @@ export default function HomePage() {
             Home / <strong>Chamados</strong>
           </div>
 
-          <div className="topbar__controls" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <div
+            className="topbar__controls"
+            style={{ display: "flex", alignItems: "center", gap: "10px" }}
+          >
             <div className="user-badge">
               {getCurrentUserRole()} <UserBadge />
             </div>
