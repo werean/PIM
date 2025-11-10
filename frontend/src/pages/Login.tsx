@@ -18,15 +18,32 @@ export default function LoginPage() {
     e.preventDefault();
     setError(null);
     try {
-      await apiPost<{ success?: boolean; message?: string }>("/auth/login", {
+      const response = await apiPost<{
+        success?: boolean;
+        message?: string;
+        token?: string;
+        user?: { id: string; username: string; email: string; role: number };
+      }>("/auth/login", {
         email: usuario,
         password: senha,
       });
+
+      // Salvar token no localStorage
+      if (response.token) {
+        localStorage.setItem("token", response.token);
+      }
+
+      // Salvar informações do usuário
+      if (response.user) {
+        localStorage.setItem("user", JSON.stringify(response.user));
+      }
+
       if (lembrar) {
         localStorage.setItem("usuario", usuario);
       } else {
         localStorage.removeItem("usuario");
       }
+
       // After successful login, navigate to the home page
       navigate("/home");
     } catch (err) {

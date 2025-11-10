@@ -3,13 +3,18 @@ const _meta = (
     env?: { VITE_API_URL?: string; DEV?: boolean };
   }
 ).env;
-export const BASE_URL =
-  _meta?.VITE_API_URL ?? (_meta?.DEV ? "http://localhost:8080" : "");
+export const BASE_URL = _meta?.VITE_API_URL ?? (_meta?.DEV ? "http://localhost:8080" : "");
 
 export async function apiGet<T>(path: string, init?: RequestInit): Promise<T> {
+  const token = localStorage.getItem("token");
+  const headers: HeadersInit = { "Content-Type": "application/json" };
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
   const res = await fetch(`${BASE_URL}${path}`, {
     method: "GET",
-    headers: { "Content-Type": "application/json" },
+    headers,
     ...init,
   });
   if (!res.ok) {
@@ -19,14 +24,16 @@ export async function apiGet<T>(path: string, init?: RequestInit): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-export async function apiPost<T>(
-  path: string,
-  body: unknown,
-  init?: RequestInit
-): Promise<T> {
+export async function apiPost<T>(path: string, body: unknown, init?: RequestInit): Promise<T> {
+  const token = localStorage.getItem("token");
+  const headers: HeadersInit = { "Content-Type": "application/json" };
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
   const res = await fetch(`${BASE_URL}${path}`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers,
     body: JSON.stringify(body),
     ...init,
   });

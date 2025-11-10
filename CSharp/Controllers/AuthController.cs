@@ -26,7 +26,7 @@ namespace CSharp.Controllers
         public async Task<IActionResult> Login([FromBody] LoginRequest request)
         {
             var user = await _authService.ValidateUserAsync(request.Email, request.Password);
-            if (user == null) return Unauthorized();
+            if (user == null) return Unauthorized(new { message = "Email ou senha inválidos" });
 
             var token = _authService.GenerateJwtToken(user);
 
@@ -34,11 +34,20 @@ namespace CSharp.Controllers
             Response.Cookies.Append("AuthToken", token, new CookieOptions
             {
                 HttpOnly = true,
-                Secure = true, // Certifique-se de usar HTTPS em produção
-                SameSite = SameSiteMode.Strict
+                Secure = false, // false para desenvolvimento local sem HTTPS
+                SameSite = SameSiteMode.Lax
             });
 
-            return Ok(new { message = "Login successful" });
+            return Ok(new { 
+                message = "Login successful",
+                token = token,
+                user = new {
+                    id = user.Id,
+                    username = user.Username,
+                    email = user.Email,
+                    role = user.Role
+                }
+            });
         }
 
         [HttpPost("logout")]
