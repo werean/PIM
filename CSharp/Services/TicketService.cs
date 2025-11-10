@@ -1,6 +1,7 @@
 // Equivalente a src/modules/tickets/ticket.service.ts
 using CSharp.Entities;
 using CSharp.DTOs;
+using CSharp.Helpers;
 using Microsoft.EntityFrameworkCore;
 using CSharp.Data;
 
@@ -57,6 +58,7 @@ namespace CSharp.Services
             var ticket = await _context.Tickets
                 .Include(t => t.User)
                 .Include(t => t.Comments)
+                    .ThenInclude(c => c.User)
                 .FirstOrDefaultAsync(t => t.Id == id);
             if (ticket == null) return null;
             return new TicketDetailDTO
@@ -70,18 +72,32 @@ namespace CSharp.Services
                 CreatedAt = ticket.CreatedAt,
                 UpdatedAt = ticket.UpdatedAt,
                 UserId = ticket.UserId,
-                Username = ticket.User?.Username
+                Username = ticket.User?.Username,
+                Comments = ticket.Comments?
+                    .OrderBy(c => c.CreatedAt)
+                    .Select(c => new CommentListDTO
+                    {
+                        Id = c.Id,
+                        TicketId = c.TicketId,
+                        CommentBody = c.CommentBody,
+                        CreatedAt = c.CreatedAt,
+                        UserId = c.UserId,
+                        Username = c.User?.Username ?? "Desconhecido"
+                    }).ToList()
             };
         }
 
         public async Task<Ticket?> CreateAsync(TicketCreateDTO dto, Guid userId)
         {
+            var now = DateTimeHelper.GetBrasiliaTime();
             var ticket = new Ticket
             {
                 Title = dto.Title,
                 TicketBody = dto.TicketBody,
                 Urgency = (Urgency)dto.Urgency,
-                UserId = userId
+                UserId = userId,
+                CreatedAt = now,
+                UpdatedAt = now
             };
             _context.Tickets.Add(ticket);
             await _context.SaveChangesAsync();
@@ -114,7 +130,7 @@ namespace CSharp.Services
             if (ticket == null) return false;
             
             ticket.Status = status;
-            ticket.UpdatedAt = DateTime.UtcNow;
+            ticket.UpdatedAt = DateTimeHelper.GetBrasiliaTime();
             
             if (status == TicketStatus.Resolved && !string.IsNullOrEmpty(resolutionMessage))
             {

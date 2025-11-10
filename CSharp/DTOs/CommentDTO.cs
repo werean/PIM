@@ -17,5 +17,7 @@ namespace CSharp.DTOs
         public int TicketId { get; set; }
         public string CommentBody { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
+        public Guid UserId { get; set; }
+        public string Username { get; set; } = string.Empty;
     }
 }

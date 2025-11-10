@@ -33,12 +33,19 @@ function deriveStatus(t: Ticket): StatusKind {
 
 function formatDate(dateStr?: string) {
   if (!dateStr) return "-";
-  const d = new Date(dateStr);
-  if (isNaN(d.getTime())) return "-";
-  const dd = String(d.getDate()).padStart(2, "0");
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const yy = String(d.getFullYear()).slice(-2);
-  return `${dd}/${mm}/${yy}`;
+
+  try {
+    // O backend já retorna o horário de Brasília, apenas formata
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return "-";
+
+    const dd = String(date.getDate()).padStart(2, "0");
+    const mm = String(date.getMonth() + 1).padStart(2, "0");
+    const yy = String(date.getFullYear()).slice(-2);
+    return `${dd}/${mm}/${yy}`;
+  } catch {
+    return "-";
+  }
 }
 
 function UserBadge() {
@@ -101,7 +108,7 @@ export default function HomePage() {
       tickets.map((t) => ({
         ...t,
         _status: deriveStatus(t),
-        _date: formatDate(t.created_at),
+        _date: formatDate(t.createdAt),
       })),
     [tickets]
   );
@@ -234,7 +241,13 @@ export default function HomePage() {
                   {!loading &&
                     !error &&
                     filtered.map((t, idx) => (
-                      <tr key={t.id ?? idx}>
+                      <tr
+                        key={t.id ?? idx}
+                        onClick={() => t.id && navigate(`/ticket/${t.id}`)}
+                        style={{ cursor: "pointer" }}
+                        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#f8f9fa")}
+                        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "")}
+                      >
                         <td>{t.id ?? "-"}</td>
                         <td className="data-table__status">
                           <span

@@ -47,6 +47,7 @@ namespace CSharp.DTOs
         public DateTime UpdatedAt { get; set; }
         public Guid UserId { get; set; }
         public string? Username { get; set; }
+        public List<CommentListDTO>? Comments { get; set; }
     }
 
     public class ResolveTicketDTO

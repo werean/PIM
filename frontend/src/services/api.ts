@@ -63,21 +63,36 @@ export interface CreateUserPayload {
 
 export interface CreateTicketPayload {
   title: string;
-  ticket_body: string;
+  ticketBody: string;
   urgency: 1 | 2 | 3;
 }
 
 export interface Ticket {
   id?: number;
   title: string;
-  ticket_body?: string;
+  ticketBody?: string;
   urgency: 1 | 2 | 3;
   status: 1 | 2 | 3; // 1=Aberto, 2=Pendente, 3=Resolvido
-  resolution_message?: string;
-  created_at?: string;
-  updated_at?: string;
-  user_id?: string;
+  resolutionMessage?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  userId?: string;
   username?: string;
+  comments?: Comment[];
+}
+
+export interface Comment {
+  id: number;
+  ticketId: number;
+  commentBody: string;
+  createdAt: string;
+  userId: string;
+  username: string;
+}
+
+export interface CreateCommentPayload {
+  ticketId: number;
+  commentBody: string;
 }
 
 export interface ResolveTicketPayload {

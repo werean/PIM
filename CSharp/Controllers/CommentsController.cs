@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using CSharp.Services;
 using CSharp.DTOs;
 using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 
 namespace CSharp.Controllers
 {
@@ -22,7 +23,9 @@ namespace CSharp.Controllers
         [Authorize]
         public async Task<ActionResult> Create(CommentCreateDTO dto)
         {
-            var userId = Guid.Parse(User.FindFirst("sub")?.Value ?? "");
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value 
+                ?? throw new UnauthorizedAccessException("User ID not found");
+            var userId = Guid.Parse(userIdClaim);
             var comment = await _service.CreateAsync(dto, userId);
             return CreatedAtAction(nameof(GetByTicket), new { ticketId = comment!.TicketId }, comment);
         }

@@ -1,6 +1,7 @@
 // Equivalente à lógica de /comments
 using CSharp.Entities;
 using CSharp.DTOs;
+using CSharp.Helpers;
 using Microsoft.EntityFrameworkCore;
 using CSharp.Data;
 
@@ -19,13 +20,20 @@ namespace CSharp.Services
 
         public async Task<List<CommentListDTO>> GetByTicketAsync(int ticketId)
         {
-            var comments = await _context.Comments.Where(c => c.TicketId == ticketId).ToListAsync();
+            var comments = await _context.Comments
+                .Include(c => c.User)
+                .Where(c => c.TicketId == ticketId)
+                .OrderBy(c => c.CreatedAt)
+                .ToListAsync();
+            
             return comments.Select(c => new CommentListDTO
             {
                 Id = c.Id,
                 TicketId = c.TicketId,
                 CommentBody = c.CommentBody,
-                CreatedAt = c.CreatedAt
+                CreatedAt = c.CreatedAt,
+                UserId = c.UserId,
+                Username = c.User?.Username ?? "Desconhecido"
             }).ToList();
         }
 
@@ -35,7 +43,8 @@ namespace CSharp.Services
             {
                 TicketId = dto.TicketId,
                 UserId = userId,
-                CommentBody = dto.CommentBody
+                CommentBody = dto.CommentBody,
+                CreatedAt = DateTimeHelper.GetBrasiliaTime()
             };
             _context.Comments.Add(comment);
             await _context.SaveChangesAsync();
