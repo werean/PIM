@@ -19,25 +19,58 @@ namespace CSharp.Services
 
         public async Task<List<TicketListDTO>> GetAllAsync()
         {
-            var tickets = await _context.Tickets.ToListAsync();
+            var tickets = await _context.Tickets
+                .Include(t => t.User)
+                .ToListAsync();
             return tickets.Select(t => new TicketListDTO
             {
                 Id = t.Id,
                 Title = t.Title,
-                Urgency = (int)t.Urgency
+                Urgency = (int)t.Urgency,
+                Status = (int)t.Status,
+                CreatedAt = t.CreatedAt,
+                UserId = t.UserId,
+                Username = t.User?.Username
+            }).ToList();
+        }
+
+        public async Task<List<TicketListDTO>> GetUserTicketsAsync(Guid userId)
+        {
+            var tickets = await _context.Tickets
+                .Include(t => t.User)
+                .Where(t => t.UserId == userId)
+                .ToListAsync();
+            return tickets.Select(t => new TicketListDTO
+            {
+                Id = t.Id,
+                Title = t.Title,
+                Urgency = (int)t.Urgency,
+                Status = (int)t.Status,
+                CreatedAt = t.CreatedAt,
+                UserId = t.UserId,
+                Username = t.User?.Username
             }).ToList();
         }
 
         public async Task<TicketDetailDTO?> GetByIdAsync(int id)
         {
-            var ticket = await _context.Tickets.FindAsync(id);
+            var ticket = await _context.Tickets
+                .Include(t => t.User)
+                .Include(t => t.Comments)
+                .FirstOrDefaultAsync(t => t.Id == id);
             if (ticket == null) return null;
             return new TicketDetailDTO
             {
                 Id = ticket.Id,
                 Title = ticket.Title,
                 TicketBody = ticket.TicketBody,
-                Urgency = (int)ticket.Urgency
+                Urgency = (int)ticket.Urgency,
+                Status = (int)ticket.Status,
+                ResolutionMessage = ticket.ResolutionMessage,
+                CreatedAt = ticket.CreatedAt,
+                UpdatedAt = ticket.UpdatedAt,
+                UserId = ticket.UserId,
+                Username = ticket.User?.Username
             };
         }
 
@@ -73,6 +106,33 @@ namespace CSharp.Services
             _context.Tickets.Remove(ticket);
             await _context.SaveChangesAsync();
             return true;
+        }
+
+        public async Task<bool> SetStatusAsync(int id, TicketStatus status, string? resolutionMessage = null)
+        {
+            var ticket = await _context.Tickets.FindAsync(id);
+            if (ticket == null) return false;
+            
+            ticket.Status = status;
+            ticket.UpdatedAt = DateTime.UtcNow;
+            
+            if (status == TicketStatus.Resolved && !string.IsNullOrEmpty(resolutionMessage))
+            {
+                ticket.ResolutionMessage = resolutionMessage;
+            }
+            
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        public async Task<bool> ResolveTicketAsync(int id, string resolutionMessage)
+        {
+            return await SetStatusAsync(id, TicketStatus.Resolved, resolutionMessage);
+        }
+
+        public async Task<bool> SetPendingAsync(int id)
+        {
+            return await SetStatusAsync(id, TicketStatus.Pending);
         }
     }
 }

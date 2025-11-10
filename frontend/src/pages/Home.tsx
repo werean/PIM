@@ -1,33 +1,34 @@
 ﻿import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 // API Request
 import type { Ticket } from "../services/api";
-import { apiGet } from "../services/api";
+import { apiGet, getCurrentUserName, getCurrentUserRole } from "../services/api";
+
+// Utils
+import { isAuthenticated, deleteCookie } from "../utils/cookies";
 
 // Imagens
 import logoLJFT from "../assets/images/logoLJFT.png";
 
 // Tipagem
-type TicketsResponse = { tickets: Ticket[] } | { message: string };
-type StatusKind = "Novo" | "Pendente" | "Atrasado" | "Concluido";
+type TicketsResponse = Ticket[] | { message: string };
+type StatusKind = "Aberto" | "Pendente" | "Resolvido";
 
 const STATUS_COLOR: Record<StatusKind, string> = {
-  Novo: "#2ab849",
+  Aberto: "#2ab849",
   Pendente: "#f2a400",
-  Atrasado: "#d63333",
-  Concluido: "#7e7e7e",
+  Resolvido: "#7e7e7e",
+};
+
+const STATUS_MAP: Record<number, StatusKind> = {
+  1: "Aberto",
+  2: "Pendente",
+  3: "Resolvido",
 };
 
 function deriveStatus(t: Ticket): StatusKind {
-  const s = (t.status || "").toLowerCase();
-  if (s.includes("conclu")) return "Concluido";
-  if (s.includes("atras")) return "Atrasado";
-  if (s.includes("penden")) return "Pendente";
-  if (s.includes("novo")) return "Novo";
-  if (t.urgency === 3) return "Atrasado";
-  if (t.urgency === 2) return "Pendente";
-  return "Novo";
+  return STATUS_MAP[t.status] || "Aberto";
 }
 
 function formatDate(dateStr?: string) {
@@ -41,7 +42,13 @@ function formatDate(dateStr?: string) {
 }
 
 function UserBadge() {
-  const initials = "LA";
+  const userName = getCurrentUserName();
+  const initials = userName
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .substring(0, 2);
   return <span className="user-badge__initials">{initials}</span>;
 }
 
@@ -52,6 +59,14 @@ export default function HomePage() {
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<"" | StatusKind>("");
   const [dateFilter, setDateFilter] = useState<string>("");
+  const navigate = useNavigate();
+
+  // Proteção de rota: redireciona para login se não estiver autenticado
+  useEffect(() => {
+    if (!isAuthenticated()) {
+      navigate("/login");
+    }
+  }, [navigate]);
 
   useEffect(() => {
     let mounted = true;
@@ -59,15 +74,14 @@ export default function HomePage() {
       try {
         const data = await apiGet<TicketsResponse>("/tickets");
         if (!mounted) return;
-        if ("tickets" in data) {
-          setTickets(data.tickets);
+        if (Array.isArray(data)) {
+          setTickets(data);
           setMessage(null);
         } else {
           setMessage(data.message);
         }
       } catch (err) {
-        const msg =
-          err instanceof Error ? err.message : "Erro ao carregar tickets";
+        const msg = err instanceof Error ? err.message : "Erro ao carregar tickets";
         if (mounted) {
           setError(msg);
         }
@@ -93,10 +107,11 @@ export default function HomePage() {
   );
 
   const statusCounts = useMemo(() => {
-    const base = { Novo: 0, Pendente: 0, Atrasado: 0, Concluido: 0 } as Record<
-      StatusKind,
-      number
-    >;
+    const base: Record<StatusKind, number> = {
+      Aberto: 0,
+      Pendente: 0,
+      Resolvido: 0,
+    };
     derived.forEach((t) => {
       base[t._status]++;
     });
@@ -117,11 +132,7 @@ export default function HomePage() {
     <div className="layout">
       <aside className="sidenav" aria-label="Menu lateral">
         <div className="sidenav__brand">
-          <img
-            className="sidenav__brand-image"
-            src={logoLJFT}
-            alt="Logo LJFT"
-          />
+          <img className="sidenav__brand-image" src={logoLJFT} alt="Logo LJFT" />
           <button className="sidenav__toggle" type="button">
             {"<< Recolher menu"}
           </button>
@@ -129,10 +140,7 @@ export default function HomePage() {
         <nav className="sidenav__nav" aria-label="Navegação">
           <p className="sidenav__section">Menu</p>
           <div className="sidenav__submenu">
-            <Link
-              to="/"
-              className="sidenav__submenu-item sidenav__submenu-item--active"
-            >
+            <Link to="/home" className="sidenav__submenu-item sidenav__submenu-item--active">
               Chamados
             </Link>
             <Link to="/ticket/new" className="sidenav__submenu-item">
@@ -148,35 +156,50 @@ export default function HomePage() {
             Home / <strong>Chamados</strong>
           </div>
 
-          <Link to="/login" className="topbar__controls">
+          <div className="topbar__controls" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
             <div className="user-badge">
-              Técnico <UserBadge />
+              {getCurrentUserRole()} <UserBadge />
             </div>
-          </Link>
+            <button
+              onClick={() => {
+                deleteCookie("token");
+                deleteCookie("user");
+                navigate("/login");
+              }}
+              style={{
+                background: "#dc3545",
+                color: "white",
+                border: "none",
+                padding: "8px 16px",
+                borderRadius: "4px",
+                cursor: "pointer",
+                fontSize: "14px",
+                fontWeight: "500",
+              }}
+            >
+              Sair
+            </button>
+          </div>
         </header>
 
         <main className="layout__content">
           <section className="chamados">
             <div className="status-cards">
               <div className="status-cards__item status-cards__item--green">
-                {statusCounts.Novo} Chamados novos
+                {statusCounts.Aberto} Chamados abertos
               </div>
               <div className="status-cards__item status-cards__item--orange">
                 {statusCounts.Pendente} Chamados pendentes
               </div>
-              <div className="status-cards__item status-cards__item--red">
-                {statusCounts.Atrasado} Chamados atrasados
-              </div>
               <div className="status-cards__item status-cards__item--gray">
-                {statusCounts.Concluido} Chamados solucionados
+                {statusCounts.Resolvido} Chamados resolvidos
+              </div>
+              <div className="status-cards__item status-cards__item--blue">
+                {filtered.length} Total de chamados
               </div>
             </div>
 
-            <div
-              className="data-table"
-              role="table"
-              aria-label="Tabela de Chamados"
-            >
+            <div className="data-table" role="table" aria-label="Tabela de Chamados">
               <table className="data-table__table" cellSpacing={0}>
                 <thead className="data-table__head">
                   <tr>
@@ -195,10 +218,7 @@ export default function HomePage() {
                   )}
                   {error && (
                     <tr>
-                      <td
-                        colSpan={5}
-                        className="form__message form__message--error"
-                      >
+                      <td colSpan={5} className="form__message form__message--error">
                         {error}
                       </td>
                     </tr>
@@ -219,9 +239,7 @@ export default function HomePage() {
                             style={{ backgroundColor: STATUS_COLOR[t._status] }}
                             title={t._status}
                           />
-                          <span className="data-table__status-text">
-                            {t._status}
-                          </span>
+                          <span className="data-table__status-text">{t._status}</span>
                         </td>
                         <td className="data-table__title">{t.title}</td>
                         <td>{t._date}</td>
@@ -230,10 +248,7 @@ export default function HomePage() {
                     ))}
                   {!loading && !error && filtered.length === 0 && (
                     <tr>
-                      <td
-                        colSpan={5}
-                        style={{ textAlign: "center", padding: "20px" }}
-                      >
+                      <td colSpan={5} style={{ textAlign: "center", padding: "20px" }}>
                         Nenhum chamado encontrado.
                       </td>
                     </tr>

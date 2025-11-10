@@ -1,123 +1,134 @@
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useState, useEffect, type FormEvent } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import logoLJFT from "../assets/images/logoLJFT.png";
-
-interface Message {
-  id: number;
-  role: "user" | "assistant";
-  content: string;
-}
+import { apiPost } from "../services/api";
+import { isAuthenticated } from "../utils/cookies";
 
 export default function RegisterTicketPage() {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: 1,
-      role: "assistant",
-      content:
-        "Olá! Sou o assistente de abertura de chamados. Como posso ajudá-lo hoje? Descreva o problema que está enfrentando.",
-    },
-  ]);
-  const [input, setInput] = useState("");
+  const [title, setTitle] = useState("");
+  const [ticketBody, setTicketBody] = useState("");
+  const [urgency, setUrgency] = useState("1"); // 1 = Low, 2 = Medium, 3 = High
   const [loading, setLoading] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+  const navigate = useNavigate();
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
+  // Proteção de rota: redireciona para login se não estiver autenticado
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    if (!isAuthenticated()) {
+      navigate("/login");
+    }
+  }, [navigate]);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    if (!input.trim()) return;
-
-    const userMessage: Message = {
-      id: messages.length + 1,
-      role: "user",
-      content: input.trim(),
-    };
-
-    setMessages((prev) => [...prev, userMessage]);
-    setInput("");
+    setError(null);
     setLoading(true);
 
-    // Simula resposta da IA (depois você conecta com backend real)
-    setTimeout(() => {
-      const aiResponse: Message = {
-        id: messages.length + 2,
-        role: "assistant",
-        content:
-          "Entendi seu problema. Vou criar um chamado para você. Por favor, confirme os detalhes:\n\n• Título: " +
-          userMessage.content.substring(0, 50) +
-          "\n• Urgência: Média\n\nPosso prosseguir com a criação do chamado?",
-      };
-      setMessages((prev) => [...prev, aiResponse]);
+    try {
+      await apiPost("/tickets", {
+        title,
+        ticketBody,
+        urgency: Number(urgency),
+      });
+
+      setSuccess(true);
+      
+      // Redireciona para home após 2 segundos
+      setTimeout(() => {
+        navigate("/home");
+      }, 2000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao criar chamado");
       setLoading(false);
-    }, 1000);
+    }
+  }
+
+  if (success) {
+    return (
+      <div className="login-page">
+        <div className="login-page__card">
+          <img src={logoLJFT} alt="Logo LIFT" className="login-page__logo" />
+          <div className="login-form">
+            <h2 className="login-form__title">✅ Chamado criado com sucesso!</h2>
+            <p style={{ textAlign: "center", marginTop: "20px" }}>
+              Redirecionando para a lista de chamados...
+            </p>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="chat-page">
-      <header className="chat-page__header">
-        <img src={logoLJFT} alt="Logo LIFT" className="chat-page__logo" />
-        <h1 className="chat-page__title">Assistente de Chamados</h1>
-      </header>
+    <div className="login-page">
+      <div className="login-page__card">
+        <img src={logoLJFT} alt="Logo LIFT" className="login-page__logo" />
+        <form onSubmit={handleSubmit} className="login-form">
+          <h2 className="login-form__title">Criar novo chamado</h2>
 
-      <main className="chat-page__main">
-        <div className="chat-messages">
-          {messages.map((msg) => (
-            <div
-              key={msg.id}
-              className={`chat-message chat-message--${msg.role}`}
+          <div className="login-form__group">
+            <label htmlFor="title" className="login-form__label">
+              Título do chamado *
+            </label>
+            <input
+              id="title"
+              type="text"
+              className="login-form__input"
+              placeholder="Ex: Problema com impressora"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              required
+              maxLength={200}
+            />
+          </div>
+
+          <div className="login-form__group">
+            <label htmlFor="ticketBody" className="login-form__label">
+              Descrição do problema *
+            </label>
+            <textarea
+              id="ticketBody"
+              className="login-form__input"
+              placeholder="Descreva o problema em detalhes..."
+              value={ticketBody}
+              onChange={(e) => setTicketBody(e.target.value)}
+              required
+              rows={5}
+              style={{ resize: "vertical", fontFamily: "inherit" }}
+            />
+          </div>
+
+          <div className="login-form__group">
+            <label htmlFor="urgency" className="login-form__label">
+              Urgência *
+            </label>
+            <select
+              id="urgency"
+              className="login-form__input"
+              value={urgency}
+              onChange={(e) => setUrgency(e.target.value)}
+              required
             >
-              <div className="chat-message__avatar">
-                {msg.role === "assistant" ? "🤖" : "👤"}
-              </div>
-              <div className="chat-message__content">
-                <div className="chat-message__role">
-                  {msg.role === "assistant" ? "Assistente" : "Você"}
-                </div>
-                <div className="chat-message__text">{msg.content}</div>
-              </div>
-            </div>
-          ))}
-          {loading && (
-            <div className="chat-message chat-message--assistant">
-              <div className="chat-message__avatar">🤖</div>
-              <div className="chat-message__content">
-                <div className="chat-message__role">Assistente</div>
-                <div className="chat-message__text chat-message__text--loading">
-                  <span className="chat-loader"></span>
-                  <span className="chat-loader"></span>
-                  <span className="chat-loader"></span>
-                </div>
-              </div>
-            </div>
-          )}
-          <div ref={messagesEndRef} />
-        </div>
-      </main>
+              <option value="1">Baixa</option>
+              <option value="2">Média</option>
+              <option value="3">Alta</option>
+            </select>
+          </div>
 
-      <footer className="chat-page__footer">
-        <form onSubmit={handleSubmit} className="chat-input-form">
-          <input
-            type="text"
-            className="chat-input-form__input"
-            placeholder="Descreva seu problema aqui..."
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            disabled={loading}
-          />
-          <button
-            type="submit"
-            className="chat-input-form__submit"
-            disabled={loading || !input.trim()}
-          >
-            Enviar
+          {error && <p className="login-form__error">{error}</p>}
+
+          <button type="submit" className="login-form__submit" disabled={loading}>
+            {loading ? "Criando..." : "Criar chamado"}
           </button>
+
+          <p className="login-form__footer">
+            <Link to="/home" className="login-form__link">
+              ← Voltar para lista de chamados
+            </Link>
+          </p>
         </form>
-      </footer>
+      </div>
     </div>
   );
 }

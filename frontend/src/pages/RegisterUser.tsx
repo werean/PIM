@@ -1,9 +1,12 @@
-import { useState, type FormEvent } from "react";
-import { Link } from "react-router-dom";
+import { useState, useEffect, type FormEvent } from "react";
+import { Link, useNavigate } from "react-router-dom";
 
 // API Request
 import type { CreateUserPayload, Role } from "../services/api";
 import { apiPost } from "../services/api";
+
+// Utils
+import { isAuthenticated } from "../utils/cookies";
 
 // Imagens
 import logoLJFT from "../assets/images/logoLJFT.png";
@@ -18,10 +21,12 @@ export default function RegisterUserPage() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
 
-  function handleChange(
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) {
+  // Se já estiver autenticado, mostrar link para voltar à home
+  const authenticated = isAuthenticated();
+
+  function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
     const { name, value } = e.target;
     setForm((prev) => ({
       ...prev,
@@ -50,6 +55,24 @@ export default function RegisterUserPage() {
     <div className="register-page">
       <div className="register-page__card">
         <img src={logoLJFT} alt="Logo LJFT" className="register-page__logo" />
+        {authenticated && (
+          <div
+            style={{
+              background: "#d1ecf1",
+              border: "1px solid #bee5eb",
+              color: "#0c5460",
+              padding: "10px 15px",
+              borderRadius: "4px",
+              marginBottom: "15px",
+              textAlign: "center",
+            }}
+          >
+            Você já está autenticado.{" "}
+            <Link to="/home" style={{ color: "#0c5460", fontWeight: "bold" }}>
+              Ir para Home
+            </Link>
+          </div>
+        )}
         <form onSubmit={handleSubmit} className="register-form">
           <h2 className="register-form__title">Crie sua conta</h2>
 
@@ -117,24 +140,14 @@ export default function RegisterUserPage() {
             </select>
           </div>
 
-          <button
-            type="submit"
-            className="register-form__submit"
-            disabled={loading}
-          >
+          <button type="submit" className="register-form__submit" disabled={loading}>
             {loading ? "Criando..." : "Criar conta"}
           </button>
 
           {message && (
-            <p className="register-form__message register-form__message--success">
-              {message}
-            </p>
+            <p className="register-form__message register-form__message--success">{message}</p>
           )}
-          {error && (
-            <p className="register-form__message register-form__message--error">
-              {error}
-            </p>
-          )}
+          {error && <p className="register-form__message register-form__message--error">{error}</p>}
 
           <p className="register-form__footer">
             Já tem uma conta?{" "}

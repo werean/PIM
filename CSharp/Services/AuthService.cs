@@ -38,7 +38,9 @@ namespace CSharp.Services
             {
                 new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
                 new Claim(JwtRegisteredClaimNames.Email, user.Email),
-                new Claim("role", ((int)user.Role).ToString())
+                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+                new Claim(ClaimTypes.Role, ((int)user.Role).ToString()),
+                new Claim("username", user.Username)
             };
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"] ?? "supersecret"));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);

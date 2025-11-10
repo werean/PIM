@@ -11,6 +11,13 @@ namespace CSharp.Entities
         High = 3
     }
 
+    public enum TicketStatus
+    {
+        Open = 1,      // Aberto
+        Pending = 2,   // Pendente
+        Resolved = 3   // Resolvido
+    }
+
     public class Ticket
     {
         [Key]
@@ -25,6 +32,14 @@ namespace CSharp.Entities
 
         [Required]
         public Urgency Urgency { get; set; } = Urgency.Low;
+
+        [Required]
+        public TicketStatus Status { get; set; } = TicketStatus.Open;
+
+        public string? ResolutionMessage { get; set; } // Mensagem de resolução
+
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
         // Relacionamentos
         public Guid UserId { get; set; }

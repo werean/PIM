@@ -1,8 +1,11 @@
-import { useState, type FormEvent } from "react";
+import { useState, useEffect, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 // API
 import { apiPost } from "../services/api";
+
+// Utils
+import { setCookie, isAuthenticated } from "../utils/cookies";
 
 // Imagens
 import logoLJFT from "../assets/images/logoLJFT.png";
@@ -13,6 +16,13 @@ export default function LoginPage() {
   const [lembrar, setLembrar] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
+
+  // Redireciona para /home se já estiver autenticado
+  useEffect(() => {
+    if (isAuthenticated()) {
+      navigate("/home");
+    }
+  }, [navigate]);
 
   async function handleLogin(e: FormEvent) {
     e.preventDefault();
@@ -28,14 +38,14 @@ export default function LoginPage() {
         password: senha,
       });
 
-      // Salvar token no localStorage
+      // Salvar token nos cookies por 7 dias
       if (response.token) {
-        localStorage.setItem("token", response.token);
+        setCookie("token", response.token, 7);
       }
 
-      // Salvar informações do usuário
+      // Salvar informações do usuário nos cookies
       if (response.user) {
-        localStorage.setItem("user", JSON.stringify(response.user));
+        setCookie("user", JSON.stringify(response.user), 7);
       }
 
       if (lembrar) {

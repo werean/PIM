@@ -1,3 +1,5 @@
+import { getCookie } from "../utils/cookies";
+
 const _meta = (
   import.meta as unknown as {
     env?: { VITE_API_URL?: string; DEV?: boolean };
@@ -6,7 +8,7 @@ const _meta = (
 export const BASE_URL = _meta?.VITE_API_URL ?? (_meta?.DEV ? "http://localhost:8080" : "");
 
 export async function apiGet<T>(path: string, init?: RequestInit): Promise<T> {
-  const token = localStorage.getItem("token");
+  const token = getCookie("token");
   const headers: HeadersInit = { "Content-Type": "application/json" };
   if (token) {
     headers["Authorization"] = `Bearer ${token}`;
@@ -25,7 +27,7 @@ export async function apiGet<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export async function apiPost<T>(path: string, body: unknown, init?: RequestInit): Promise<T> {
-  const token = localStorage.getItem("token");
+  const token = getCookie("token");
   const headers: HeadersInit = { "Content-Type": "application/json" };
   if (token) {
     headers["Authorization"] = `Bearer ${token}`;
@@ -68,9 +70,64 @@ export interface CreateTicketPayload {
 export interface Ticket {
   id?: number;
   title: string;
-  ticket_body: string;
+  ticket_body?: string;
   urgency: 1 | 2 | 3;
+  status: 1 | 2 | 3; // 1=Aberto, 2=Pendente, 3=Resolvido
+  resolution_message?: string;
   created_at?: string;
   updated_at?: string;
-  status?: string;
+  user_id?: string;
+  username?: string;
+}
+
+export interface ResolveTicketPayload {
+  resolutionMessage: string;
+}
+
+// Helper para verificar se o usuário é técnico
+export function isTechnician(): boolean {
+  const user = getCookie("user");
+  if (!user) return false;
+  try {
+    const userData = JSON.parse(user);
+    return userData.role === 10;
+  } catch {
+    return false;
+  }
+}
+
+// Helper para pegar o userId atual
+export function getCurrentUserId(): string | null {
+  const user = getCookie("user");
+  if (!user) return null;
+  try {
+    const userData = JSON.parse(user);
+    return userData.id;
+  } catch {
+    return null;
+  }
+}
+
+// Helper para pegar o nome do usuário
+export function getCurrentUserName(): string {
+  const user = getCookie("user");
+  if (!user) return "Usuário";
+  try {
+    const userData = JSON.parse(user);
+    return userData.username || "Usuário";
+  } catch {
+    return "Usuário";
+  }
+}
+
+// Helper para pegar a role do usuário
+export function getCurrentUserRole(): string {
+  const user = getCookie("user");
+  if (!user) return "Usuário";
+  try {
+    const userData = JSON.parse(user);
+    return userData.role === 10 ? "Técnico" : "Usuário";
+  } catch {
+    return "Usuário";
+  }
 }

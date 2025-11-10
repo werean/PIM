@@ -29,6 +29,10 @@ namespace CSharp.DTOs
         public int Id { get; set; }
         public string Title { get; set; } = string.Empty;
         public int Urgency { get; set; }
+        public int Status { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public Guid UserId { get; set; }
+        public string? Username { get; set; }
     }
 
     public class TicketDetailDTO
@@ -37,5 +41,18 @@ namespace CSharp.DTOs
         public string Title { get; set; } = string.Empty;
         public string TicketBody { get; set; } = string.Empty;
         public int Urgency { get; set; }
+        public int Status { get; set; }
+        public string? ResolutionMessage { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public DateTime UpdatedAt { get; set; }
+        public Guid UserId { get; set; }
+        public string? Username { get; set; }
+    }
+
+    public class ResolveTicketDTO
+    {
+        [Required]
+        [MinLength(10, ErrorMessage = "A mensagem de resolução deve ter pelo menos 10 caracteres")]
+        public string ResolutionMessage { get; set; } = string.Empty;
     }
 }
