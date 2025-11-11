@@ -150,5 +150,10 @@ namespace CSharp.Services
         {
             return await SetStatusAsync(id, TicketStatus.Pending);
         }
+
+        public async Task<bool> ReopenTicketAsync(int id)
+        {
+            return await SetStatusAsync(id, TicketStatus.Open);
+        }
     }
 }

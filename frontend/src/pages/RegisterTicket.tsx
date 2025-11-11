@@ -86,15 +86,14 @@ export default function RegisterTicketPage() {
         navigate("/home");
       }, 2000);
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { message?: string; errors?: string[] } }; message?: string };
+      const error = err as {
+        response?: { data?: { message?: string; errors?: string[] } };
+        message?: string;
+      };
       if (error.response?.data?.errors) {
         setErrors(error.response.data.errors);
       }
-      setError(
-        error.response?.data?.message ||
-          error.message ||
-          "Erro ao criar chamado"
-      );
+      setError(error.response?.data?.message || error.message || "Erro ao criar chamado");
       setLoading(false);
     }
   }

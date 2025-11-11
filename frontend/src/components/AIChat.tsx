@@ -53,6 +53,13 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
   const [availableModels, setAvailableModels] = useState<OllamaModel[]>([]);
   const [isLoadingModels, setIsLoadingModels] = useState(false);
   const [isPullingModel, setIsPullingModel] = useState(false);
+  const [pullProgress, setPullProgress] = useState<{
+    model: string;
+    status: string;
+    progress: number;
+    error?: string;
+  } | null>(null);
+  const [isDeletingModel, setIsDeletingModel] = useState(false);
   const [ollamaStatus, setOllamaStatus] = useState<OllamaStatus | null>(null);
   const [isCheckingOllama, setIsCheckingOllama] = useState(false);
   const [isManagingOllama, setIsManagingOllama] = useState(false);
@@ -152,7 +159,7 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
   const checkOllamaStatus = useCallback(async () => {
     setIsCheckingOllama(true);
     try {
-      const status = await apiGet<OllamaStatus>('/api/ollama/status');
+      const status = await apiGet<OllamaStatus>("/api/ollama/status");
       setOllamaStatus(status);
       return status;
     } catch (error) {
@@ -160,7 +167,7 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
       setOllamaStatus({
         isRunning: false,
         isInstalled: false,
-        message: "Erro ao verificar status"
+        message: "Erro ao verificar status",
       });
       return null;
     } finally {
@@ -172,17 +179,20 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
   const startOllama = async () => {
     setIsManagingOllama(true);
     try {
-      await apiPost('/api/ollama/start', {});
-      alert('Servidor Ollama iniciado! Aguarde alguns segundos...');
-      
+      await apiPost("/api/ollama/start", {});
+      alert("Servidor Ollama iniciado! Aguarde alguns segundos...");
+
       // Aguardar 3 segundos e verificar status novamente
       setTimeout(async () => {
         await checkOllamaStatus();
+        // Carregar lista de modelos após Ollama iniciar
+        console.log("[startOllama] Ollama iniciado, carregando modelos...");
+        await loadModels();
         setIsManagingOllama(false);
       }, 3000);
     } catch (error) {
       console.error("Erro ao iniciar Ollama:", error);
-      alert('Erro ao iniciar servidor Ollama');
+      alert("Erro ao iniciar servidor Ollama");
       setIsManagingOllama(false);
     }
   };
@@ -191,12 +201,12 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
   const stopOllama = async () => {
     setIsManagingOllama(true);
     try {
-      await apiPost('/api/ollama/stop', {});
-      alert('Servidor Ollama parado!');
+      await apiPost("/api/ollama/stop", {});
+      alert("Servidor Ollama parado!");
       await checkOllamaStatus();
     } catch (error) {
       console.error("Erro ao parar Ollama:", error);
-      alert('Erro ao parar servidor Ollama');
+      alert("Erro ao parar servidor Ollama");
     } finally {
       setIsManagingOllama(false);
     }
@@ -205,14 +215,94 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
   // Abrir página de download do Ollama
   const downloadOllama = async () => {
     try {
-      const response = await apiGet<{ url: string }>('/api/ollama/download-url');
-      window.open(response.url, '_blank');
-      alert('Após instalar o Ollama, reinicie o chat para verificar o status.');
+      const response = await apiGet<{ url: string }>("/api/ollama/download-url");
+      window.open(response.url, "_blank");
+      alert("Após instalar o Ollama, reinicie o chat para verificar o status.");
     } catch (error) {
       console.error("Erro ao obter URL de download:", error);
-      window.open('https://ollama.com/download/windows', '_blank');
+      window.open("https://ollama.com/download/windows", "_blank");
     }
   };
+
+  // Função para carregar modelos (pode ser chamada de qualquer lugar)
+  const loadModels = useCallback(async () => {
+    console.log("[loadModels] Carregando lista de modelos...");
+    setIsLoadingModels(true);
+
+    let localModels: OllamaModel[] = [];
+    let availableModelsForDownload: OllamaModel[] = [];
+
+    try {
+      // Tentar listar modelos locais (pode falhar se Ollama não estiver rodando)
+      const localResponse = await apiGet<{ models: OllamaModel[] }>("/api/ollama/models");
+      localModels = localResponse.models || [];
+      console.log("[loadModels] Modelos locais:", localModels.length);
+    } catch {
+      // Ollama pode não estar rodando
+      console.log("[loadModels] Não foi possível listar modelos locais");
+    }
+
+    try {
+      // Sempre buscar modelos disponíveis para download
+      const availableResponse = await apiGet<{ models: OllamaModel[] }>(
+        "/api/ollama/models/available"
+      );
+      availableModelsForDownload = availableResponse.models || [];
+      console.log("[loadModels] Modelos disponíveis:", availableModelsForDownload.length);
+    } catch (error) {
+      console.error("Erro ao buscar modelos disponíveis:", error);
+      // Se falhar, usar lista padrão
+      availableModelsForDownload = [
+        {
+          name: "qwen3:0.6b",
+          description: "600MB (recomendado)",
+          size: "600MB",
+        },
+        { name: "llama3.2:1b", description: "1.3GB (recomendado)", size: "1.3GB" },
+        { name: "gemma2:2b", description: "1.6GB (recomendado)", size: "1.6GB" },
+        { name: "llama3.2:3b", description: "2GB", size: "2GB" },
+        { name: "phi3:mini", description: "2.3GB", size: "2.3GB" },
+        { name: "mistral:7b", description: "4.1GB", size: "4.1GB" },
+        { name: "llama3.1:8b", description: "4.7GB", size: "4.7GB" },
+      ];
+    }
+
+    // Combinar modelos locais (baixados) com disponíveis para download
+    const allModels = [
+      // Modelos já baixados (com badge de baixado, sem tamanho)
+      ...localModels.map((m) => ({
+        name: m.name,
+        description: "✅ Baixado",
+        size: undefined, // Não mostrar tamanho para modelos já baixados
+        downloaded: true,
+      })),
+      // Modelos disponíveis para download (com tamanho, sem badge de baixado)
+      ...availableModelsForDownload
+        .filter((am) => !localModels.some((lm) => lm.name === am.name))
+        .map((m) => ({
+          name: m.name,
+          description: m.description,
+          size: m.size,
+          downloaded: false,
+        })),
+    ];
+
+    if (allModels.length > 0) {
+      setAvailableModels(allModels as OllamaModel[]);
+      console.log("[loadModels] Total de modelos configurados:", allModels.length);
+    } else {
+      // Último fallback
+      setAvailableModels([
+        {
+          name: "qwen3:0.6b",
+          description: "600MB (recomendado)",
+          size: "600MB",
+        },
+      ]);
+    }
+
+    setIsLoadingModels(false);
+  }, []);
 
   // Carregar modelos disponíveis ao abrir o chat
   useEffect(() => {
@@ -221,99 +311,134 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
     // Verificar status do Ollama primeiro
     checkOllamaStatus();
 
-    const loadModels = async () => {
-      setIsLoadingModels(true);
-      
-      let localModels: OllamaModel[] = [];
-      let availableModelsForDownload: OllamaModel[] = [];
-
-      try {
-        // Tentar listar modelos locais (pode falhar se Ollama não estiver rodando)
-        const localResponse = await apiGet<{ models: OllamaModel[] }>('/api/ollama/models');
-        localModels = localResponse.models || [];
-      } catch {
-        // Ollama pode não estar rodando
-      }
-
-      try {
-        // Sempre buscar modelos disponíveis para download
-        const availableResponse = await apiGet<{ models: OllamaModel[] }>('/api/ollama/models/available');
-        availableModelsForDownload = availableResponse.models || [];
-      } catch (error) {
-        console.error("Erro ao buscar modelos disponíveis:", error);
-        // Se falhar, usar lista padrão
-        availableModelsForDownload = [
-          { name: "qwen3:0.6b", description: "⚡ Ultra-rápido - 600MB (RECOMENDADO)", size: "600MB" },
-          { name: "llama3.2:1b", description: "Llama 3.2 - 1B parâmetros", size: "1.3GB" },
-          { name: "gemma2:2b", description: "Google Gemma 2 - 2B", size: "1.6GB" },
-        ];
-      }
-
-      // Combinar modelos locais (baixados) com disponíveis para download
-      const allModels = [
-        // Modelos já baixados (com badge de baixado, sem tamanho)
-        ...localModels.map(m => ({ 
-          name: m.name,
-          description: "✅ Baixado",
-          size: undefined, // Não mostrar tamanho para modelos já baixados
-          downloaded: true
-        })),
-        // Modelos disponíveis para download (com tamanho, sem badge de baixado)
-        ...availableModelsForDownload.filter(
-          am => !localModels.some(lm => lm.name === am.name)
-        ).map(m => ({ 
-          name: m.name,
-          description: m.description,
-          size: m.size,
-          downloaded: false 
-        }))
-      ];
-
-      if (allModels.length > 0) {
-        setAvailableModels(allModels as OllamaModel[]);
-      } else {
-        // Último fallback
-        setAvailableModels([
-          { name: "qwen3:0.6b", description: "⚡ Ultra-rápido - 600MB (RECOMENDADO)", size: "600MB" }
-        ]);
-      }
-
-      setIsLoadingModels(false);
-    };
-
+    // Carregar modelos
     loadModels();
-  }, [isOpen, checkOllamaStatus]);
+  }, [isOpen, checkOllamaStatus, loadModels]);
 
   // Função para verificar e baixar modelo se necessário
   const ensureModelAvailable = async (modelName: string): Promise<boolean> => {
     try {
+      console.log(`[ensureModelAvailable] Verificando modelo: ${modelName}`);
+
       // Verificar se modelo existe
-      const response = await apiPost<{ exists: boolean }>('/api/ollama/models/check', { model: modelName });
-      
+      const response = await apiPost<{ exists: boolean }>("/api/ollama/models/check", {
+        model: modelName,
+      });
+
+      console.log(`[ensureModelAvailable] Modelo existe:`, response.exists);
+
       if (response.exists) {
         return true;
       }
 
       // Se não existe, perguntar para baixar
       const confirmDownload = window.confirm(
-        `O modelo "${modelName}" não está baixado.\n\nDeseja baixar agora? (Isso pode demorar alguns minutos)`
+        `O modelo "${modelName}" não está baixado.\n\nDeseja baixar agora?\n\n⚠️ O download pode demorar alguns minutos. Após concluído, você poderá enviar sua mensagem.`
       );
+
+      console.log(`[ensureModelAvailable] Usuário confirmou download:`, confirmDownload);
 
       if (!confirmDownload) {
         return false;
       }
 
-      // Iniciar download
+      // Iniciar download com progresso
+      console.log(`[ensureModelAvailable] Iniciando download do modelo ${modelName}...`);
       setIsPullingModel(true);
-      await apiPost('/api/ollama/models/pull', { model: modelName });
-      
-      alert(`Download do modelo "${modelName}" iniciado em background. Aguarde alguns minutos antes de usar.`);
-      setIsPullingModel(false);
-      
-      return true;
-    } catch (error) {
+      setPullProgress({
+        model: modelName,
+        status: "Iniciando download...",
+        progress: 0,
+      });
+
+      let progressInterval: number | null = null;
+
+      try {
+        // Simular progresso realista baseado no tempo
+        let progress = 0;
+
+        console.log(`[ensureModelAvailable] Configurando intervalo de progresso...`);
+        progressInterval = window.setInterval(() => {
+          // Progresso mais lento no início, mais rápido no meio, muito lento no final
+          if (progress < 10) {
+            progress += 2; // Muito lento no início (0-10%)
+          } else if (progress < 70) {
+            progress += 3; // Mais rápido no meio (10-70%)
+          } else if (progress < 90) {
+            progress += 1; // Lento perto do fim (70-90%)
+          } else if (progress < 95) {
+            progress += 0.5; // Muito lento no final (90-95%)
+          }
+
+          if (progress <= 95) {
+            const statusMessages = [
+              "Baixando modelo...",
+              "Baixando modelo... Pode demorar alguns minutos",
+              "Processando download...",
+              "Quase lá...",
+            ];
+            const statusIndex = Math.floor(progress / 25);
+            setPullProgress((prev) =>
+              prev
+                ? { ...prev, progress, status: statusMessages[statusIndex] || "Baixando modelo..." }
+                : null
+            );
+          }
+        }, 3000); // Atualizar a cada 3 segundos
+
+        // Aguardar o download completo (backend agora aguarda)
+        console.log(`[ensureModelAvailable] Enviando requisição de pull para o backend...`);
+        const pullResponse = await apiPost("/api/ollama/models/pull", { model: modelName });
+        console.log(`[ensureModelAvailable] Resposta do pull:`, pullResponse);
+
+        if (progressInterval) clearInterval(progressInterval);
+        setPullProgress({
+          model: modelName,
+          status: "Download concluído! Agora você pode enviar sua mensagem.",
+          progress: 100,
+        });
+
+        console.log(`[ensureModelAvailable] Download concluído com sucesso!`);
+
+        setTimeout(async () => {
+          setPullProgress(null);
+          setIsPullingModel(false);
+          // Recarregar lista de modelos para mostrar o modelo como baixado
+          console.log("[ensureModelAvailable] Recarregando lista de modelos...");
+          await loadModels();
+        }, 3000);
+
+        // Retornar false para NÃO enviar a mensagem automaticamente
+        // Usuário precisa clicar em enviar novamente
+        return false;
+      } catch (error: unknown) {
+        if (progressInterval) clearInterval(progressInterval);
+
+        const err = error as {
+          response?: { data?: { error?: string; details?: string } };
+          message?: string;
+        };
+        const errorMessage =
+          err.response?.data?.error ||
+          err.response?.data?.details ||
+          err.message ||
+          "Erro desconhecido ao baixar modelo";
+
+        setPullProgress({
+          model: modelName,
+          status: "Erro no download",
+          progress: 0,
+          error: errorMessage,
+        });
+
+        setIsPullingModel(false);
+        console.error("Erro ao baixar modelo:", errorMessage);
+        return false;
+      }
+    } catch (error: unknown) {
       console.error("Erro ao verificar/baixar modelo:", error);
       setIsPullingModel(false);
+      setPullProgress(null);
       return false;
     }
   };
@@ -500,10 +625,16 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
   const handleSend = async () => {
     if (!inputMessage.trim() || !wsRef.current || !isConnected || isSending) return;
 
+    // Bloquear envio se está baixando modelo
+    if (isPullingModel) {
+      alert("Aguarde o download do modelo terminar antes de enviar mensagens.");
+      return;
+    }
+
     // Verificar se o modelo está disponível
     const modelAvailable = await ensureModelAvailable(selectedModel);
     if (!modelAvailable) {
-      alert("Modelo não disponível. Selecione outro modelo ou aguarde o download.");
+      // Não envia a mensagem - usuário precisa aguardar o download
       return;
     }
 
@@ -721,7 +852,7 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
               <div style={{ fontSize: "13px", fontWeight: "500", color: "#856404" }}>
                 ⚠️ {ollamaStatus.message}
               </div>
-              
+
               {!ollamaStatus.isInstalled ? (
                 <div style={{ display: "flex", gap: "8px" }}>
                   <button
@@ -762,8 +893,13 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
                     {isManagingOllama ? "⏳ Iniciando..." : "▶️ Iniciar Ollama"}
                   </button>
                   <button
-                    onClick={checkOllamaStatus}
-                    disabled={isCheckingOllama}
+                    onClick={async () => {
+                      await checkOllamaStatus();
+                      // Recarregar lista de modelos ao verificar status
+                      console.log("[RefreshButton] Verificando status e recarregando modelos...");
+                      await loadModels();
+                    }}
+                    disabled={isCheckingOllama || isLoadingModels}
                     style={{
                       padding: "8px 12px",
                       backgroundColor: "#6c757d",
@@ -772,11 +908,11 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
                       borderRadius: "6px",
                       fontSize: "12px",
                       fontWeight: "500",
-                      cursor: isCheckingOllama ? "not-allowed" : "pointer",
-                      opacity: isCheckingOllama ? 0.6 : 1,
+                      cursor: isCheckingOllama || isLoadingModels ? "not-allowed" : "pointer",
+                      opacity: isCheckingOllama || isLoadingModels ? 0.6 : 1,
                     }}
                   >
-                    {isCheckingOllama ? "⏳" : "🔄"}
+                    {isCheckingOllama || isLoadingModels ? "⏳" : "🔄"}
                   </button>
                 </div>
               )}
@@ -843,7 +979,11 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
               id="model-select"
               value={selectedModel}
               onChange={(e) => setSelectedModel(e.target.value)}
-              disabled={isPullingModel || isLoadingModels || (ollamaStatus !== null && !ollamaStatus.isRunning)}
+              disabled={
+                isPullingModel ||
+                isLoadingModels ||
+                (ollamaStatus !== null && !ollamaStatus.isRunning)
+              }
               style={{
                 flex: 1,
                 padding: "6px 10px",
@@ -851,7 +991,10 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
                 border: "1px solid #ced4da",
                 fontSize: "12px",
                 backgroundColor: "white",
-                cursor: isPullingModel || (ollamaStatus && !ollamaStatus.isRunning) ? "not-allowed" : "pointer",
+                cursor:
+                  isPullingModel || (ollamaStatus && !ollamaStatus.isRunning)
+                    ? "not-allowed"
+                    : "pointer",
                 opacity: ollamaStatus && !ollamaStatus.isRunning ? 0.6 : 1,
               }}
             >
@@ -859,17 +1002,23 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
                 <option>Carregando...</option>
               ) : availableModels.length > 0 ? (
                 availableModels.map((model) => {
-                  // Para modelos baixados: "nome ✅ Baixado"
-                  // Para modelos não baixados: "nome - descrição (tamanho)"
+                  // Para modelos baixados: "nome - ✅ Baixado"
+                  // Para modelos não baixados: "nome (tamanho) (recomendado)"
                   let displayText = model.name;
-                  
+
                   if (model.downloaded) {
                     displayText += " - ✅ Baixado";
-                  } else if (model.description || model.size) {
-                    if (model.description) displayText += ` - ${model.description}`;
-                    if (model.size) displayText += ` (${model.size})`;
+                  } else {
+                    // Adicionar tamanho se disponível
+                    if (model.size) {
+                      displayText += ` (${model.size})`;
+                    }
+                    // Adicionar (recomendado) se a descrição contiver isso
+                    if (model.description && model.description.includes("recomendado")) {
+                      displayText += " (recomendado)";
+                    }
                   }
-                  
+
                   return (
                     <option key={model.name} value={model.name}>
                       {displayText}
@@ -880,10 +1029,214 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
                 <option>Nenhum modelo disponível</option>
               )}
             </select>
-            {isPullingModel && (
+            {isPullingModel && !pullProgress?.error && (
               <span style={{ fontSize: "12px", color: "#ffc107" }}>⏳ Baixando...</span>
             )}
+            {/* Botão de remover modelo (só aparece se o modelo selecionado estiver baixado) */}
+            {availableModels.find((m) => m.name === selectedModel)?.downloaded && (
+              <button
+                onClick={async () => {
+                  const confirmDelete = window.confirm(
+                    `Tem certeza que deseja remover o modelo "${selectedModel}"?\n\nEsta ação não pode ser desfeita.`
+                  );
+                  if (!confirmDelete) return;
+
+                  setIsDeletingModel(true);
+                  try {
+                    console.log(`[DeleteModel] Removendo modelo: ${selectedModel}`);
+                    const response = await fetch("http://localhost:8080/api/ollama/models/delete", {
+                      method: "DELETE",
+                      headers: {
+                        "Content-Type": "application/json",
+                      },
+                      body: JSON.stringify({ model: selectedModel }),
+                    });
+
+                    console.log(`[DeleteModel] Status da resposta:`, response.status);
+
+                    // Tentar ler o JSON, mas não falhar se estiver vazio
+                    let responseData = null;
+                    const responseText = await response.text();
+                    console.log(`[DeleteModel] Resposta em texto:`, responseText);
+
+                    if (responseText) {
+                      try {
+                        responseData = JSON.parse(responseText);
+                      } catch (jsonError) {
+                        console.warn(`[DeleteModel] Resposta não é JSON válido:`, jsonError);
+                      }
+                    }
+
+                    if (!response.ok) {
+                      const errorMessage =
+                        responseData?.error || responseData?.details || "Erro ao remover modelo";
+                      throw new Error(errorMessage);
+                    }
+
+                    console.log(`[DeleteModel] Modelo removido com sucesso!`);
+                    alert(`Modelo "${selectedModel}" removido com sucesso!`);
+
+                    // Recarregar lista de modelos para refletir a remoção
+                    console.log("[DeleteModel] Recarregando lista de modelos...");
+                    await loadModels();
+
+                    // Se o modelo removido era o selecionado, selecionar o primeiro disponível
+                    setSelectedModel("qwen3:0.6b");
+                  } catch (error: unknown) {
+                    console.error(`[DeleteModel] Erro:`, error);
+                    const err = error as { message?: string };
+                    const errorMessage = err.message || "Erro ao remover modelo";
+                    alert(`Erro ao remover modelo: ${errorMessage}`);
+                  } finally {
+                    setIsDeletingModel(false);
+                  }
+                }}
+                disabled={isPullingModel || isLoadingModels || isDeletingModel}
+                style={{
+                  padding: "6px 12px",
+                  backgroundColor: "#dc3545",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "6px",
+                  fontSize: "11px",
+                  fontWeight: "500",
+                  cursor:
+                    isPullingModel || isLoadingModels || isDeletingModel
+                      ? "not-allowed"
+                      : "pointer",
+                  opacity: isPullingModel || isLoadingModels || isDeletingModel ? 0.6 : 1,
+                }}
+                title="Remover modelo"
+              >
+                {isDeletingModel ? "⏳ Removendo..." : "🗑️ Remover"}
+              </button>
+            )}
           </div>
+
+          {/* Barra de Progresso de Download */}
+          {pullProgress && (
+            <div
+              style={{
+                padding: "12px 16px",
+                backgroundColor: pullProgress.error ? "#f8d7da" : "#e7f3ff",
+                borderBottom: "1px solid #dee2e6",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  marginBottom: "8px",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <span
+                    style={{
+                      fontSize: "12px",
+                      fontWeight: "500",
+                      color: pullProgress.error ? "#721c24" : "#004085",
+                    }}
+                  >
+                    {pullProgress.error ? "❌" : "📥"} {pullProgress.model}
+                  </span>
+                  {pullProgress.error && (
+                    <div
+                      style={{
+                        position: "relative",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        width: "18px",
+                        height: "18px",
+                        backgroundColor: "#dc3545",
+                        borderRadius: "50%",
+                        cursor: "help",
+                      }}
+                      title={pullProgress.error}
+                    >
+                      <span
+                        style={{
+                          fontSize: "12px",
+                          color: "white",
+                          fontWeight: "bold",
+                          lineHeight: "1",
+                        }}
+                      >
+                        i
+                      </span>
+                    </div>
+                  )}
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <span
+                    style={{
+                      fontSize: "11px",
+                      color: pullProgress.error ? "#721c24" : "#004085",
+                    }}
+                  >
+                    {pullProgress.status}
+                  </span>
+                  {pullProgress.error && (
+                    <button
+                      onClick={() => {
+                        setPullProgress(null);
+                        setIsPullingModel(false);
+                      }}
+                      style={{
+                        padding: "2px 8px",
+                        backgroundColor: "#dc3545",
+                        color: "white",
+                        border: "none",
+                        borderRadius: "3px",
+                        fontSize: "10px",
+                        cursor: "pointer",
+                        fontWeight: "500",
+                      }}
+                    >
+                      ✕ Fechar
+                    </button>
+                  )}
+                </div>
+              </div>
+              {!pullProgress.error && (
+                <div
+                  style={{
+                    width: "100%",
+                    height: "6px",
+                    backgroundColor: "#d1ecf1",
+                    borderRadius: "3px",
+                    overflow: "hidden",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: `${pullProgress.progress}%`,
+                      height: "100%",
+                      backgroundColor: pullProgress.progress === 100 ? "#28a745" : "#007bff",
+                      transition: "width 0.3s ease",
+                    }}
+                  />
+                </div>
+              )}
+              {pullProgress.error && (
+                <div
+                  style={{
+                    marginTop: "6px",
+                    padding: "8px",
+                    backgroundColor: "#fff",
+                    border: "1px solid #f5c6cb",
+                    borderRadius: "4px",
+                    fontSize: "11px",
+                    color: "#721c24",
+                    wordBreak: "break-word",
+                  }}
+                >
+                  <strong>Detalhes do erro:</strong> {pullProgress.error}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Mensagens */}
           <div
@@ -983,8 +1336,10 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
                 value={inputMessage}
                 onChange={(e) => setInputMessage(e.target.value)}
                 onKeyPress={handleKeyPress}
-                placeholder="Digite sua mensagem..."
-                disabled={!isConnected || isSending}
+                placeholder={
+                  isPullingModel ? "Aguarde o download do modelo..." : "Digite sua mensagem..."
+                }
+                disabled={!isConnected || isSending || isPullingModel}
                 rows={2}
                 style={{
                   flex: 1,
@@ -999,21 +1354,24 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
               />
               <button
                 onClick={handleSend}
-                disabled={!isConnected || isSending || !inputMessage.trim()}
+                disabled={!isConnected || isSending || !inputMessage.trim() || isPullingModel}
                 style={{
                   padding: "10px 16px",
-                  backgroundColor: "#007bff",
+                  backgroundColor: isPullingModel ? "#ffc107" : "#007bff",
                   color: "white",
                   border: "none",
                   borderRadius: "8px",
                   cursor:
-                    !isConnected || isSending || !inputMessage.trim() ? "not-allowed" : "pointer",
+                    !isConnected || isSending || !inputMessage.trim() || isPullingModel
+                      ? "not-allowed"
+                      : "pointer",
                   fontSize: "14px",
                   fontWeight: "500",
-                  opacity: !isConnected || isSending || !inputMessage.trim() ? 0.6 : 1,
+                  opacity:
+                    !isConnected || isSending || !inputMessage.trim() || isPullingModel ? 0.6 : 1,
                 }}
               >
-                {isSending ? "..." : "Enviar"}
+                {isPullingModel ? "⏳ Baixando..." : isSending ? "..." : "Enviar"}
               </button>
             </div>
           </div>

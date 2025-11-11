@@ -69,6 +69,9 @@ export default function TicketDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
+  const [resolutionMessage, setResolutionMessage] = useState("");
+  const [isResolvingTicket, setIsResolvingTicket] = useState(false);
+  const [isSettingPending, setIsSettingPending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const currentUserId = getCurrentUserId();
 
@@ -113,7 +116,7 @@ export default function TicketDetailPage() {
 
   async function handleSendMessage(e: FormEvent) {
     e.preventDefault();
-    
+
     // Validação
     if (!message.trim()) {
       setError("Mensagem não pode estar vazia");
@@ -139,21 +142,145 @@ export default function TicketDetailPage() {
         commentBody: message.trim(),
       };
 
+      console.log("Enviando comentário...");
       await apiPost("/comments", payload);
+      console.log("Comentário enviado com sucesso");
 
       // Recarregar ticket para atualizar comentários
       const updatedTicket = await apiGet<Ticket>(`/tickets/${id}`);
       setTicket(updatedTicket);
       setMessage("");
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { message?: string } }; message?: string };
-      setError(
-        error.response?.data?.message ||
-          error.message ||
-          "Erro ao enviar mensagem"
-      );
+      console.error("Erro ao enviar mensagem:", err);
+      const error = err as {
+        response?: { data?: { message?: string; errors?: string[] }; status?: number };
+        message?: string;
+      };
+
+      let errorMessage = "Erro ao enviar mensagem";
+
+      if (error.response?.status === 403) {
+        errorMessage = "Você não tem permissão para comentar neste ticket";
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      setError(errorMessage);
     } finally {
       setSending(false);
+    }
+  }
+
+  async function handleResolveTicket(e: FormEvent) {
+    e.preventDefault();
+
+    // Validação
+    if (!resolutionMessage.trim()) {
+      setError("Mensagem de resolução não pode estar vazia");
+      return;
+    }
+
+    if (resolutionMessage.trim().length < 10) {
+      setError("Mensagem de resolução deve ter no mínimo 10 caracteres");
+      return;
+    }
+
+    if (!id) {
+      setError("ID do ticket inválido");
+      return;
+    }
+
+    setIsResolvingTicket(true);
+    setError(null);
+
+    try {
+      console.log(`Resolvendo ticket ${id}...`);
+      await apiPost(`/tickets/${id}/resolve`, {
+        resolutionMessage: resolutionMessage.trim(),
+      });
+      console.log("Ticket resolvido com sucesso");
+
+      // Recarregar ticket para atualizar status
+      const updatedTicket = await apiGet<Ticket>(`/tickets/${id}`);
+      setTicket(updatedTicket);
+      setResolutionMessage("");
+    } catch (err: unknown) {
+      console.error("Erro ao resolver ticket:", err);
+      const error = err as {
+        response?: {
+          data?: { message?: string; errors?: string[]; error?: string };
+          status?: number;
+        };
+        message?: string;
+      };
+
+      let errorMessage = "Erro ao resolver ticket";
+
+      if (error.response?.status === 404) {
+        errorMessage = "Ticket não encontrado";
+      } else if (error.response?.status === 403) {
+        errorMessage = "Você não tem permissão para resolver tickets";
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      setError(errorMessage);
+    } finally {
+      setIsResolvingTicket(false);
+    }
+  }
+
+  async function handleTogglePending() {
+    if (!id) {
+      setError("ID do ticket inválido");
+      return;
+    }
+
+    setIsSettingPending(true);
+    setError(null);
+
+    try {
+      if (ticket?.status === 2) {
+        // Se está pendente, retomar (voltar para status 1 - Aberto)
+        console.log(`Tentando reabrir ticket ${id}...`);
+        await apiPost(`/tickets/${id}/reopen`, {});
+        console.log("Ticket reaberto com sucesso");
+      } else {
+        // Se está aberto, pausar (status 2 - Pendente)
+        console.log(`Tentando pausar ticket ${id}...`);
+        await apiPost(`/tickets/${id}/pending`, {});
+        console.log("Ticket pausado com sucesso");
+      }
+
+      // Recarregar ticket para atualizar status
+      const updatedTicket = await apiGet<Ticket>(`/tickets/${id}`);
+      setTicket(updatedTicket);
+    } catch (err: unknown) {
+      console.error("Erro ao alterar status do ticket:", err);
+      const error = err as {
+        response?: { data?: { message?: string; error?: string }; status?: number };
+        message?: string;
+      };
+
+      let errorMessage = "Erro ao alterar status do ticket";
+
+      if (error.response?.status === 404) {
+        errorMessage = "Ticket não encontrado ou endpoint não disponível";
+      } else if (error.response?.status === 403) {
+        errorMessage = "Você não tem permissão para realizar esta ação";
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      setError(errorMessage);
+    } finally {
+      setIsSettingPending(false);
     }
   }
 
@@ -319,29 +446,6 @@ export default function TicketDetailPage() {
                 <p style={{ margin: 0 }}>{formatDateTime(ticket.updatedAt)}</p>
               </div>
             </div>
-
-            {ticket.resolutionMessage && (
-              <div
-                style={{
-                  marginTop: "16px",
-                  padding: "12px",
-                  background: "#d4edda",
-                  borderRadius: "4px",
-                }}
-              >
-                <p
-                  style={{
-                    margin: "0 0 4px 0",
-                    fontWeight: "600",
-                    fontSize: "14px",
-                    color: "#155724",
-                  }}
-                >
-                  Mensagem de Resolução:
-                </p>
-                <p style={{ margin: 0, color: "#155724" }}>{ticket.resolutionMessage}</p>
-              </div>
-            )}
           </div>
 
           {/* Área de Mensagens */}
@@ -486,6 +590,215 @@ export default function TicketDetailPage() {
               </form>
             </div>
           </div>
+
+          {/* Área de Resolução - apenas para técnicos */}
+          {isTechnician() && ticket && (
+            <div
+              style={{
+                background: "white",
+                borderRadius: "8px",
+                boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+                marginTop: "20px",
+                padding: "24px",
+              }}
+            >
+              {ticket.status === 3 ? (
+                // Ticket já resolvido - mostrar apenas a solução
+                <div>
+                  <h3
+                    style={{
+                      margin: "0 0 16px 0",
+                      fontSize: "18px",
+                      fontWeight: "600",
+                      color: "#155724",
+                    }}
+                  >
+                    ✅ Ticket Resolvido
+                  </h3>
+                  <div
+                    style={{
+                      padding: "16px",
+                      background: "#d4edda",
+                      borderRadius: "6px",
+                      border: "1px solid #c3e6cb",
+                    }}
+                  >
+                    <p
+                      style={{
+                        margin: "0 0 8px 0",
+                        fontWeight: "600",
+                        fontSize: "14px",
+                        color: "#155724",
+                      }}
+                    >
+                      Solução:
+                    </p>
+                    <p
+                      style={{
+                        margin: 0,
+                        color: "#155724",
+                        whiteSpace: "pre-wrap",
+                        lineHeight: "1.6",
+                      }}
+                    >
+                      {ticket.resolutionMessage}
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                // Ticket ainda não resolvido - mostrar formulário
+                <div>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      marginBottom: "16px",
+                    }}
+                  >
+                    <h3
+                      style={{
+                        margin: 0,
+                        fontSize: "18px",
+                        fontWeight: "600",
+                        color: "#495057",
+                      }}
+                    >
+                      Gerenciar Ticket
+                    </h3>
+                    <button
+                      type="button"
+                      onClick={handleTogglePending}
+                      disabled={isSettingPending}
+                      style={{
+                        padding: "8px 16px",
+                        background: ticket.status === 2 ? "#28a745" : "#f2a400",
+                        color: "white",
+                        border: "none",
+                        borderRadius: "6px",
+                        cursor: isSettingPending ? "not-allowed" : "pointer",
+                        fontSize: "14px",
+                        fontWeight: "500",
+                        transition: "background 0.2s",
+                        opacity: isSettingPending ? 0.6 : 1,
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!isSettingPending) {
+                          e.currentTarget.style.background =
+                            ticket.status === 2 ? "#218838" : "#d89000";
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!isSettingPending) {
+                          e.currentTarget.style.background =
+                            ticket.status === 2 ? "#28a745" : "#f2a400";
+                        }
+                      }}
+                    >
+                      {isSettingPending
+                        ? ticket.status === 2
+                          ? "Retomando..."
+                          : "Pausando..."
+                        : ticket.status === 2
+                        ? "▶ Retomar Atendimento"
+                        : "⏸ Pausar Atendimento"}
+                    </button>
+                  </div>
+
+                  {ticket.status === 2 && (
+                    <div
+                      style={{
+                        padding: "12px",
+                        marginBottom: "16px",
+                        background: "#fff3cd",
+                        border: "1px solid #ffeaa7",
+                        borderRadius: "6px",
+                        color: "#856404",
+                        fontSize: "14px",
+                      }}
+                    >
+                      ⏸ Este ticket está <strong>pausado/pendente</strong>. Clique em "Retomar
+                      Atendimento" para continuar ou preencha a solução abaixo para fechá-lo.
+                    </div>
+                  )}
+
+                  <form onSubmit={handleResolveTicket}>
+                    <div style={{ marginBottom: "16px" }}>
+                      <label
+                        htmlFor="resolution"
+                        style={{
+                          display: "block",
+                          marginBottom: "8px",
+                          fontWeight: "500",
+                          fontSize: "14px",
+                          color: "#495057",
+                        }}
+                      >
+                        Descreva a solução do problema *
+                      </label>
+                      <textarea
+                        id="resolution"
+                        className="login-form__input"
+                        placeholder="Descreva como o problema foi resolvido..."
+                        value={resolutionMessage}
+                        onChange={(e) => setResolutionMessage(e.target.value)}
+                        disabled={isResolvingTicket}
+                        rows={5}
+                        style={{
+                          width: "100%",
+                          resize: "vertical",
+                          fontFamily: "inherit",
+                          padding: "12px",
+                          margin: 0,
+                        }}
+                        required
+                      />
+                      <p
+                        style={{
+                          margin: "4px 0 0 0",
+                          fontSize: "12px",
+                          color: "#6c757d",
+                        }}
+                      >
+                        Mínimo de 10 caracteres
+                      </p>
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={isResolvingTicket || resolutionMessage.trim().length < 10}
+                      style={{
+                        padding: "12px 24px",
+                        background: "#28a745",
+                        color: "white",
+                        border: "none",
+                        borderRadius: "6px",
+                        cursor:
+                          isResolvingTicket || resolutionMessage.trim().length < 10
+                            ? "not-allowed"
+                            : "pointer",
+                        fontSize: "14px",
+                        fontWeight: "500",
+                        transition: "background 0.2s",
+                        opacity:
+                          isResolvingTicket || resolutionMessage.trim().length < 10 ? 0.6 : 1,
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!isResolvingTicket && resolutionMessage.trim().length >= 10) {
+                          e.currentTarget.style.background = "#218838";
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = "#28a745";
+                      }}
+                    >
+                      {isResolvingTicket ? "Resolvendo..." : "Resolver e Fechar Ticket"}
+                    </button>
+                  </form>
+                </div>
+              )}
+            </div>
+          )}
         </main>
       </div>
 

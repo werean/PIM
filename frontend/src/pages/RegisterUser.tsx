@@ -114,15 +114,14 @@ export default function RegisterUserPage() {
       setMessage(res.message ?? "Usuário criado com sucesso.");
       setForm({ username: "", email: "", password: "", role: 5 });
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { message?: string; errors?: string[] } }; message?: string };
+      const error = err as {
+        response?: { data?: { message?: string; errors?: string[] } };
+        message?: string;
+      };
       if (error.response?.data?.errors) {
         setErrors(error.response.data.errors);
       }
-      setError(
-        error.response?.data?.message ||
-          error.message ||
-          "Erro ao criar usuário"
-      );
+      setError(error.response?.data?.message || error.message || "Erro ao criar usuário");
     } finally {
       setLoading(false);
     }
@@ -154,14 +153,16 @@ export default function RegisterUserPage() {
           <h2 className="register-form__title">Crie sua conta</h2>
 
           {message && (
-            <div style={{
-              backgroundColor: '#d4edda',
-              border: '1px solid #c3e6cb',
-              borderRadius: '4px',
-              padding: '12px',
-              marginBottom: '16px',
-              color: '#155724'
-            }}>
+            <div
+              style={{
+                backgroundColor: "#d4edda",
+                border: "1px solid #c3e6cb",
+                borderRadius: "4px",
+                padding: "12px",
+                marginBottom: "16px",
+                color: "#155724",
+              }}
+            >
               {message}
             </div>
           )}

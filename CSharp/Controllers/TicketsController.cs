@@ -202,17 +202,48 @@ namespace CSharp.Controllers
         [Authorize]
         public async Task<IActionResult> SetPending(int id)
         {
-            var userRoleClaim = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
-            
-            // Apenas técnicos podem marcar como pendente
-            if (userRoleClaim != "10")
+            try
             {
-                return Forbid();
+                var userRoleClaim = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+                
+                // Apenas técnicos podem marcar como pendente
+                if (userRoleClaim != "10")
+                {
+                    return Forbid();
+                }
+                
+                var ok = await _service.SetPendingAsync(id);
+                if (!ok) return NotFound(new { message = "Ticket não encontrado" });
+                return Ok(new { message = "Ticket marcado como pendente" });
             }
-            
-            var ok = await _service.SetPendingAsync(id);
-            if (!ok) return NotFound();
-            return Ok(new { message = "Ticket marcado como pendente" });
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Erro ao marcar ticket como pendente", error = ex.Message });
+            }
+        }
+
+        [HttpPost("{id}/reopen")]
+        [Authorize]
+        public async Task<IActionResult> ReopenTicket(int id)
+        {
+            try
+            {
+                var userRoleClaim = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+                
+                // Apenas técnicos podem reabrir tickets
+                if (userRoleClaim != "10")
+                {
+                    return Forbid();
+                }
+                
+                var ok = await _service.ReopenTicketAsync(id);
+                if (!ok) return NotFound(new { message = "Ticket não encontrado" });
+                return Ok(new { message = "Ticket reaberto com sucesso" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Erro ao reabrir ticket", error = ex.Message });
+            }
         }
     }
 }

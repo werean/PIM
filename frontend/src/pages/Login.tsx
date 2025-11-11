@@ -107,15 +107,14 @@ export default function LoginPage() {
       // After successful login, navigate to the home page
       navigate("/home");
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { message?: string; errors?: string[] } }; message?: string };
+      const error = err as {
+        response?: { data?: { message?: string; errors?: string[] } };
+        message?: string;
+      };
       if (error.response?.data?.errors) {
         setErrors(error.response.data.errors);
       }
-      setError(
-        error.response?.data?.message ||
-          error.message ||
-          "Erro ao efetuar login"
-      );
+      setError(error.response?.data?.message || error.message || "Erro ao efetuar login");
     } finally {
       setIsSubmitting(false);
     }
@@ -184,11 +183,7 @@ export default function LoginPage() {
             <label htmlFor="lembrar">Lembrar de mim</label>
           </div>
 
-          <button 
-            type="submit" 
-            className="login-form__submit"
-            disabled={isSubmitting}
-          >
+          <button type="submit" className="login-form__submit" disabled={isSubmitting}>
             {isSubmitting ? "Entrando..." : "Entrar"}
           </button>
 

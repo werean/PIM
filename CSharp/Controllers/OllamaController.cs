@@ -88,19 +88,19 @@ namespace CSharp.Controllers
             var availableModels = new[]
             {
                 // Modelos ultra-leves (< 1B) - PRIORITÁRIOS
-                new { name = "qwen3:0.6b", description = "⚡ Ultra-rápido - 600MB (RECOMENDADO)", size = "600MB" },
+                new { name = "qwen3:0.6b", description = "600MB (recomendado)", size = "600MB" },
                 
                 // Modelos leves (1B)
-                new { name = "llama3.2:1b", description = "Llama 3.2 - 1B parâmetros", size = "1.3GB" },
+                new { name = "llama3.2:1b", description = "1.3GB (recomendado)", size = "1.3GB" },
                 
                 // Modelos médios (2-3B)
-                new { name = "gemma2:2b", description = "Google Gemma 2 - 2B", size = "1.6GB" },
-                new { name = "llama3.2:3b", description = "Llama 3.2 - 3B parâmetros", size = "2GB" },
-                new { name = "phi3:mini", description = "Microsoft Phi-3 Mini", size = "2.3GB" },
+                new { name = "gemma2:2b", description = "1.6GB (recomendado)", size = "1.6GB" },
+                new { name = "llama3.2:3b", description = "2GB", size = "2GB" },
+                new { name = "phi3:mini", description = "2.3GB", size = "2.3GB" },
                 
                 // Modelos pesados (7B+) - Melhor qualidade, mais lentos
-                new { name = "mistral:7b", description = "Mistral 7B - Alta qualidade", size = "4.1GB" },
-                new { name = "llama3.1:8b", description = "Llama 3.1 - 8B parâmetros", size = "4.7GB" }
+                new { name = "mistral:7b", description = "4.1GB", size = "4.1GB" },
+                new { name = "llama3.1:8b", description = "4.7GB", size = "4.7GB" }
             };
 
             return Ok(new { models = availableModels });
@@ -146,13 +146,28 @@ namespace CSharp.Controllers
 
                 if (!response.IsSuccessStatusCode)
                 {
-                    return StatusCode((int)response.StatusCode, new { error = "Erro ao baixar modelo" });
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    _logger.LogError($"Erro ao baixar modelo: {response.StatusCode} - {errorContent}");
+                    return StatusCode((int)response.StatusCode, new { error = "Erro ao baixar modelo", details = errorContent });
                 }
 
-                // Retornar stream de progresso
+                // Ler o stream completo para garantir que o download aconteça
+                using (var stream = await response.Content.ReadAsStreamAsync())
+                using (var reader = new StreamReader(stream))
+                {
+                    string? line;
+                    while ((line = await reader.ReadLineAsync()) != null)
+                    {
+                        // Apenas consumir o stream - Ollama envia progresso linha por linha
+                        _logger.LogInformation($"[PULL] {line}");
+                    }
+                }
+
+                _logger.LogInformation($"Download do modelo '{request.Model}' concluído com sucesso");
+                
                 return Ok(new { 
-                    message = $"Download do modelo '{request.Model}' iniciado",
-                    status = "downloading"
+                    message = $"Download do modelo '{request.Model}' concluído com sucesso",
+                    status = "completed"
                 });
             }
             catch (Exception ex)
@@ -216,6 +231,69 @@ namespace CSharp.Controllers
             {
                 _logger.LogError($"Erro ao verificar modelo: {ex.Message}");
                 return StatusCode(500, new { error = "Erro ao verificar modelo", details = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// DELETE /api/ollama/models/delete - Remove um modelo do Ollama
+        /// Body: { "model": "qwen3:0.6b" }
+        /// </summary>
+        [HttpDelete("models/delete")]
+        public async Task<IActionResult> DeleteModel([FromBody] DeleteModelRequest request)
+        {
+            if (string.IsNullOrEmpty(request.Model))
+            {
+                return BadRequest(new { error = "Nome do modelo é obrigatório" });
+            }
+
+            try
+            {
+                var ollamaServer = _configuration["OllamaServer"] 
+                    ?? Environment.GetEnvironmentVariable("OLLAMA_SERVER");
+
+                if (string.IsNullOrEmpty(ollamaServer))
+                {
+                    return BadRequest(new { error = "OLLAMA_SERVER não configurado" });
+                }
+
+                var baseUrl = ollamaServer.Replace("/api/generate", "/api/delete");
+
+                var requestBody = new { name = request.Model };
+                var client = _httpClientFactory.CreateClient();
+                client.Timeout = TimeSpan.FromMinutes(5);
+
+                var httpRequest = new HttpRequestMessage(HttpMethod.Delete, baseUrl)
+                {
+                    Content = new StringContent(
+                        JsonSerializer.Serialize(requestBody),
+                        Encoding.UTF8,
+                        "application/json")
+                };
+
+                var response = await client.SendAsync(httpRequest);
+
+                // Ler conteúdo da resposta (pode estar vazio)
+                var responseContent = await response.Content.ReadAsStringAsync();
+                _logger.LogInformation($"Resposta do Ollama DELETE: Status={response.StatusCode}, Content={responseContent}");
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogError($"Erro ao remover modelo: {response.StatusCode} - {responseContent}");
+                    return StatusCode((int)response.StatusCode, new { error = "Erro ao remover modelo", details = responseContent });
+                }
+
+                _logger.LogInformation($"Modelo '{request.Model}' removido com sucesso");
+                
+                return Ok(new { 
+                    message = $"Modelo '{request.Model}' removido com sucesso",
+                    status = "deleted",
+                    model = request.Model
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Erro ao remover modelo: {ex.Message}");
+                return StatusCode(500, new { error = "Erro ao remover modelo", details = ex.Message });
             }
         }
 
@@ -408,6 +486,11 @@ namespace CSharp.Controllers
     }
 
     public class CheckModelRequest
+    {
+        public string Model { get; set; } = string.Empty;
+    }
+
+    public class DeleteModelRequest
     {
         public string Model { get; set; } = string.Empty;
     }
