@@ -16,6 +16,7 @@ namespace CSharp.Data
         public DbSet<Comment> Comments { get; set; }
         public DbSet<Attachment> Attachments { get; set; }
         public DbSet<TicketAISession> TicketAISessions { get; set; }
+        public DbSet<AIMessage> AIMessages { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -68,6 +69,20 @@ namespace CSharp.Data
                 .WithMany()
                 .HasForeignKey(s => s.TicketId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            // AIMessage
+            modelBuilder.Entity<AIMessage>()
+                .HasOne(m => m.Ticket)
+                .WithMany()
+                .HasForeignKey(m => m.TicketId)
+                .OnDelete(DeleteBehavior.Cascade);
+            modelBuilder.Entity<AIMessage>()
+                .HasOne(m => m.User)
+                .WithMany()
+                .HasForeignKey(m => m.UserId)
+                .OnDelete(DeleteBehavior.SetNull);
+            modelBuilder.Entity<AIMessage>()
+                .HasIndex(m => m.TicketId); // Index para performance
         }
     }
 }

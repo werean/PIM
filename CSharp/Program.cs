@@ -28,6 +28,7 @@ builder.Services.AddScoped<CommentService>();
 builder.Services.AddScoped<AttachmentService>();
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<TicketAISessionService>();
+builder.Services.AddScoped<AIMessageService>();
 builder.Services.AddHttpClient();
 
 // Configuração JWT
