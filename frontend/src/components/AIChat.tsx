@@ -59,16 +59,16 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
   // Salvar sessão no localStorage
   const saveSessionToStorage = useCallback(() => {
     if (messages.length === 0) return;
-    
+
     const session = {
-      messages: messages.map(m => ({
+      messages: messages.map((m) => ({
         text: m.text,
         isUser: m.isUser,
         timestamp: m.timestamp.toISOString(),
       })),
       lastUpdate: new Date().toISOString(),
     };
-    
+
     localStorage.setItem(sessionKey, JSON.stringify(session));
     console.log(`✅ Sessão salva localmente (${messages.length} mensagens)`);
   }, [messages, sessionKey]);
@@ -79,7 +79,9 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
       const saved = localStorage.getItem(sessionKey);
       if (!saved) return false;
 
-      const session = JSON.parse(saved) as { messages: Array<{ text: string; isUser: boolean; timestamp: string }> };
+      const session = JSON.parse(saved) as {
+        messages: Array<{ text: string; isUser: boolean; timestamp: string }>;
+      };
       const restoredMessages: Message[] = session.messages.map((msg, index: number) => ({
         id: index + 1,
         text: msg.text,
@@ -149,7 +151,7 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
       setIsLoadingHistory(true);
       try {
         const history = await apiGet<AIMessageFromDB[]>(`/api/tickets/${ticketId}/ai-messages`);
-        
+
         if (history.length > 0) {
           // Converter histórico do banco para formato do chat
           const loadedMessages: Message[] = history.map((msg) => ({
@@ -160,10 +162,10 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
           }));
 
           // Atualizar contador de IDs
-          messageIdCounter.current = Math.max(...loadedMessages.map(m => m.id));
+          messageIdCounter.current = Math.max(...loadedMessages.map((m) => m.id));
           setMessages(loadedMessages);
           console.log(`✅ Histórico carregado do banco (${loadedMessages.length} mensagens)`);
-          
+
           // Se tem histórico, marca que o prompt inicial não deve ser mostrado
           initialPromptSet.current = true;
         } else if (!hasLocalSession) {
@@ -200,7 +202,7 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
   // Conectar ao WebSocket quando o chat abrir
   useEffect(() => {
     if (!isOpen) return;
-    
+
     // Se já tem WebSocket conectado, não criar outro
     if (wsRef.current?.readyState === WebSocket.OPEN) {
       return;
@@ -300,7 +302,7 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
       }
       ws.close();
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, ticketId, ticketTitle, ticketBody, addMessage]);
 
   const handleSend = () => {
@@ -454,7 +456,7 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
                 {messages.length > 0 && ` • ${messages.length} mensagens`}
               </div>
             </div>
-            
+
             {/* Botão Minimizar */}
             <button
               onClick={() => setIsMinimized(true)}
