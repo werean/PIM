@@ -45,5 +45,28 @@ namespace CSharp.DTOs
         public string Username { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
         public int Role { get; set; }
+        public string? ProfileImage { get; set; }
+    }
+
+    public class UserProfileUpdateDTO
+    {
+        [StringLength(100)]
+        public string? Username { get; set; }
+
+        [EmailAddress]
+        [StringLength(255)]
+        public string? Email { get; set; }
+
+        public string? ProfileImage { get; set; }
+    }
+
+    public class ChangePasswordDTO
+    {
+        [Required]
+        public string CurrentPassword { get; set; } = string.Empty;
+
+        [Required]
+        [MinLength(6)]
+        public string NewPassword { get; set; } = string.Empty;
     }
 }

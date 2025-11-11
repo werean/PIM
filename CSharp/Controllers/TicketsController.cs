@@ -245,5 +245,273 @@ namespace CSharp.Controllers
                 return StatusCode(500, new { message = "Erro ao reabrir ticket", error = ex.Message });
             }
         }
+
+        [HttpPost("{id}/approve-resolution")]
+        [Authorize]
+        public async Task<IActionResult> ApproveResolution(int id)
+        {
+            try
+            {
+                var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value 
+                               ?? User.FindFirst("sub")?.Value;
+                
+                if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+                    return Unauthorized();
+
+                // Verificar se o usuário é o dono do ticket
+                var ticket = await _service.GetByIdAsync(id);
+                if (ticket == null) return NotFound(new { message = "Ticket não encontrado" });
+                
+                if (ticket.UserId != userId)
+                    return Forbid();
+                
+                var ok = await _service.ApproveResolutionAsync(id);
+                if (!ok) return NotFound(new { message = "Ticket não encontrado" });
+                return Ok(new { message = "Solução aprovada com sucesso" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Erro ao aprovar solução", error = ex.Message });
+            }
+        }
+
+        [HttpPost("{id}/reject-resolution")]
+        [Authorize]
+        public async Task<IActionResult> RejectResolution(int id)
+        {
+            try
+            {
+                var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value 
+                               ?? User.FindFirst("sub")?.Value;
+                
+                if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+                    return Unauthorized();
+
+                // Verificar se o usuário é o dono do ticket
+                var ticket = await _service.GetByIdAsync(id);
+                if (ticket == null) return NotFound(new { message = "Ticket não encontrado" });
+                
+                if (ticket.UserId != userId)
+                    return Forbid();
+                
+                var ok = await _service.RejectResolutionAsync(id);
+                if (!ok) return NotFound(new { message = "Ticket não encontrado" });
+                return Ok(new { message = "Solução rejeitada, ticket reaberto" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Erro ao rejeitar solução", error = ex.Message });
+            }
+        }
+
+        [HttpDelete("{id}/soft-delete")]
+        [Authorize]
+        public async Task<IActionResult> SoftDelete(int id)
+        {
+            try
+            {
+                var userRoleClaim = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+                
+                // Apenas técnicos podem deletar tickets
+                if (userRoleClaim != "10")
+                    return Forbid();
+                
+                var ok = await _service.SoftDeleteAsync(id);
+                if (!ok) return NotFound(new { message = "Ticket não encontrado" });
+                return Ok(new { message = "Ticket movido para lixeira" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Erro ao deletar ticket", error = ex.Message });
+            }
+        }
+
+        [HttpPost("{id}/restore")]
+        [Authorize]
+        public async Task<IActionResult> Restore(int id)
+        {
+            try
+            {
+                var userRoleClaim = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+                
+                // Apenas técnicos podem restaurar tickets
+                if (userRoleClaim != "10")
+                    return Forbid();
+                
+                var ok = await _service.RestoreAsync(id);
+                if (!ok) return NotFound(new { message = "Ticket não encontrado" });
+                return Ok(new { message = "Ticket restaurado da lixeira" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Erro ao restaurar ticket", error = ex.Message });
+            }
+        }
+
+        [HttpGet("deleted")]
+        [Authorize]
+        public async Task<ActionResult<List<TicketListDTO>>> GetDeleted()
+        {
+            try
+            {
+                var userRoleClaim = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+                
+                // Apenas técnicos podem ver lixeira
+                if (userRoleClaim != "10")
+                    return Forbid();
+                
+                return Ok(await _service.GetDeletedAsync());
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Erro ao buscar tickets deletados", error = ex.Message });
+            }
+        }
+
+        [HttpPut("{id}/description")]
+        [Authorize]
+        public async Task<IActionResult> UpdateDescription(int id, [FromBody] UpdateDescriptionDTO dto)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    var errors = ModelState.Values
+                        .SelectMany(v => v.Errors)
+                        .Select(e => e.ErrorMessage)
+                        .ToList();
+                    return BadRequest(new { message = "Dados inválidos", errors });
+                }
+
+                var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value 
+                               ?? User.FindFirst("sub")?.Value;
+                
+                if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+                    return Unauthorized();
+
+                // Verificar se o usuário é o dono do ticket
+                var ticket = await _service.GetByIdAsync(id);
+                if (ticket == null) return NotFound(new { message = "Ticket não encontrado" });
+                
+                if (ticket.UserId != userId)
+                    return Forbid();
+                
+                var ok = await _service.UpdateDescriptionAsync(id, dto.TicketBody, userId);
+                if (!ok) return NotFound(new { message = "Ticket não encontrado" });
+                return Ok(new { message = "Descrição atualizada com sucesso" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Erro ao atualizar descrição", error = ex.Message });
+            }
+        }
+
+        // Endpoints de solicitação de exclusão
+        [HttpPost("{id}/request-deletion")]
+        [Authorize]
+        public async Task<IActionResult> RequestDeletion(int id)
+        {
+            try
+            {
+                var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value 
+                               ?? User.FindFirst("sub")?.Value;
+                var userRoleClaim = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+                
+                if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+                    return Unauthorized();
+                
+                // Apenas técnicos podem solicitar exclusão
+                if (userRoleClaim != "10")
+                    return Forbid();
+                
+                var ok = await _service.RequestDeletionAsync(id, userId);
+                if (!ok) return NotFound(new { message = "Ticket não encontrado" });
+                return Ok(new { message = "Solicitação de exclusão enviada ao usuário" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Erro ao solicitar exclusão", error = ex.Message });
+            }
+        }
+
+        [HttpPost("{id}/approve-deletion")]
+        [Authorize]
+        public async Task<IActionResult> ApproveDeletion(int id)
+        {
+            try
+            {
+                var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value 
+                               ?? User.FindFirst("sub")?.Value;
+                
+                if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+                    return Unauthorized();
+                
+                // Verificar se o usuário é o dono do ticket
+                var ticket = await _service.GetByIdAsync(id);
+                if (ticket == null) return NotFound(new { message = "Ticket não encontrado" });
+                
+                if (ticket.UserId != userId)
+                    return Forbid();
+                
+                var ok = await _service.ApproveDeletionAsync(id);
+                if (!ok) return NotFound(new { message = "Ticket não encontrado" });
+                return Ok(new { message = "Ticket movido para lixeira" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Erro ao aprovar exclusão", error = ex.Message });
+            }
+        }
+
+        [HttpPost("{id}/reject-deletion")]
+        [Authorize]
+        public async Task<IActionResult> RejectDeletion(int id)
+        {
+            try
+            {
+                var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value 
+                               ?? User.FindFirst("sub")?.Value;
+                
+                if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+                    return Unauthorized();
+                
+                // Verificar se o usuário é o dono do ticket
+                var ticket = await _service.GetByIdAsync(id);
+                if (ticket == null) return NotFound(new { message = "Ticket não encontrado" });
+                
+                if (ticket.UserId != userId)
+                    return Forbid();
+                
+                var ok = await _service.RejectDeletionAsync(id);
+                if (!ok) return NotFound(new { message = "Ticket não encontrado" });
+                return Ok(new { message = "Solicitação de exclusão rejeitada" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Erro ao rejeitar exclusão", error = ex.Message });
+            }
+        }
+
+        [HttpDelete("{id}/permanent-delete")]
+        [Authorize]
+        public async Task<IActionResult> PermanentDelete(int id)
+        {
+            try
+            {
+                var userRoleClaim = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+                
+                // Apenas técnicos podem deletar permanentemente
+                if (userRoleClaim != "10")
+                    return Forbid();
+                
+                var ok = await _service.PermanentDeleteAsync(id);
+                if (!ok) return NotFound(new { message = "Ticket não encontrado ou não está na lixeira" });
+                return Ok(new { message = "Ticket deletado permanentemente" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Erro ao deletar ticket permanentemente", error = ex.Message });
+            }
+        }
     }
 }

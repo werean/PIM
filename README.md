@@ -220,6 +220,20 @@ dotnet ef database update
 dotnet tool install --global dotnet-ef
 ```
 
+### Erro de certificado HTTPS ao iniciar o backend
+
+```
+Unable to configure HTTPS endpoint. No server certificate was specified...
+```
+
+**Solução:**
+
+```bash
+dotnet dev-certs https --trust
+```
+
+Aceite a confirmação quando aparecer. Isso gerará e confiará no certificado de desenvolvimento.
+
 ### Porta 8080 já em uso
 
 - Edite `Properties/launchSettings.json` e altere a porta do backend

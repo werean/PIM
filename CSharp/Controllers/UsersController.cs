@@ -113,5 +113,102 @@ namespace CSharp.Controllers
             if (!ok) return NotFound();
             return NoContent();
         }
+
+        [HttpGet("profile/me")]
+        [Authorize]
+        public async Task<ActionResult<UserDetailDTO>> GetMyProfile()
+        {
+            try
+            {
+                var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                if (userIdClaim == null || !Guid.TryParse(userIdClaim, out Guid userId))
+                {
+                    return Unauthorized(new { message = "Usuário não autenticado" });
+                }
+
+                var user = await _service.GetByIdAsync(userId);
+                if (user == null) return NotFound(new { message = "Usuário não encontrado" });
+                
+                return Ok(user);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Erro ao buscar perfil", error = ex.Message });
+            }
+        }
+
+        [HttpPut("profile/me")]
+        [Authorize]
+        public async Task<IActionResult> UpdateMyProfile(UserProfileUpdateDTO dto)
+        {
+            try
+            {
+                var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                if (userIdClaim == null || !Guid.TryParse(userIdClaim, out Guid userId))
+                {
+                    return Unauthorized(new { message = "Usuário não autenticado" });
+                }
+
+                // Validações apenas se os campos forem fornecidos
+                if (dto.Username != null && dto.Username.Length < 3)
+                {
+                    return BadRequest(new { message = "Nome de usuário deve ter no mínimo 3 caracteres" });
+                }
+
+                if (dto.Email != null && string.IsNullOrWhiteSpace(dto.Email))
+                {
+                    return BadRequest(new { message = "E-mail inválido" });
+                }
+
+                var ok = await _service.UpdateProfileAsync(userId, dto);
+                if (!ok) return NotFound(new { message = "Usuário não encontrado" });
+                
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Erro ao atualizar perfil", error = ex.Message });
+            }
+        }
+
+        [HttpPost("change-password")]
+        [Authorize]
+        public async Task<IActionResult> ChangePassword(ChangePasswordDTO dto)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    var errors = ModelState.Values
+                        .SelectMany(v => v.Errors)
+                        .Select(e => e.ErrorMessage)
+                        .ToList();
+                    return BadRequest(new { message = "Dados inválidos", errors });
+                }
+
+                var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                if (userIdClaim == null || !Guid.TryParse(userIdClaim, out Guid userId))
+                {
+                    return Unauthorized(new { message = "Usuário não autenticado" });
+                }
+
+                var result = await _service.ChangePasswordAsync(userId, dto);
+                
+                if (result == "not_found")
+                    return NotFound(new { message = "Usuário não encontrado" });
+                
+                if (result == "invalid_password")
+                    return BadRequest(new { message = "Senha atual incorreta" });
+                
+                if (result == "success")
+                    return Ok(new { message = "Senha alterada com sucesso" });
+
+                return StatusCode(500, new { message = "Erro ao alterar senha" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Erro ao alterar senha", error = ex.Message });
+            }
+        }
     }
 }

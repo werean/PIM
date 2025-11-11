@@ -37,7 +37,8 @@ namespace CSharp.Services
                 Id = user.Id,
                 Username = user.Username,
                 Email = user.Email,
-                Role = (int)user.Role
+                Role = (int)user.Role,
+                ProfileImage = user.ProfileImage
             };
         }
 
@@ -79,6 +80,42 @@ namespace CSharp.Services
             _context.Users.Remove(user);
             await _context.SaveChangesAsync();
             return true;
+        }
+
+        public async Task<bool> UpdateProfileAsync(Guid userId, UserProfileUpdateDTO dto)
+        {
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null) return false;
+
+            if (!string.IsNullOrEmpty(dto.Username)) 
+                user.Username = dto.Username;
+            
+            if (!string.IsNullOrEmpty(dto.Email)) 
+                user.Email = dto.Email;
+            
+            if (dto.ProfileImage != null) 
+                user.ProfileImage = dto.ProfileImage;
+
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        public async Task<string> ChangePasswordAsync(Guid userId, ChangePasswordDTO dto)
+        {
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null) return "not_found";
+
+            // Verificar se a senha atual está correta
+            if (!BCrypt.Net.BCrypt.Verify(dto.CurrentPassword, user.Password))
+            {
+                return "invalid_password";
+            }
+
+            // Hash da nova senha
+            user.Password = BCrypt.Net.BCrypt.HashPassword(dto.NewPassword);
+            await _context.SaveChangesAsync();
+            
+            return "success";
         }
     }
 }

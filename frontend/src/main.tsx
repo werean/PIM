@@ -11,6 +11,8 @@ import LoginPage from "./pages/Login";
 import RegisterTicketPage from "./pages/RegisterTicket";
 import RegisterUserPage from "./pages/RegisterUser";
 import TicketDetailPage from "./pages/TicketDetail";
+import TrashPage from "./pages/Trash";
+import ProfilePage from "./pages/Profile";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
@@ -22,6 +24,8 @@ createRoot(document.getElementById("root")!).render(
         <Route path="/register" element={<RegisterUserPage />} />
         <Route path="/ticket/new" element={<RegisterTicketPage />} />
         <Route path="/ticket/:id" element={<TicketDetailPage />} />
+        <Route path="/trash" element={<TrashPage />} />
+        <Route path="/profile" element={<ProfilePage />} />
       </Routes>
     </BrowserRouter>
   </StrictMode>

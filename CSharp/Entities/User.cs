@@ -30,6 +30,8 @@ namespace CSharp.Entities
         [Required]
         public UserRole Role { get; set; } = UserRole.User;
 
+        public string? ProfileImage { get; set; }
+
         // Relacionamentos
         public ICollection<Ticket>? Tickets { get; set; }
         public ICollection<Comment>? Comments { get; set; }

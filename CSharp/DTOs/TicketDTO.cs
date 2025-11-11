@@ -43,6 +43,16 @@ namespace CSharp.DTOs
         public int Urgency { get; set; }
         public int Status { get; set; }
         public string? ResolutionMessage { get; set; }
+        public bool? ResolutionApproved { get; set; }
+        public DateTime? ReopenedAt { get; set; }
+        public bool? PendingDeletion { get; set; }
+        public Guid? DeletionRequestedBy { get; set; }
+        public DateTime? DeletionRequestedAt { get; set; }
+        public bool IsDeleted { get; set; }
+        public DateTime? DeletedAt { get; set; }
+        public DateTime? EditedAt { get; set; }
+        public Guid? EditedBy { get; set; }
+        public string? EditedByUsername { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
         public Guid UserId { get; set; }
@@ -55,5 +65,12 @@ namespace CSharp.DTOs
         [Required]
         [MinLength(10, ErrorMessage = "A mensagem de resolução deve ter pelo menos 10 caracteres")]
         public string ResolutionMessage { get; set; } = string.Empty;
+    }
+
+    public class UpdateDescriptionDTO
+    {
+        [Required]
+        [MinLength(10, ErrorMessage = "A descrição deve ter pelo menos 10 caracteres")]
+        public string TicketBody { get; set; } = string.Empty;
     }
 }

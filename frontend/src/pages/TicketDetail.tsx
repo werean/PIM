@@ -5,35 +5,32 @@ import {
   apiPost,
   getCurrentUserId,
   getCurrentUserName,
-  getCurrentUserRole,
   isTechnician,
 } from "../services/api";
 import type { Ticket, CreateCommentPayload } from "../services/api";
 import { isAuthenticated, deleteCookie } from "../utils/cookies";
-import logoLJFT from "../assets/images/logoLJFT.png";
+import Sidebar from "../components/Sidebar";
 import AIChat from "../components/AIChat";
-
-function UserBadge() {
-  const userName = getCurrentUserName();
-  const initials = userName
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase()
-    .substring(0, 2);
-  return <span className="user-badge__initials">{initials}</span>;
-}
+import UserBadge from "../components/UserBadge";
 
 const STATUS_MAP: Record<number, string> = {
   1: "Aberto",
   2: "Pendente",
   3: "Resolvido",
+  4: "Reaberto",
+  5: "Aguardando Aprovação",
+  6: "Aguardando Exclusão",
+  7: "Deletado",
 };
 
 const STATUS_COLOR: Record<number, string> = {
   1: "#2ab849",
   2: "#f2a400",
   3: "#7e7e7e",
+  4: "#ff6b6b",
+  5: "#ffd43b",
+  6: "#ff9800",
+  7: "#616161",
 };
 
 const URGENCY_MAP: Record<number, string> = {
@@ -72,6 +69,11 @@ export default function TicketDetailPage() {
   const [resolutionMessage, setResolutionMessage] = useState("");
   const [isResolvingTicket, setIsResolvingTicket] = useState(false);
   const [isSettingPending, setIsSettingPending] = useState(false);
+  const [isApprovingResolution, setIsApprovingResolution] = useState(false);
+  const [isRejectingResolution, setIsRejectingResolution] = useState(false);
+  const [isEditingDescription, setIsEditingDescription] = useState(false);
+  const [editedDescription, setEditedDescription] = useState("");
+  const [editError, setEditError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const currentUserId = getCurrentUserId();
 
@@ -284,6 +286,153 @@ export default function TicketDetailPage() {
     }
   }
 
+  async function handleApproveResolution() {
+    if (!id) return;
+    setIsApprovingResolution(true);
+    setError(null);
+
+    try {
+      await apiPost(`/tickets/${id}/approve-resolution`, {});
+      const updatedTicket = await apiGet<Ticket>(`/tickets/${id}`);
+      setTicket(updatedTicket);
+      alert("Solução aprovada! O ticket foi fechado.");
+    } catch (err) {
+      console.error("Erro ao aprovar solução:", err);
+      setError("Erro ao aprovar solução");
+    } finally {
+      setIsApprovingResolution(false);
+    }
+  }
+
+  async function handleRejectResolution() {
+    if (!id || !ticket) return;
+    setIsRejectingResolution(true);
+    setError(null);
+
+    try {
+      // Salvar a mensagem de resolução antes de rejeitar
+      const rejectedMessage = ticket.resolutionMessage;
+
+      // Rejeitar a solução (reabre o ticket)
+      await apiPost(`/tickets/${id}/reject-resolution`, {});
+
+      // Criar comentário automático com a solução rejeitada
+      if (rejectedMessage) {
+        await apiPost("/comments", {
+          ticketId: parseInt(id),
+          commentBody: `[SOLUÇÃO REJEITADA]\n\n${rejectedMessage}`,
+        });
+      }
+
+      // Recarregar ticket para mostrar novo comentário
+      const updatedTicket = await apiGet<Ticket>(`/tickets/${id}`);
+      setTicket(updatedTicket);
+
+      alert("Solução rejeitada. O ticket foi reaberto. Você pode enviar uma nova mensagem.");
+
+      // Focar no campo de mensagem
+      setTimeout(() => {
+        document
+          .querySelector<HTMLTextAreaElement>('textarea[placeholder="Digite sua mensagem..."]')
+          ?.focus();
+      }, 100);
+    } catch (err) {
+      console.error("Erro ao rejeitar solução:", err);
+      setError("Erro ao rejeitar solução");
+    } finally {
+      setIsRejectingResolution(false);
+    }
+  }
+
+  async function handleUpdateDescription() {
+    if (!id || !editedDescription.trim()) return;
+
+    if (editedDescription.trim().length < 10) {
+      setEditError("A descrição deve ter pelo menos 10 caracteres");
+      return;
+    }
+
+    setEditError(null);
+    try {
+      // Usar fetch com método PUT
+      const response = await fetch(`http://localhost:8080/tickets/${id}/description`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${document.cookie.split("token=")[1]?.split(";")[0] || ""}`,
+        },
+        body: JSON.stringify({ ticketBody: editedDescription.trim() }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: "Erro ao atualizar" }));
+        throw new Error(errorData.message || "Erro ao atualizar descrição");
+      }
+
+      const updatedTicket = await apiGet<Ticket>(`/tickets/${id}`);
+      setTicket(updatedTicket);
+      setIsEditingDescription(false);
+      setEditedDescription("");
+      setEditError(null);
+      alert("Descrição atualizada com sucesso!");
+    } catch (err) {
+      console.error("Erro ao atualizar descrição:", err);
+      const errorMessage = err instanceof Error ? err.message : "Erro ao atualizar descrição";
+      setEditError(errorMessage);
+    }
+  }
+
+  async function handleRequestDeletion() {
+    if (!id) return;
+    if (!window.confirm("Tem certeza que deseja solicitar a exclusão deste ticket?")) return;
+
+    try {
+      await apiPost(`/tickets/${id}/request-deletion`, {});
+      const updatedTicket = await apiGet<Ticket>(`/tickets/${id}`);
+      setTicket(updatedTicket);
+      alert("Solicitação de exclusão enviada ao usuário.");
+    } catch (err) {
+      console.error("Erro ao solicitar exclusão:", err);
+      setError("Erro ao solicitar exclusão");
+    }
+  }
+
+  async function handleApproveDeletion() {
+    if (!id) return;
+    if (!window.confirm("Tem certeza que deseja mover este ticket para a lixeira?")) return;
+
+    try {
+      await apiPost(`/tickets/${id}/approve-deletion`, {});
+      alert("Ticket movido para a lixeira.");
+      navigate("/home");
+    } catch (err) {
+      console.error("Erro ao aprovar exclusão:", err);
+      setError("Erro ao aprovar exclusão");
+    }
+  }
+
+  async function handleRejectDeletion() {
+    if (!id) return;
+
+    try {
+      await apiPost(`/tickets/${id}/reject-deletion`, {});
+
+      // Criar comentário automático
+      await apiPost("/comments", {
+        ticketId: parseInt(id),
+        commentBody:
+          "[EXCLUSÃO RECUSADA]\n\nO usuário rejeitou a solicitação de exclusão deste ticket.",
+      });
+
+      const updatedTicket = await apiGet<Ticket>(`/tickets/${id}`);
+      setTicket(updatedTicket);
+      alert("Solicitação de exclusão rejeitada.");
+    } catch (err) {
+      console.error("Erro ao rejeitar exclusão:", err);
+      setError("Erro ao rejeitar exclusão");
+    }
+  }
+
   if (loading) {
     return (
       <div className="layout">
@@ -311,39 +460,91 @@ export default function TicketDetailPage() {
   }
 
   return (
-    <div className="layout">
-      <aside className="sidenav" aria-label="Menu lateral">
-        <div className="sidenav__brand">
-          <img className="sidenav__brand-image" src={logoLJFT} alt="Logo LJFT" />
-          <button className="sidenav__toggle" type="button">
-            {"<< Recolher menu"}
-          </button>
-        </div>
-        <nav className="sidenav__nav" aria-label="Navegação">
-          <p className="sidenav__section">Menu</p>
-          <div className="sidenav__submenu">
-            <Link to="/home" className="sidenav__submenu-item">
-              Chamados
-            </Link>
-            <Link to="/ticket/new" className="sidenav__submenu-item">
-              Criar chamados
-            </Link>
-          </div>
-        </nav>
-      </aside>
+    <div style={{ display: "flex", minHeight: "100vh" }}>
+      <Sidebar />
 
-      <div className="layout__main">
-        <header className="topbar">
-          <div className="topbar__breadcrumb">
-            Home / Chamados / <strong>#{ticket.id}</strong>
-          </div>
-
+      <div
+        style={{
+          marginLeft: "240px",
+          width: "calc(100% - 240px)",
+          minHeight: "100vh",
+          background: "#f8f9fa",
+        }}
+      >
+        <header
+          style={{
+            background: "#ffffff",
+            borderBottom: "1px solid #e9ecef",
+            padding: "12px 20px",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
           <div
-            className="topbar__controls"
-            style={{ display: "flex", alignItems: "center", gap: "10px" }}
+            style={{
+              fontSize: "12px",
+              color: "#6c757d",
+            }}
           >
-            <div className="user-badge">
-              {getCurrentUserRole()} <UserBadge />
+            <span
+              style={{ cursor: "pointer", transition: "color 0.15s" }}
+              onClick={() => navigate("/home")}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = "#212529";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = "#6c757d";
+              }}
+            >
+              Home
+            </span>{" "}
+            /{" "}
+            <span
+              style={{ cursor: "pointer", transition: "color 0.15s" }}
+              onClick={() => navigate("/home")}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = "#212529";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = "#6c757d";
+              }}
+            >
+              Chamados
+            </span>{" "}
+            / <strong style={{ color: "#212529" }}>#{ticket.id}</strong>
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                cursor: "pointer",
+                transition: "all 0.2s ease",
+                padding: "6px 10px",
+                borderRadius: "4px",
+                border: "1px solid transparent",
+              }}
+              onClick={() => navigate("/profile")}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = "#fafbfc";
+                e.currentTarget.style.borderColor = "#e1e4e8";
+                e.currentTarget.style.transform = "translateY(-1px)";
+                e.currentTarget.style.boxShadow = "0 2px 4px rgba(0,0,0,0.04)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = "transparent";
+                e.currentTarget.style.borderColor = "transparent";
+                e.currentTarget.style.transform = "translateY(0)";
+                e.currentTarget.style.boxShadow = "none";
+              }}
+            >
+              <UserBadge size={28} fontSize={11} />
+              <span style={{ fontSize: "13px", color: "#495057", fontWeight: "500" }}>
+                {getCurrentUserName()}
+              </span>
             </div>
             <button
               onClick={() => {
@@ -352,14 +553,23 @@ export default function TicketDetailPage() {
                 navigate("/login");
               }}
               style={{
-                background: "#dc3545",
-                color: "white",
-                border: "none",
-                padding: "8px 16px",
-                borderRadius: "4px",
+                background: "transparent",
+                color: "#6c757d",
+                border: "1px solid #dee2e6",
+                padding: "6px 12px",
+                borderRadius: "3px",
                 cursor: "pointer",
-                fontSize: "14px",
-                fontWeight: "500",
+                fontSize: "12px",
+                fontWeight: "400",
+                transition: "all 0.15s",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = "#dc3545";
+                e.currentTarget.style.color = "#dc3545";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = "#dee2e6";
+                e.currentTarget.style.color = "#6c757d";
               }}
             >
               Sair
@@ -367,7 +577,7 @@ export default function TicketDetailPage() {
           </div>
         </header>
 
-        <main className="layout__content">
+        <main style={{ padding: "20px" }}>
           <div style={{ marginBottom: "20px" }}>
             <Link to="/home" style={{ color: "#007bff", textDecoration: "none" }}>
               ← Voltar para lista de chamados
@@ -378,10 +588,10 @@ export default function TicketDetailPage() {
           <div
             style={{
               background: "white",
-              borderRadius: "8px",
-              padding: "24px",
-              marginBottom: "20px",
-              boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+              borderRadius: "4px",
+              padding: "16px",
+              marginBottom: "16px",
+              border: "1px solid #e9ecef",
             }}
           >
             <div
@@ -389,14 +599,21 @@ export default function TicketDetailPage() {
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "start",
-                marginBottom: "16px",
+                marginBottom: "12px",
               }}
             >
               <div>
-                <h1 style={{ margin: "0 0 8px 0", fontSize: "24px", fontWeight: "600" }}>
+                <h1
+                  style={{
+                    margin: "0 0 6px 0",
+                    fontSize: "18px",
+                    fontWeight: "600",
+                    color: "#212529",
+                  }}
+                >
                   {ticket.title}
                 </h1>
-                <p style={{ margin: 0, color: "#6c757d", fontSize: "14px" }}>
+                <p style={{ margin: 0, color: "#868e96", fontSize: "12px" }}>
                   Criado por <strong>{ticket.username}</strong> em{" "}
                   {formatDateTime(ticket.createdAt)}
                 </p>
@@ -404,12 +621,13 @@ export default function TicketDetailPage() {
               <span
                 style={{
                   display: "inline-block",
-                  padding: "6px 12px",
-                  borderRadius: "4px",
-                  fontSize: "14px",
-                  fontWeight: "600",
-                  color: "white",
-                  backgroundColor: STATUS_COLOR[ticket.status],
+                  padding: "4px 10px",
+                  borderRadius: "3px",
+                  fontSize: "11px",
+                  fontWeight: "500",
+                  color: STATUS_COLOR[ticket.status],
+                  backgroundColor: `${STATUS_COLOR[ticket.status]}15`,
+                  border: `1px solid ${STATUS_COLOR[ticket.status]}40`,
                 }}
               >
                 {STATUS_MAP[ticket.status]}
@@ -417,19 +635,181 @@ export default function TicketDetailPage() {
             </div>
 
             <div style={{ marginBottom: "16px" }}>
-              <p
+              <div
                 style={{
-                  margin: "0 0 4px 0",
-                  fontWeight: "600",
-                  fontSize: "14px",
-                  color: "#495057",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: "4px",
                 }}
               >
-                Descrição:
-              </p>
-              <p style={{ margin: 0, color: "#212529", whiteSpace: "pre-wrap" }}>
-                {ticket.ticketBody || "Sem descrição"}
-              </p>
+                <p
+                  style={{
+                    margin: 0,
+                    fontWeight: "600",
+                    fontSize: "14px",
+                    color: "#495057",
+                  }}
+                >
+                  Descrição:
+                </p>
+                <div style={{ display: "flex", gap: "6px" }}>
+                  {ticket.userId === currentUserId && !isEditingDescription && (
+                    <button
+                      onClick={() => {
+                        setIsEditingDescription(true);
+                        setEditedDescription(ticket.ticketBody || "");
+                      }}
+                      style={{
+                        padding: "4px 8px",
+                        backgroundColor: "transparent",
+                        color: "#6c757d",
+                        border: "1px solid #dee2e6",
+                        borderRadius: "3px",
+                        fontSize: "11px",
+                        cursor: "pointer",
+                        transition: "all 0.15s",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.borderColor = "#007bff";
+                        e.currentTarget.style.color = "#007bff";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.borderColor = "#dee2e6";
+                        e.currentTarget.style.color = "#6c757d";
+                      }}
+                    >
+                      ✏️ Editar
+                    </button>
+                  )}
+                  {isTechnician() && !ticket.isDeleted && !ticket.pendingDeletion && (
+                    <button
+                      onClick={handleRequestDeletion}
+                      style={{
+                        padding: "4px 8px",
+                        backgroundColor: "transparent",
+                        color: "#dc3545",
+                        border: "1px solid #dc3545",
+                        borderRadius: "3px",
+                        fontSize: "11px",
+                        cursor: "pointer",
+                        transition: "all 0.15s",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = "#dc3545";
+                        e.currentTarget.style.color = "white";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = "transparent";
+                        e.currentTarget.style.color = "#dc3545";
+                      }}
+                    >
+                      🗑️
+                    </button>
+                  )}
+                </div>
+              </div>
+              {isEditingDescription ? (
+                <div>
+                  <textarea
+                    value={editedDescription}
+                    onChange={(e) => {
+                      setEditedDescription(e.target.value);
+                      setEditError(null); // Limpar erro ao digitar
+                    }}
+                    rows={6}
+                    style={{
+                      width: "100%",
+                      padding: "8px",
+                      borderRadius: "4px",
+                      border: editError ? "1px solid #dc3545" : "1px solid #ced4da",
+                      fontFamily: "inherit",
+                      marginBottom: "8px",
+                    }}
+                  />
+                  {editError && (
+                    <div
+                      style={{
+                        padding: "8px 12px",
+                        marginBottom: "8px",
+                        background: "#f8d7da",
+                        color: "#721c24",
+                        borderRadius: "4px",
+                        fontSize: "13px",
+                      }}
+                    >
+                      {editError}
+                    </div>
+                  )}
+                  <div style={{ display: "flex", gap: "6px" }}>
+                    <button
+                      onClick={handleUpdateDescription}
+                      style={{
+                        padding: "5px 12px",
+                        backgroundColor: "transparent",
+                        color: "#28a745",
+                        border: "1px solid #28a745",
+                        borderRadius: "3px",
+                        fontSize: "12px",
+                        cursor: "pointer",
+                        transition: "all 0.15s",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = "#28a745";
+                        e.currentTarget.style.color = "white";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = "transparent";
+                        e.currentTarget.style.color = "#28a745";
+                      }}
+                    >
+                      Salvar
+                    </button>
+                    <button
+                      onClick={() => {
+                        setIsEditingDescription(false);
+                        setEditedDescription("");
+                        setEditError(null);
+                      }}
+                      style={{
+                        padding: "5px 12px",
+                        backgroundColor: "transparent",
+                        color: "#6c757d",
+                        border: "1px solid #dee2e6",
+                        borderRadius: "3px",
+                        fontSize: "12px",
+                        cursor: "pointer",
+                        transition: "all 0.15s",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.borderColor = "#6c757d";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.borderColor = "#dee2e6";
+                      }}
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <p style={{ margin: 0, color: "#212529", whiteSpace: "pre-wrap" }}>
+                  {ticket.ticketBody || "Sem descrição"}
+                </p>
+              )}
+              {ticket.editedAt && !isEditingDescription && (
+                <p
+                  style={{
+                    margin: "8px 0 0 0",
+                    fontSize: "12px",
+                    color: "#6c757d",
+                    fontStyle: "italic",
+                  }}
+                >
+                  Editado por {ticket.editedByUsername || "Usuário"} em{" "}
+                  {formatDateTime(ticket.editedAt)}
+                </p>
+              )}
             </div>
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
@@ -452,15 +832,15 @@ export default function TicketDetailPage() {
           <div
             style={{
               background: "white",
-              borderRadius: "8px",
-              boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+              borderRadius: "4px",
+              border: "1px solid #e9ecef",
               display: "flex",
               flexDirection: "column",
               height: "500px",
             }}
           >
-            <div style={{ padding: "16px", borderBottom: "1px solid #dee2e6" }}>
-              <h2 style={{ margin: 0, fontSize: "18px", fontWeight: "600" }}>
+            <div style={{ padding: "12px 16px", borderBottom: "1px solid #e9ecef" }}>
+              <h2 style={{ margin: 0, fontSize: "14px", fontWeight: "600", color: "#495057" }}>
                 Mensagens ({ticket.comments?.length || 0})
               </h2>
             </div>
@@ -473,7 +853,7 @@ export default function TicketDetailPage() {
                 padding: "16px",
                 display: "flex",
                 flexDirection: "column",
-                gap: "12px",
+                gap: "10px",
               }}
             >
               {!ticket.comments || ticket.comments.length === 0 ? (
@@ -483,6 +863,14 @@ export default function TicketDetailPage() {
               ) : (
                 ticket.comments.map((comment) => {
                   const isOwn = comment.userId === currentUserId;
+                  const isRejectedSolution = comment.commentBody.startsWith("[SOLUÇÃO REJEITADA]");
+                  const isRejectedDeletion = comment.commentBody.startsWith("[EXCLUSÃO RECUSADA]");
+                  const messageContent = isRejectedSolution
+                    ? comment.commentBody.replace("[SOLUÇÃO REJEITADA]\n\n", "")
+                    : isRejectedDeletion
+                    ? comment.commentBody.replace("[EXCLUSÃO RECUSADA]\n\n", "")
+                    : comment.commentBody;
+
                   return (
                     <div
                       key={comment.id}
@@ -494,26 +882,87 @@ export default function TicketDetailPage() {
                       <div
                         style={{
                           maxWidth: "70%",
-                          padding: "12px 16px",
-                          borderRadius: "8px",
-                          backgroundColor: isOwn ? "#007bff" : "#f1f3f5",
-                          color: isOwn ? "white" : "#212529",
+                          padding: "10px 12px",
+                          borderRadius: "4px",
+                          backgroundColor:
+                            isRejectedSolution || isRejectedDeletion
+                              ? "#fff9f0"
+                              : isOwn
+                              ? "#e3f2fd"
+                              : "#f5f5f5",
+                          color:
+                            isRejectedSolution || isRejectedDeletion
+                              ? "#6c5400"
+                              : isOwn
+                              ? "#1565c0"
+                              : "#212529",
+                          border:
+                            isRejectedSolution || isRejectedDeletion
+                              ? "1px solid #ffe0b2"
+                              : isOwn
+                              ? "1px solid #bbdefb"
+                              : "1px solid #e0e0e0",
                         }}
                       >
+                        {isRejectedSolution && (
+                          <div
+                            style={{
+                              display: "inline-block",
+                              padding: "2px 6px",
+                              backgroundColor: "#fdecea",
+                              color: "#c62828",
+                              border: "1px solid #ef9a9a",
+                              borderRadius: "3px",
+                              fontSize: "9px",
+                              fontWeight: "600",
+                              textTransform: "uppercase",
+                              letterSpacing: "0.3px",
+                              marginBottom: "6px",
+                            }}
+                          >
+                            ✗ Solução Reprovada
+                          </div>
+                        )}
+                        {isRejectedDeletion && (
+                          <div
+                            style={{
+                              display: "inline-block",
+                              padding: "2px 6px",
+                              backgroundColor: "#f5f5f5",
+                              color: "#616161",
+                              border: "1px solid #e0e0e0",
+                              borderRadius: "3px",
+                              fontSize: "9px",
+                              fontWeight: "600",
+                              textTransform: "uppercase",
+                              letterSpacing: "0.3px",
+                              marginBottom: "6px",
+                            }}
+                          >
+                            ✗ Exclusão Recusada
+                          </div>
+                        )}
                         <div
                           style={{
-                            fontSize: "12px",
+                            fontSize: "10px",
                             fontWeight: "600",
-                            marginBottom: "4px",
-                            opacity: 0.9,
+                            marginBottom: "3px",
+                            opacity: 0.75,
                           }}
                         >
                           {comment.username}
                         </div>
-                        <div style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
-                          {comment.commentBody}
+                        <div
+                          style={{
+                            whiteSpace: "pre-wrap",
+                            wordBreak: "break-word",
+                            fontSize: "13px",
+                            lineHeight: "1.4",
+                          }}
+                        >
+                          {messageContent}
                         </div>
-                        <div style={{ fontSize: "11px", marginTop: "4px", opacity: 0.7 }}>
+                        <div style={{ fontSize: "10px", marginTop: "3px", opacity: 0.6 }}>
                           {formatDateTime(comment.createdAt)}
                         </div>
                       </div>
@@ -524,17 +973,203 @@ export default function TicketDetailPage() {
               <div ref={messagesEndRef} />
             </div>
 
+            {/* Card de Solução FORA da área de mensagens - Aguardando aprovação (status 5) */}
+            {ticket.status === 5 && ticket.resolutionMessage && !isTechnician() && (
+              <div
+                style={{
+                  padding: "12px",
+                  backgroundColor: "#fffbf0",
+                  border: "1px solid #f0e8d0",
+                  borderRadius: "4px",
+                  margin: "12px 16px",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: "11px",
+                    fontWeight: "500",
+                    color: "#856404",
+                    marginBottom: "6px",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.3px",
+                  }}
+                >
+                  Solução Proposta
+                </div>
+                <p
+                  style={{
+                    margin: "0 0 10px 0",
+                    whiteSpace: "pre-wrap",
+                    color: "#495057",
+                    lineHeight: "1.4",
+                    fontSize: "13px",
+                  }}
+                >
+                  {ticket.resolutionMessage}
+                </p>
+                <div style={{ display: "flex", gap: "6px", justifyContent: "flex-end" }}>
+                  <button
+                    onClick={handleRejectResolution}
+                    disabled={isRejectingResolution}
+                    style={{
+                      padding: "4px 10px",
+                      backgroundColor: "transparent",
+                      color: "#6c757d",
+                      border: "1px solid #dee2e6",
+                      borderRadius: "3px",
+                      fontSize: "11px",
+                      fontWeight: "400",
+                      cursor: isRejectingResolution ? "not-allowed" : "pointer",
+                      opacity: isRejectingResolution ? 0.6 : 1,
+                      transition: "all 0.15s",
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isRejectingResolution) {
+                        e.currentTarget.style.borderColor = "#dc3545";
+                        e.currentTarget.style.color = "#dc3545";
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isRejectingResolution) {
+                        e.currentTarget.style.borderColor = "#dee2e6";
+                        e.currentTarget.style.color = "#6c757d";
+                      }
+                    }}
+                  >
+                    {isRejectingResolution ? "Rejeitando..." : "Rejeitar"}
+                  </button>
+                  <button
+                    onClick={handleApproveResolution}
+                    disabled={isApprovingResolution}
+                    style={{
+                      padding: "4px 10px",
+                      backgroundColor: "transparent",
+                      color: "#28a745",
+                      border: "1px solid #28a745",
+                      borderRadius: "3px",
+                      fontSize: "11px",
+                      fontWeight: "400",
+                      cursor: isApprovingResolution ? "not-allowed" : "pointer",
+                      opacity: isApprovingResolution ? 0.6 : 1,
+                      transition: "all 0.15s",
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isApprovingResolution) {
+                        e.currentTarget.style.backgroundColor = "#28a745";
+                        e.currentTarget.style.color = "white";
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isApprovingResolution) {
+                        e.currentTarget.style.backgroundColor = "transparent";
+                        e.currentTarget.style.color = "#28a745";
+                      }
+                    }}
+                  >
+                    {isApprovingResolution ? "Aprovando..." : "Aprovar"}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Card de aprovação de exclusão - apenas para o criador do ticket */}
+            {ticket.pendingDeletion && !isTechnician() && (
+              <div
+                style={{
+                  background: "#fff9f0",
+                  border: "1px solid #ffe0b2",
+                  padding: "12px",
+                  borderRadius: "4px",
+                  margin: "12px 16px",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: "11px",
+                    fontWeight: "500",
+                    color: "#e65100",
+                    marginBottom: "6px",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.3px",
+                  }}
+                >
+                  ⚠ Solicitação de Exclusão
+                </div>
+                <p
+                  style={{
+                    margin: "0 0 10px 0",
+                    color: "#6c5400",
+                    lineHeight: "1.4",
+                    fontSize: "13px",
+                  }}
+                >
+                  Um técnico solicitou a exclusão deste ticket.
+                </p>
+                <div style={{ display: "flex", gap: "6px", justifyContent: "flex-end" }}>
+                  <button
+                    onClick={handleRejectDeletion}
+                    style={{
+                      padding: "4px 10px",
+                      backgroundColor: "transparent",
+                      color: "#6c757d",
+                      border: "1px solid #dee2e6",
+                      borderRadius: "3px",
+                      fontSize: "11px",
+                      fontWeight: "400",
+                      cursor: "pointer",
+                      transition: "all 0.15s",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = "#6c757d";
+                      e.currentTarget.style.color = "#495057";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = "#dee2e6";
+                      e.currentTarget.style.color = "#6c757d";
+                    }}
+                  >
+                    Recusar
+                  </button>
+                  <button
+                    onClick={handleApproveDeletion}
+                    style={{
+                      padding: "4px 10px",
+                      backgroundColor: "transparent",
+                      color: "#dc3545",
+                      border: "1px solid #dc3545",
+                      borderRadius: "3px",
+                      fontSize: "11px",
+                      fontWeight: "400",
+                      cursor: "pointer",
+                      transition: "all 0.15s",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = "#dc3545";
+                      e.currentTarget.style.color = "white";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = "transparent";
+                      e.currentTarget.style.color = "#dc3545";
+                    }}
+                  >
+                    Aprovar
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Formulário de Envio */}
-            <div style={{ padding: "16px", borderTop: "1px solid #dee2e6" }}>
+            <div style={{ padding: "12px 16px", borderTop: "1px solid #e9ecef" }}>
               {error && (
                 <div
                   style={{
-                    padding: "8px 12px",
-                    marginBottom: "12px",
-                    background: "#f8d7da",
-                    color: "#721c24",
-                    borderRadius: "4px",
-                    fontSize: "14px",
+                    padding: "8px 10px",
+                    marginBottom: "10px",
+                    background: "#fdecea",
+                    color: "#c62828",
+                    border: "1px solid #ef9a9a",
+                    borderRadius: "3px",
+                    fontSize: "12px",
                   }}
                 >
                   {error}
@@ -542,52 +1177,121 @@ export default function TicketDetailPage() {
               )}
               <form
                 onSubmit={handleSendMessage}
-                style={{ display: "flex", gap: "12px", alignItems: "flex-end" }}
+                style={{ display: "flex", gap: "8px", alignItems: "stretch" }}
               >
                 <textarea
-                  className="login-form__input"
-                  placeholder="Digite sua mensagem..."
+                  placeholder={
+                    ticket.status === 3 && !isTechnician()
+                      ? "Ticket resolvido e aprovado"
+                      : ticket.status === 5 && !isTechnician()
+                      ? "Aguardando sua aprovação da solução..."
+                      : "Digite sua mensagem..."
+                  }
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
-                  disabled={sending}
-                  rows={3}
+                  disabled={
+                    sending ||
+                    (ticket.status === 5 && !isTechnician()) ||
+                    (ticket.status === 3 && !isTechnician())
+                  }
+                  rows={2}
                   style={{
                     flex: 1,
                     margin: 0,
                     resize: "none",
                     fontFamily: "inherit",
-                    padding: "12px",
+                    padding: "10px",
+                    fontSize: "13px",
+                    border: "1px solid #e0e0e0",
+                    borderRadius: "3px",
+                    outline: "none",
+                    opacity:
+                      (ticket.status === 5 && !isTechnician()) ||
+                      (ticket.status === 3 && !isTechnician())
+                        ? 0.6
+                        : 1,
+                    cursor:
+                      (ticket.status === 5 && !isTechnician()) ||
+                      (ticket.status === 3 && !isTechnician())
+                        ? "not-allowed"
+                        : "text",
                   }}
                 />
                 <button
                   type="submit"
-                  disabled={sending || !message.trim()}
+                  disabled={
+                    sending ||
+                    !message.trim() ||
+                    (ticket.status === 5 && !isTechnician()) ||
+                    (ticket.status === 3 && !isTechnician())
+                  }
                   style={{
                     margin: 0,
-                    padding: "12px 20px",
-                    background: "#007bff",
-                    color: "white",
-                    border: "none",
-                    borderRadius: "6px",
+                    padding: "0 16px",
+                    background: "transparent",
+                    color: "#007bff",
+                    border: "1px solid #007bff",
+                    borderRadius: "3px",
                     cursor: sending || !message.trim() ? "not-allowed" : "pointer",
-                    fontSize: "14px",
-                    fontWeight: "500",
-                    transition: "background 0.2s",
-                    opacity: sending || !message.trim() ? 0.6 : 1,
-                    height: "fit-content",
+                    fontSize: "12px",
+                    fontWeight: "400",
+                    transition: "all 0.15s",
+                    opacity: sending || !message.trim() ? 0.5 : 1,
+                    minWidth: "80px",
                   }}
                   onMouseEnter={(e) => {
                     if (!sending && message.trim()) {
-                      e.currentTarget.style.background = "#0056b3";
+                      e.currentTarget.style.background = "#007bff";
+                      e.currentTarget.style.color = "white";
                     }
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.background = "#007bff";
+                    if (!sending && message.trim()) {
+                      e.currentTarget.style.background = "transparent";
+                      e.currentTarget.style.color = "#007bff";
+                    }
                   }}
                 >
                   {sending ? "..." : "Enviar"}
                 </button>
               </form>
+
+              {/* Solução Aprovada - Mostrar abaixo do formulário quando ticket resolvido (status 3) */}
+              {ticket.status === 3 && ticket.resolutionMessage && !isTechnician() && (
+                <div
+                  style={{
+                    marginTop: "12px",
+                    padding: "10px 12px",
+                    backgroundColor: "#f0f8f0",
+                    border: "1px solid #d0e8d0",
+                    borderRadius: "4px",
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: "11px",
+                      fontWeight: "500",
+                      color: "#28a745",
+                      marginBottom: "6px",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.3px",
+                    }}
+                  >
+                    ✓ Solução Aprovada
+                  </div>
+                  <p
+                    style={{
+                      margin: 0,
+                      whiteSpace: "pre-wrap",
+                      color: "#495057",
+                      lineHeight: "1.4",
+                      fontSize: "13px",
+                    }}
+                  >
+                    {ticket.resolutionMessage}
+                  </p>
+                </div>
+              )}
             </div>
           </div>
 

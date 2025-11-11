@@ -72,8 +72,18 @@ export interface Ticket {
   title: string;
   ticketBody?: string;
   urgency: 1 | 2 | 3;
-  status: 1 | 2 | 3; // 1=Aberto, 2=Pendente, 3=Resolvido
+  status: 1 | 2 | 3 | 4 | 5 | 6 | 7; // 1=Aberto, 2=Pendente, 3=Resolvido, 4=Reaberto, 5=Aguardando Aprovação, 6=Aguardando Exclusão, 7=Deletado
   resolutionMessage?: string;
+  resolutionApproved?: boolean | null;
+  reopenedAt?: string;
+  pendingDeletion?: boolean | null;
+  deletionRequestedBy?: string;
+  deletionRequestedAt?: string;
+  isDeleted?: boolean;
+  deletedAt?: string;
+  editedAt?: string;
+  editedBy?: string;
+  editedByUsername?: string;
   createdAt?: string;
   updatedAt?: string;
   userId?: string;
@@ -144,5 +154,78 @@ export function getCurrentUserRole(): string {
     return userData.role === 10 ? "Técnico" : "Usuário";
   } catch {
     return "Usuário";
+  }
+}
+
+// Tipos para perfil
+export interface UserProfile {
+  id: string;
+  username: string;
+  email: string;
+  role: number;
+  profileImage?: string | null;
+}
+
+export interface UpdateProfilePayload {
+  username?: string;
+  email?: string;
+  profileImage?: string | null;
+}
+
+export interface ChangePasswordPayload {
+  currentPassword: string;
+  newPassword: string;
+}
+
+// API de perfil
+export async function getMyProfile(): Promise<UserProfile> {
+  return apiGet<UserProfile>("/users/profile/me");
+}
+
+export async function updateMyProfile(data: UpdateProfilePayload): Promise<void> {
+  const token = getCookie("token");
+  const headers: HeadersInit = { "Content-Type": "application/json" };
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
+  const res = await fetch(`${BASE_URL}/users/profile/me`, {
+    method: "PUT",
+    headers,
+    body: JSON.stringify(data),
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    try {
+      const errorData = JSON.parse(text);
+      throw new Error(errorData.message || "Erro ao atualizar perfil");
+    } catch {
+      throw new Error(`Erro ao atualizar perfil: ${res.status}`);
+    }
+  }
+}
+
+export async function changePassword(data: ChangePasswordPayload): Promise<void> {
+  const token = getCookie("token");
+  const headers: HeadersInit = { "Content-Type": "application/json" };
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
+  const res = await fetch(`${BASE_URL}/users/change-password`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(data),
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    try {
+      const errorData = JSON.parse(text);
+      throw new Error(errorData.message || "Erro ao alterar senha");
+    } catch {
+      throw new Error(`Erro ao alterar senha: ${res.status}`);
+    }
   }
 }
