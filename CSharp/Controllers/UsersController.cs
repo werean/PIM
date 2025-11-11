@@ -31,17 +31,78 @@ namespace CSharp.Controllers
         [HttpPost]
         public async Task<ActionResult<User>> Create(UserCreateDTO dto)
         {
-            var user = await _service.CreateAsync(dto);
-            return CreatedAtAction(nameof(GetById), new { id = user!.Id }, user);
+            try
+            {
+                // Validação do ModelState
+                if (!ModelState.IsValid)
+                {
+                    var errors = ModelState.Values
+                        .SelectMany(v => v.Errors)
+                        .Select(e => e.ErrorMessage)
+                        .ToList();
+                    return BadRequest(new { message = "Dados inválidos", errors });
+                }
+
+                // Validações adicionais
+                if (dto.Password.Length < 6)
+                {
+                    return BadRequest(new { message = "Senha deve ter no mínimo 6 caracteres" });
+                }
+
+                if (dto.Username.Length < 3)
+                {
+                    return BadRequest(new { message = "Nome de usuário deve ter no mínimo 3 caracteres" });
+                }
+
+                // Validar role (apenas valores válidos: 1-Admin, 2-Gerente, 3-Técnico, 5-Usuário)
+                if (dto.Role != 1 && dto.Role != 2 && dto.Role != 3 && dto.Role != 5)
+                {
+                    return BadRequest(new { message = "Tipo de usuário inválido" });
+                }
+
+                var user = await _service.CreateAsync(dto);
+                
+                if (user == null)
+                {
+                    return BadRequest(new { message = "Não foi possível criar usuário. Email pode já estar em uso." });
+                }
+
+                return CreatedAtAction(nameof(GetById), new { id = user.Id }, user);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Erro ao criar usuário", error = ex.Message });
+            }
         }
 
         [HttpPut("{id}")]
         [Authorize]
         public async Task<IActionResult> Update(Guid id, UserUpdateDTO dto)
         {
-            var ok = await _service.UpdateAsync(id, dto);
-            if (!ok) return NotFound();
-            return NoContent();
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    var errors = ModelState.Values
+                        .SelectMany(v => v.Errors)
+                        .Select(e => e.ErrorMessage)
+                        .ToList();
+                    return BadRequest(new { message = "Dados inválidos", errors });
+                }
+
+                if (dto.Username != null && dto.Username.Length < 3)
+                {
+                    return BadRequest(new { message = "Nome de usuário deve ter no mínimo 3 caracteres" });
+                }
+
+                var ok = await _service.UpdateAsync(id, dto);
+                if (!ok) return NotFound(new { message = "Usuário não encontrado" });
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Erro ao atualizar usuário", error = ex.Message });
+            }
         }
 
         [HttpDelete("{id}")]

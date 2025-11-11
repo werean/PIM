@@ -113,7 +113,22 @@ export default function TicketDetailPage() {
 
   async function handleSendMessage(e: FormEvent) {
     e.preventDefault();
-    if (!message.trim() || !id) return;
+    
+    // Validação
+    if (!message.trim()) {
+      setError("Mensagem não pode estar vazia");
+      return;
+    }
+
+    if (message.trim().length < 3) {
+      setError("Mensagem deve ter no mínimo 3 caracteres");
+      return;
+    }
+
+    if (!id) {
+      setError("ID do ticket inválido");
+      return;
+    }
 
     setSending(true);
     setError(null);
@@ -130,8 +145,13 @@ export default function TicketDetailPage() {
       const updatedTicket = await apiGet<Ticket>(`/tickets/${id}`);
       setTicket(updatedTicket);
       setMessage("");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao enviar mensagem");
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } }; message?: string };
+      setError(
+        error.response?.data?.message ||
+          error.message ||
+          "Erro ao enviar mensagem"
+      );
     } finally {
       setSending(false);
     }

@@ -25,6 +25,21 @@ interface AIChatProps {
   ticketBody: string;
 }
 
+interface OllamaModel {
+  name: string;
+  description?: string;
+  size?: string;
+  downloaded?: boolean;
+}
+
+interface OllamaStatus {
+  isRunning: boolean;
+  isInstalled: boolean;
+  message: string;
+  serverUrl?: string;
+  ollamaPath?: string;
+}
+
 export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
@@ -34,6 +49,13 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
   const [isConnected, setIsConnected] = useState(false);
   const [streamingMessage, setStreamingMessage] = useState("");
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [selectedModel, setSelectedModel] = useState("qwen3:0.6b");
+  const [availableModels, setAvailableModels] = useState<OllamaModel[]>([]);
+  const [isLoadingModels, setIsLoadingModels] = useState(false);
+  const [isPullingModel, setIsPullingModel] = useState(false);
+  const [ollamaStatus, setOllamaStatus] = useState<OllamaStatus | null>(null);
+  const [isCheckingOllama, setIsCheckingOllama] = useState(false);
+  const [isManagingOllama, setIsManagingOllama] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const streamTimeoutRef = useRef<number | null>(null);
@@ -125,6 +147,176 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
       console.error("❌ Erro ao sincronizar com banco:", error);
     }
   }, [messages, ticketId]);
+
+  // Verificar status do Ollama ao abrir o chat
+  const checkOllamaStatus = useCallback(async () => {
+    setIsCheckingOllama(true);
+    try {
+      const status = await apiGet<OllamaStatus>('/api/ollama/status');
+      setOllamaStatus(status);
+      return status;
+    } catch (error) {
+      console.error("Erro ao verificar status do Ollama:", error);
+      setOllamaStatus({
+        isRunning: false,
+        isInstalled: false,
+        message: "Erro ao verificar status"
+      });
+      return null;
+    } finally {
+      setIsCheckingOllama(false);
+    }
+  }, []);
+
+  // Iniciar servidor Ollama
+  const startOllama = async () => {
+    setIsManagingOllama(true);
+    try {
+      await apiPost('/api/ollama/start', {});
+      alert('Servidor Ollama iniciado! Aguarde alguns segundos...');
+      
+      // Aguardar 3 segundos e verificar status novamente
+      setTimeout(async () => {
+        await checkOllamaStatus();
+        setIsManagingOllama(false);
+      }, 3000);
+    } catch (error) {
+      console.error("Erro ao iniciar Ollama:", error);
+      alert('Erro ao iniciar servidor Ollama');
+      setIsManagingOllama(false);
+    }
+  };
+
+  // Parar servidor Ollama
+  const stopOllama = async () => {
+    setIsManagingOllama(true);
+    try {
+      await apiPost('/api/ollama/stop', {});
+      alert('Servidor Ollama parado!');
+      await checkOllamaStatus();
+    } catch (error) {
+      console.error("Erro ao parar Ollama:", error);
+      alert('Erro ao parar servidor Ollama');
+    } finally {
+      setIsManagingOllama(false);
+    }
+  };
+
+  // Abrir página de download do Ollama
+  const downloadOllama = async () => {
+    try {
+      const response = await apiGet<{ url: string }>('/api/ollama/download-url');
+      window.open(response.url, '_blank');
+      alert('Após instalar o Ollama, reinicie o chat para verificar o status.');
+    } catch (error) {
+      console.error("Erro ao obter URL de download:", error);
+      window.open('https://ollama.com/download/windows', '_blank');
+    }
+  };
+
+  // Carregar modelos disponíveis ao abrir o chat
+  useEffect(() => {
+    if (!isOpen) return;
+
+    // Verificar status do Ollama primeiro
+    checkOllamaStatus();
+
+    const loadModels = async () => {
+      setIsLoadingModels(true);
+      
+      let localModels: OllamaModel[] = [];
+      let availableModelsForDownload: OllamaModel[] = [];
+
+      try {
+        // Tentar listar modelos locais (pode falhar se Ollama não estiver rodando)
+        const localResponse = await apiGet<{ models: OllamaModel[] }>('/api/ollama/models');
+        localModels = localResponse.models || [];
+      } catch {
+        // Ollama pode não estar rodando
+      }
+
+      try {
+        // Sempre buscar modelos disponíveis para download
+        const availableResponse = await apiGet<{ models: OllamaModel[] }>('/api/ollama/models/available');
+        availableModelsForDownload = availableResponse.models || [];
+      } catch (error) {
+        console.error("Erro ao buscar modelos disponíveis:", error);
+        // Se falhar, usar lista padrão
+        availableModelsForDownload = [
+          { name: "qwen3:0.6b", description: "⚡ Ultra-rápido - 600MB (RECOMENDADO)", size: "600MB" },
+          { name: "llama3.2:1b", description: "Llama 3.2 - 1B parâmetros", size: "1.3GB" },
+          { name: "gemma2:2b", description: "Google Gemma 2 - 2B", size: "1.6GB" },
+        ];
+      }
+
+      // Combinar modelos locais (baixados) com disponíveis para download
+      const allModels = [
+        // Modelos já baixados (com badge de baixado, sem tamanho)
+        ...localModels.map(m => ({ 
+          name: m.name,
+          description: "✅ Baixado",
+          size: undefined, // Não mostrar tamanho para modelos já baixados
+          downloaded: true
+        })),
+        // Modelos disponíveis para download (com tamanho, sem badge de baixado)
+        ...availableModelsForDownload.filter(
+          am => !localModels.some(lm => lm.name === am.name)
+        ).map(m => ({ 
+          name: m.name,
+          description: m.description,
+          size: m.size,
+          downloaded: false 
+        }))
+      ];
+
+      if (allModels.length > 0) {
+        setAvailableModels(allModels as OllamaModel[]);
+      } else {
+        // Último fallback
+        setAvailableModels([
+          { name: "qwen3:0.6b", description: "⚡ Ultra-rápido - 600MB (RECOMENDADO)", size: "600MB" }
+        ]);
+      }
+
+      setIsLoadingModels(false);
+    };
+
+    loadModels();
+  }, [isOpen, checkOllamaStatus]);
+
+  // Função para verificar e baixar modelo se necessário
+  const ensureModelAvailable = async (modelName: string): Promise<boolean> => {
+    try {
+      // Verificar se modelo existe
+      const response = await apiPost<{ exists: boolean }>('/api/ollama/models/check', { model: modelName });
+      
+      if (response.exists) {
+        return true;
+      }
+
+      // Se não existe, perguntar para baixar
+      const confirmDownload = window.confirm(
+        `O modelo "${modelName}" não está baixado.\n\nDeseja baixar agora? (Isso pode demorar alguns minutos)`
+      );
+
+      if (!confirmDownload) {
+        return false;
+      }
+
+      // Iniciar download
+      setIsPullingModel(true);
+      await apiPost('/api/ollama/models/pull', { model: modelName });
+      
+      alert(`Download do modelo "${modelName}" iniciado em background. Aguarde alguns minutos antes de usar.`);
+      setIsPullingModel(false);
+      
+      return true;
+    } catch (error) {
+      console.error("Erro ao verificar/baixar modelo:", error);
+      setIsPullingModel(false);
+      return false;
+    }
+  };
 
   // Scroll automático para última mensagem
   useEffect(() => {
@@ -305,16 +497,24 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, ticketId, ticketTitle, ticketBody, addMessage]);
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!inputMessage.trim() || !wsRef.current || !isConnected || isSending) return;
+
+    // Verificar se o modelo está disponível
+    const modelAvailable = await ensureModelAvailable(selectedModel);
+    if (!modelAvailable) {
+      alert("Modelo não disponível. Selecione outro modelo ou aguarde o download.");
+      return;
+    }
 
     setIsSending(true);
     addMessage(inputMessage, true);
 
-    // Enviar mensagem via WebSocket
+    // Enviar mensagem via WebSocket com o modelo selecionado
     wsRef.current.send(
       JSON.stringify({
         prompt: inputMessage,
+        model: selectedModel,
         ticketId: ticketId,
       })
     );
@@ -504,6 +704,185 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
             >
               ×
             </button>
+          </div>
+
+          {/* Status do Ollama */}
+          {ollamaStatus && !ollamaStatus.isRunning && (
+            <div
+              style={{
+                padding: "16px",
+                backgroundColor: "#fff3cd",
+                borderBottom: "2px solid #ffc107",
+                display: "flex",
+                flexDirection: "column",
+                gap: "12px",
+              }}
+            >
+              <div style={{ fontSize: "13px", fontWeight: "500", color: "#856404" }}>
+                ⚠️ {ollamaStatus.message}
+              </div>
+              
+              {!ollamaStatus.isInstalled ? (
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <button
+                    onClick={downloadOllama}
+                    style={{
+                      flex: 1,
+                      padding: "8px 12px",
+                      backgroundColor: "#007bff",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "6px",
+                      fontSize: "12px",
+                      fontWeight: "500",
+                      cursor: "pointer",
+                    }}
+                  >
+                    📥 Instalar Ollama
+                  </button>
+                </div>
+              ) : (
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <button
+                    onClick={startOllama}
+                    disabled={isManagingOllama}
+                    style={{
+                      flex: 1,
+                      padding: "8px 12px",
+                      backgroundColor: "#28a745",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "6px",
+                      fontSize: "12px",
+                      fontWeight: "500",
+                      cursor: isManagingOllama ? "not-allowed" : "pointer",
+                      opacity: isManagingOllama ? 0.6 : 1,
+                    }}
+                  >
+                    {isManagingOllama ? "⏳ Iniciando..." : "▶️ Iniciar Ollama"}
+                  </button>
+                  <button
+                    onClick={checkOllamaStatus}
+                    disabled={isCheckingOllama}
+                    style={{
+                      padding: "8px 12px",
+                      backgroundColor: "#6c757d",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "6px",
+                      fontSize: "12px",
+                      fontWeight: "500",
+                      cursor: isCheckingOllama ? "not-allowed" : "pointer",
+                      opacity: isCheckingOllama ? 0.6 : 1,
+                    }}
+                  >
+                    {isCheckingOllama ? "⏳" : "🔄"}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Botão de Parar Ollama (quando rodando) */}
+          {ollamaStatus && ollamaStatus.isRunning && (
+            <div
+              style={{
+                padding: "8px 16px",
+                backgroundColor: "#d4edda",
+                borderBottom: "1px solid #c3e6cb",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+              }}
+            >
+              <span style={{ fontSize: "12px", fontWeight: "500", color: "#155724" }}>
+                ✅ Ollama rodando
+              </span>
+              <button
+                onClick={stopOllama}
+                disabled={isManagingOllama}
+                style={{
+                  padding: "4px 12px",
+                  backgroundColor: "#dc3545",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "4px",
+                  fontSize: "11px",
+                  fontWeight: "500",
+                  cursor: isManagingOllama ? "not-allowed" : "pointer",
+                  opacity: isManagingOllama ? 0.6 : 1,
+                }}
+              >
+                {isManagingOllama ? "⏳" : "⏹️ Parar"}
+              </button>
+            </div>
+          )}
+
+          {/* Seletor de Modelo - Sempre visível */}
+          <div
+            style={{
+              padding: "12px 16px",
+              backgroundColor: "#f8f9fa",
+              borderBottom: "1px solid #dee2e6",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+            }}
+          >
+            <label
+              htmlFor="model-select"
+              style={{
+                fontSize: "12px",
+                fontWeight: "500",
+                color: "#6c757d",
+              }}
+            >
+              🤖 Modelo:
+            </label>
+            <select
+              id="model-select"
+              value={selectedModel}
+              onChange={(e) => setSelectedModel(e.target.value)}
+              disabled={isPullingModel || isLoadingModels || (ollamaStatus !== null && !ollamaStatus.isRunning)}
+              style={{
+                flex: 1,
+                padding: "6px 10px",
+                borderRadius: "6px",
+                border: "1px solid #ced4da",
+                fontSize: "12px",
+                backgroundColor: "white",
+                cursor: isPullingModel || (ollamaStatus && !ollamaStatus.isRunning) ? "not-allowed" : "pointer",
+                opacity: ollamaStatus && !ollamaStatus.isRunning ? 0.6 : 1,
+              }}
+            >
+              {isLoadingModels ? (
+                <option>Carregando...</option>
+              ) : availableModels.length > 0 ? (
+                availableModels.map((model) => {
+                  // Para modelos baixados: "nome ✅ Baixado"
+                  // Para modelos não baixados: "nome - descrição (tamanho)"
+                  let displayText = model.name;
+                  
+                  if (model.downloaded) {
+                    displayText += " - ✅ Baixado";
+                  } else if (model.description || model.size) {
+                    if (model.description) displayText += ` - ${model.description}`;
+                    if (model.size) displayText += ` (${model.size})`;
+                  }
+                  
+                  return (
+                    <option key={model.name} value={model.name}>
+                      {displayText}
+                    </option>
+                  );
+                })
+              ) : (
+                <option>Nenhum modelo disponível</option>
+              )}
+            </select>
+            {isPullingModel && (
+              <span style={{ fontSize: "12px", color: "#ffc107" }}>⏳ Baixando...</span>
+            )}
           </div>
 
           {/* Mensagens */}

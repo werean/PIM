@@ -188,8 +188,9 @@ namespace CSharp.Controllers
                     {
                         var message = Encoding.UTF8.GetString(buffer, 0, receiveResult.Count);
                         string promptText = message;
+                        string modelName = "qwen3:0.6b"; // modelo padrão
 
-                        // Tentar parsear como JSON para extrair o campo "prompt"
+                        // Tentar parsear como JSON para extrair os campos "prompt" e "model"
                         try
                         {
                             using var doc = JsonDocument.Parse(message);
@@ -197,6 +198,10 @@ namespace CSharp.Controllers
                             if (root.TryGetProperty("prompt", out var promptProperty))
                             {
                                 promptText = promptProperty.GetString() ?? message;
+                            }
+                            if (root.TryGetProperty("model", out var modelProperty))
+                            {
+                                modelName = modelProperty.GetString() ?? modelName;
                             }
                         }
                         catch
@@ -218,7 +223,7 @@ namespace CSharp.Controllers
 
                             var requestBody = new
                             {
-                                model = "qwen3:0.6b",
+                                model = modelName,
                                 prompt = promptText,
                                 stream = true
                             };

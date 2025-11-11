@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import logoLJFT from "../assets/images/logoLJFT.png";
 import { apiPost } from "../services/api";
 import { isAuthenticated } from "../utils/cookies";
+import { ErrorMessage, FieldError } from "../components/ErrorMessage";
 
 export default function RegisterTicketPage() {
   const [title, setTitle] = useState("");
@@ -10,6 +11,11 @@ export default function RegisterTicketPage() {
   const [urgency, setUrgency] = useState("1"); // 1 = Low, 2 = Medium, 3 = High
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [errors, setErrors] = useState<string[]>([]);
+  const [fieldErrors, setFieldErrors] = useState<{
+    title?: string;
+    ticketBody?: string;
+  }>({});
   const [success, setSuccess] = useState(false);
   const navigate = useNavigate();
 
@@ -20,9 +26,50 @@ export default function RegisterTicketPage() {
     }
   }, [navigate]);
 
+  // Validação do formulário
+  const validateForm = (): boolean => {
+    const newFieldErrors: {
+      title?: string;
+      ticketBody?: string;
+    } = {};
+    let isValid = true;
+
+    // Validar título
+    if (!title.trim()) {
+      newFieldErrors.title = "Título é obrigatório";
+      isValid = false;
+    } else if (title.length < 5) {
+      newFieldErrors.title = "Título deve ter no mínimo 5 caracteres";
+      isValid = false;
+    } else if (title.length > 200) {
+      newFieldErrors.title = "Título deve ter no máximo 200 caracteres";
+      isValid = false;
+    }
+
+    // Validar descrição
+    if (!ticketBody.trim()) {
+      newFieldErrors.ticketBody = "Descrição é obrigatória";
+      isValid = false;
+    } else if (ticketBody.length < 10) {
+      newFieldErrors.ticketBody = "Descrição deve ter no mínimo 10 caracteres";
+      isValid = false;
+    }
+
+    setFieldErrors(newFieldErrors);
+    return isValid;
+  };
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
+    setErrors([]);
+    setFieldErrors({});
+
+    // Validação do formulário
+    if (!validateForm()) {
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -38,8 +85,16 @@ export default function RegisterTicketPage() {
       setTimeout(() => {
         navigate("/home");
       }, 2000);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao criar chamado");
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string; errors?: string[] } }; message?: string };
+      if (error.response?.data?.errors) {
+        setErrors(error.response.data.errors);
+      }
+      setError(
+        error.response?.data?.message ||
+          error.message ||
+          "Erro ao criar chamado"
+      );
       setLoading(false);
     }
   }
@@ -67,6 +122,10 @@ export default function RegisterTicketPage() {
         <form onSubmit={handleSubmit} className="login-form">
           <h2 className="login-form__title">Criar novo chamado</h2>
 
+          {(error || errors.length > 0) && (
+            <ErrorMessage message={error || undefined} errors={errors} />
+          )}
+
           <div className="login-form__group">
             <label htmlFor="title" className="login-form__label">
               Título do chamado *
@@ -77,10 +136,16 @@ export default function RegisterTicketPage() {
               className="login-form__input"
               placeholder="Ex: Problema com impressora"
               value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              onChange={(e) => {
+                setTitle(e.target.value);
+                if (fieldErrors.title) {
+                  setFieldErrors({ ...fieldErrors, title: undefined });
+                }
+              }}
               required
               maxLength={200}
             />
+            <FieldError error={fieldErrors.title} />
           </div>
 
           <div className="login-form__group">
@@ -92,11 +157,17 @@ export default function RegisterTicketPage() {
               className="login-form__input"
               placeholder="Descreva o problema em detalhes..."
               value={ticketBody}
-              onChange={(e) => setTicketBody(e.target.value)}
+              onChange={(e) => {
+                setTicketBody(e.target.value);
+                if (fieldErrors.ticketBody) {
+                  setFieldErrors({ ...fieldErrors, ticketBody: undefined });
+                }
+              }}
               required
               rows={5}
               style={{ resize: "vertical", fontFamily: "inherit" }}
             />
+            <FieldError error={fieldErrors.ticketBody} />
           </div>
 
           <div className="login-form__group">
@@ -115,8 +186,6 @@ export default function RegisterTicketPage() {
               <option value="3">Alta</option>
             </select>
           </div>
-
-          {error && <p className="login-form__error">{error}</p>}
 
           <button type="submit" className="login-form__submit" disabled={loading}>
             {loading ? "Criando..." : "Criar chamado"}

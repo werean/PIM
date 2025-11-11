@@ -23,11 +23,59 @@ namespace CSharp.Controllers
         [Authorize]
         public async Task<ActionResult> Create(CommentCreateDTO dto)
         {
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value 
-                ?? throw new UnauthorizedAccessException("User ID not found");
-            var userId = Guid.Parse(userIdClaim);
-            var comment = await _service.CreateAsync(dto, userId);
-            return CreatedAtAction(nameof(GetByTicket), new { ticketId = comment!.TicketId }, comment);
+            try
+            {
+                // Validação do ModelState
+                if (!ModelState.IsValid)
+                {
+                    var errors = ModelState.Values
+                        .SelectMany(v => v.Errors)
+                        .Select(e => e.ErrorMessage)
+                        .ToList();
+                    return BadRequest(new { message = "Dados inválidos", errors });
+                }
+
+                // Validações adicionais
+                if (string.IsNullOrWhiteSpace(dto.CommentBody))
+                {
+                    return BadRequest(new { message = "Comentário não pode estar vazio" });
+                }
+
+                if (dto.CommentBody.Length < 3)
+                {
+                    return BadRequest(new { message = "Comentário deve ter no mínimo 3 caracteres" });
+                }
+
+                if (dto.TicketId <= 0)
+                {
+                    return BadRequest(new { message = "ID do ticket inválido" });
+                }
+
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                
+                if (string.IsNullOrEmpty(userIdClaim))
+                {
+                    return Unauthorized(new { message = "Usuário não autenticado" });
+                }
+
+                if (!Guid.TryParse(userIdClaim, out var userId))
+                {
+                    return BadRequest(new { message = "ID de usuário inválido" });
+                }
+
+                var comment = await _service.CreateAsync(dto, userId);
+                
+                if (comment == null)
+                {
+                    return BadRequest(new { message = "Não foi possível criar o comentário" });
+                }
+
+                return CreatedAtAction(nameof(GetByTicket), new { ticketId = comment.TicketId }, comment);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Erro ao criar comentário", error = ex.Message });
+            }
         }
     }
 }

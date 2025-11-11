@@ -7,6 +7,9 @@ import { apiPost } from "../services/api";
 // Utils
 import { setCookie, isAuthenticated } from "../utils/cookies";
 
+// Components
+import { ErrorMessage, FieldError } from "../components/ErrorMessage";
+
 // Imagens
 import logoLJFT from "../assets/images/logoLJFT.png";
 
@@ -15,6 +18,12 @@ export default function LoginPage() {
   const [senha, setSenha] = useState("");
   const [lembrar, setLembrar] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [errors, setErrors] = useState<string[]>([]);
+  const [fieldErrors, setFieldErrors] = useState<{
+    email?: string;
+    password?: string;
+  }>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
 
   // Redireciona para /home se já estiver autenticado
@@ -24,9 +33,50 @@ export default function LoginPage() {
     }
   }, [navigate]);
 
+  // Validação de email
+  const validateEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  // Validação do formulário
+  const validateForm = (): boolean => {
+    const newFieldErrors: { email?: string; password?: string } = {};
+    let isValid = true;
+
+    if (!usuario.trim()) {
+      newFieldErrors.email = "Email é obrigatório";
+      isValid = false;
+    } else if (!validateEmail(usuario)) {
+      newFieldErrors.email = "Email inválido";
+      isValid = false;
+    }
+
+    if (!senha) {
+      newFieldErrors.password = "Senha é obrigatória";
+      isValid = false;
+    } else if (senha.length < 6) {
+      newFieldErrors.password = "Senha deve ter no mínimo 6 caracteres";
+      isValid = false;
+    }
+
+    setFieldErrors(newFieldErrors);
+    return isValid;
+  };
+
   async function handleLogin(e: FormEvent) {
     e.preventDefault();
     setError(null);
+    setErrors([]);
+    setFieldErrors({});
+
+    // Validação do formulário
+    if (!validateForm()) {
+      return;
+    }
+
+    setIsSubmitting(true);
+
     try {
       const response = await apiPost<{
         success?: boolean;
@@ -56,8 +106,18 @@ export default function LoginPage() {
 
       // After successful login, navigate to the home page
       navigate("/home");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao efetuar login");
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string; errors?: string[] } }; message?: string };
+      if (error.response?.data?.errors) {
+        setErrors(error.response.data.errors);
+      }
+      setError(
+        error.response?.data?.message ||
+          error.message ||
+          "Erro ao efetuar login"
+      );
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
@@ -67,6 +127,10 @@ export default function LoginPage() {
         <img src={logoLJFT} alt="Logo LIFT" className="login-page__logo" />
         <form onSubmit={handleLogin} className="login-form">
           <h2 className="login-form__title">Faça login na sua conta</h2>
+
+          {(error || errors.length > 0) && (
+            <ErrorMessage message={error || undefined} errors={errors} />
+          )}
 
           <div className="login-form__group">
             <label htmlFor="usuario" className="login-form__label">
@@ -78,9 +142,15 @@ export default function LoginPage() {
               className="login-form__input"
               placeholder="Digite seu e-mail..."
               value={usuario}
-              onChange={(e) => setUsuario(e.target.value)}
+              onChange={(e) => {
+                setUsuario(e.target.value);
+                if (fieldErrors.email) {
+                  setFieldErrors({ ...fieldErrors, email: undefined });
+                }
+              }}
               required
             />
+            <FieldError error={fieldErrors.email} />
           </div>
 
           <div className="login-form__group">
@@ -93,12 +163,16 @@ export default function LoginPage() {
               className="login-form__input"
               placeholder="Digite sua senha..."
               value={senha}
-              onChange={(e) => setSenha(e.target.value)}
+              onChange={(e) => {
+                setSenha(e.target.value);
+                if (fieldErrors.password) {
+                  setFieldErrors({ ...fieldErrors, password: undefined });
+                }
+              }}
               required
             />
+            <FieldError error={fieldErrors.password} />
           </div>
-
-          {error && <p className="login-form__error">{error}</p>}
 
           <div className="login-form__checkbox">
             <input
@@ -110,8 +184,12 @@ export default function LoginPage() {
             <label htmlFor="lembrar">Lembrar de mim</label>
           </div>
 
-          <button type="submit" className="login-form__submit">
-            Entrar
+          <button 
+            type="submit" 
+            className="login-form__submit"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? "Entrando..." : "Entrar"}
           </button>
 
           <p className="login-form__footer">
