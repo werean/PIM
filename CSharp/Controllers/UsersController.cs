@@ -54,8 +54,8 @@ namespace CSharp.Controllers
                     return BadRequest(new { message = "Nome de usuário deve ter no mínimo 3 caracteres" });
                 }
 
-                // Validar role (apenas valores válidos: 1-Admin, 2-Gerente, 3-Técnico, 5-Usuário)
-                if (dto.Role != 1 && dto.Role != 2 && dto.Role != 3 && dto.Role != 5)
+                // Validar role (apenas valores válidos: 5-Usuário, 10-Técnico)
+                if (dto.Role != 5 && dto.Role != 10)
                 {
                     return BadRequest(new { message = "Tipo de usuário inválido" });
                 }
