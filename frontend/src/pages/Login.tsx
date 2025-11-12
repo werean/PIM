@@ -1,14 +1,18 @@
-import { useState, useEffect, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 // API
 import { apiPost } from "../services/api";
 
 // Utils
-import { setCookie, isAuthenticated } from "../utils/cookies";
+import { isAuthenticated, setCookie } from "../utils/cookies";
+
+// Hooks
+import { useToast } from "../hooks/useToast";
 
 // Components
-import { ErrorMessage, FieldError } from "../components/ErrorMessage";
+import { FieldError } from "../components/ErrorMessage";
+import PasswordInput from "../components/PasswordInput";
 
 // Imagens
 import logoLJFT from "../assets/images/logoLJFT.png";
@@ -17,14 +21,13 @@ export default function LoginPage() {
   const [usuario, setUsuario] = useState("");
   const [senha, setSenha] = useState("");
   const [lembrar, setLembrar] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [errors, setErrors] = useState<string[]>([]);
   const [fieldErrors, setFieldErrors] = useState<{
     email?: string;
     password?: string;
   }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
+  const { showError, showSuccess } = useToast();
 
   // Redireciona para /home se já estiver autenticado
   useEffect(() => {
@@ -66,8 +69,6 @@ export default function LoginPage() {
 
   async function handleLogin(e: FormEvent) {
     e.preventDefault();
-    setError(null);
-    setErrors([]);
     setFieldErrors({});
 
     // Validação do formulário
@@ -104,6 +105,9 @@ export default function LoginPage() {
         localStorage.removeItem("usuario");
       }
 
+      // Mostrar mensagem de sucesso
+      showSuccess("Login realizado com sucesso!");
+
       // After successful login, navigate to the home page
       navigate("/home");
     } catch (err: unknown) {
@@ -111,10 +115,22 @@ export default function LoginPage() {
         response?: { data?: { message?: string; errors?: string[] } };
         message?: string;
       };
-      if (error.response?.data?.errors) {
-        setErrors(error.response.data.errors);
+
+      // Mostrar erros através do toast
+      if (
+        error.response?.data?.errors &&
+        error.response.data.errors.length > 0
+      ) {
+        error.response.data.errors.forEach((errorMsg) => {
+          showError(errorMsg);
+        });
+      } else {
+        showError(
+          error.response?.data?.message ||
+            error.message ||
+            "Erro ao efetuar login"
+        );
       }
-      setError(error.response?.data?.message || error.message || "Erro ao efetuar login");
     } finally {
       setIsSubmitting(false);
     }
@@ -126,10 +142,6 @@ export default function LoginPage() {
         <img src={logoLJFT} alt="Logo LIFT" className="login-page__logo" />
         <form onSubmit={handleLogin} className="login-form">
           <h2 className="login-form__title">Faça login na sua conta</h2>
-
-          {(error || errors.length > 0) && (
-            <ErrorMessage message={error || undefined} errors={errors} />
-          )}
 
           <div className="login-form__group">
             <label htmlFor="usuario" className="login-form__label">
@@ -156,11 +168,8 @@ export default function LoginPage() {
             <label htmlFor="senha" className="login-form__label">
               Senha
             </label>
-            <input
+            <PasswordInput
               id="senha"
-              type="password"
-              className="login-form__input"
-              placeholder="Digite sua senha..."
               value={senha}
               onChange={(e) => {
                 setSenha(e.target.value);
@@ -168,7 +177,10 @@ export default function LoginPage() {
                   setFieldErrors({ ...fieldErrors, password: undefined });
                 }
               }}
+              placeholder="Digite sua senha..."
+              className="login-form__input"
               required
+              autoComplete="current-password"
             />
             <FieldError error={fieldErrors.password} />
           </div>
@@ -183,7 +195,11 @@ export default function LoginPage() {
             <label htmlFor="lembrar">Lembrar de mim</label>
           </div>
 
-          <button type="submit" className="login-form__submit" disabled={isSubmitting}>
+          <button
+            type="submit"
+            className="login-form__submit"
+            disabled={isSubmitting}
+          >
             {isSubmitting ? "Entrando..." : "Entrar"}
           </button>
 

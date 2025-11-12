@@ -1,10 +1,17 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import type { Ticket } from "../services/api";
-import { apiGet, getCurrentUserName, getCurrentUserRole } from "../services/api";
-import { isAuthenticated, deleteCookie } from "../utils/cookies";
+import ConfirmModal from "../components/ConfirmModal";
 import Sidebar from "../components/Sidebar";
 import UserBadge from "../components/UserBadge";
+import { useConfirm } from "../hooks/useConfirm";
+import { useToast } from "../hooks/useToast";
+import type { Ticket } from "../services/api";
+import {
+  apiGet,
+  getCurrentUserName,
+  getCurrentUserRole,
+} from "../services/api";
+import { deleteCookie, isAuthenticated } from "../utils/cookies";
 
 type TicketsResponse = Ticket[] | { message: string };
 
@@ -37,6 +44,8 @@ export default function TrashPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
+  const { showSuccess, showError } = useToast();
+  const { confirm, confirmState, handleCancel } = useConfirm();
 
   // Proteção de rota: apenas técnicos
   useEffect(() => {
@@ -55,7 +64,9 @@ export default function TrashPage() {
     (async () => {
       try {
         setLoading(true);
-        const data = (await apiGet<TicketsResponse>("/tickets/deleted")) as Ticket[];
+        const data = (await apiGet<TicketsResponse>(
+          "/tickets/deleted"
+        )) as Ticket[];
         if (mounted) {
           setTickets(data);
           setLoading(false);
@@ -79,21 +90,28 @@ export default function TrashPage() {
   }
 
   async function handlePermanentDelete(ticketId: number, ticketTitle: string) {
-    if (
-      !window.confirm(
-        `Tem certeza que deseja deletar permanentemente o ticket "${ticketTitle}"? Esta ação NÃO pode ser desfeita!`
-      )
-    ) {
-      return;
-    }
+    const confirmed = await confirm({
+      title: "Deletar Permanentemente",
+      message: `Tem certeza que deseja deletar permanentemente o ticket "${ticketTitle}"? Esta ação NÃO pode ser desfeita!`,
+      confirmText: "Sim, deletar permanentemente",
+      cancelText: "Cancelar",
+      variant: "danger",
+    });
+
+    if (!confirmed) return;
 
     try {
-      const response = await fetch(`http://localhost:8080/tickets/${ticketId}/permanent-delete`, {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${document.cookie.split("token=")[1]?.split(";")[0] || ""}`,
-        },
-      });
+      const response = await fetch(
+        `http://localhost:8080/tickets/${ticketId}/permanent-delete`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${
+              document.cookie.split("token=")[1]?.split(";")[0] || ""
+            }`,
+          },
+        }
+      );
 
       if (!response.ok) {
         throw new Error("Erro ao deletar permanentemente");
@@ -101,17 +119,19 @@ export default function TrashPage() {
 
       // Remover da lista
       setTickets(tickets.filter((t) => t.id !== ticketId));
-      alert("Ticket deletado permanentemente.");
+      showSuccess("Ticket deletado permanentemente.");
     } catch (err) {
       console.error("Erro ao deletar ticket:", err);
-      alert("Erro ao deletar ticket permanentemente.");
+      showError("Erro ao deletar ticket permanentemente.");
     }
   }
 
   if (loading) {
     return (
       <div className="layout">
-        <div style={{ padding: "40px", textAlign: "center" }}>Carregando...</div>
+        <div style={{ padding: "40px", textAlign: "center" }}>
+          Carregando...
+        </div>
       </div>
     );
   }
@@ -194,7 +214,13 @@ export default function TrashPage() {
               }}
             >
               <UserBadge size={28} fontSize={11} />
-              <span style={{ fontSize: "13px", color: "#495057", fontWeight: "500" }}>
+              <span
+                style={{
+                  fontSize: "13px",
+                  color: "#495057",
+                  fontWeight: "500",
+                }}
+              >
                 {getCurrentUserName()}
               </span>
             </div>
@@ -244,7 +270,11 @@ export default function TrashPage() {
               </div>
             </div>
 
-            <div className="data-table" role="table" aria-label="Tabela de Lixeira">
+            <div
+              className="data-table"
+              role="table"
+              aria-label="Tabela de Lixeira"
+            >
               <div className="data-table__header" role="row">
                 <div role="columnheader">ID</div>
                 <div role="columnheader">Título</div>
@@ -257,7 +287,13 @@ export default function TrashPage() {
               </div>
 
               {tickets.length === 0 ? (
-                <div style={{ padding: "20px", textAlign: "center", color: "#6c757d" }}>
+                <div
+                  style={{
+                    padding: "20px",
+                    textAlign: "center",
+                    color: "#6c757d",
+                  }}
+                >
                   Nenhum ticket na lixeira
                 </div>
               ) : (
@@ -279,11 +315,18 @@ export default function TrashPage() {
                               : "#28a745",
                         }}
                       >
-                        {ticket.urgency === 3 ? "Alta" : ticket.urgency === 2 ? "Média" : "Baixa"}
+                        {ticket.urgency === 3
+                          ? "Alta"
+                          : ticket.urgency === 2
+                          ? "Média"
+                          : "Baixa"}
                       </span>
                     </div>
                     <div role="cell">
-                      <span className="status-badge" style={{ backgroundColor: "#6c757d" }}>
+                      <span
+                        className="status-badge"
+                        style={{ backgroundColor: "#6c757d" }}
+                      >
                         {STATUS_MAP[ticket.status]}
                       </span>
                     </div>
@@ -292,7 +335,9 @@ export default function TrashPage() {
                     <div role="cell">{formatDate(ticket.deletedAt)}</div>
                     <div role="cell">
                       <button
-                        onClick={() => handlePermanentDelete(ticket.id!, ticket.title)}
+                        onClick={() =>
+                          handlePermanentDelete(ticket.id!, ticket.title)
+                        }
                         style={{
                           padding: "4px 8px",
                           backgroundColor: "transparent",
@@ -322,6 +367,18 @@ export default function TrashPage() {
           </section>
         </main>
       </div>
+
+      {/* Modal de confirmação */}
+      <ConfirmModal
+        isOpen={confirmState.isOpen}
+        title={confirmState.title}
+        message={confirmState.message}
+        confirmText={confirmState.confirmText}
+        cancelText={confirmState.cancelText}
+        variant={confirmState.variant}
+        onConfirm={confirmState.onConfirm}
+        onCancel={handleCancel}
+      />
     </div>
   );
 }

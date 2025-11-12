@@ -10,6 +10,7 @@ import { isAuthenticated } from "../utils/cookies";
 
 // Components
 import { ErrorMessage, FieldError } from "../components/ErrorMessage";
+import PasswordInput from "../components/PasswordInput";
 
 // Imagens
 import logoLJFT from "../assets/images/logoLJFT.png";
@@ -34,7 +35,9 @@ export default function RegisterUserPage() {
   // Se já estiver autenticado, mostrar link para voltar à home
   const authenticated = isAuthenticated();
 
-  function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
+  function handleChange(
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) {
     const { name, value } = e.target;
     setForm((prev) => ({
       ...prev,
@@ -66,10 +69,12 @@ export default function RegisterUserPage() {
       newFieldErrors.username = "Nome de usuário é obrigatório";
       isValid = false;
     } else if (form.username.length < 3) {
-      newFieldErrors.username = "Nome de usuário deve ter no mínimo 3 caracteres";
+      newFieldErrors.username =
+        "Nome de usuário deve ter no mínimo 3 caracteres";
       isValid = false;
     } else if (form.username.length > 100) {
-      newFieldErrors.username = "Nome de usuário deve ter no máximo 100 caracteres";
+      newFieldErrors.username =
+        "Nome de usuário deve ter no máximo 100 caracteres";
       isValid = false;
     }
 
@@ -121,7 +126,11 @@ export default function RegisterUserPage() {
       if (error.response?.data?.errors) {
         setErrors(error.response.data.errors);
       }
-      setError(error.response?.data?.message || error.message || "Erro ao criar usuário");
+      setError(
+        error.response?.data?.message ||
+          error.message ||
+          "Erro ao criar usuário"
+      );
     } finally {
       setLoading(false);
     }
@@ -209,15 +218,15 @@ export default function RegisterUserPage() {
             <label htmlFor="reg-password" className="register-form__label">
               Senha
             </label>
-            <input
+            <PasswordInput
               id="reg-password"
-              className="register-form__input"
               name="password"
-              type="password"
               value={form.password}
               onChange={handleChange}
               placeholder="Senha (mín. 6 caracteres)"
+              className="register-form__input"
               required
+              autoComplete="new-password"
             />
             <FieldError error={fieldErrors.password} />
           </div>
@@ -238,7 +247,11 @@ export default function RegisterUserPage() {
             </select>
           </div>
 
-          <button type="submit" className="register-form__submit" disabled={loading}>
+          <button
+            type="submit"
+            className="register-form__submit"
+            disabled={loading}
+          >
             {loading ? "Criando..." : "Criar conta"}
           </button>
 

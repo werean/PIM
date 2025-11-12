@@ -1,3 +1,22 @@
 .page--home .ticket-card__meta {
   font-style: italic;
 }
+
+/* ===================================
+   Home Page - BEM (Refactored)
+   =================================== */
+.home-page {
+  padding: 24px;
+  max-width: 100%;
+  width: 100%;
+}
+
+.home-page__filters {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.home-page__table {
+  max-width: 100%;
+}

@@ -1,6 +1,9 @@
-import { useState, useEffect, useRef, useCallback } from "react";
-import { getCookie } from "../utils/cookies";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useConfirm } from "../hooks/useConfirm";
+import { useToast } from "../hooks/useToast";
 import { apiGet, apiPost } from "../services/api";
+import { getCookie } from "../utils/cookies";
+import ConfirmModal from "./ConfirmModal";
 
 interface Message {
   id: number;
@@ -40,7 +43,13 @@ interface OllamaStatus {
   ollamaPath?: string;
 }
 
-export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProps) {
+export default function AIChat({
+  ticketId,
+  ticketTitle,
+  ticketBody,
+}: AIChatProps) {
+  const { showSuccess, showError, showInfo, showWarning } = useToast();
+  const { confirm, confirmState, handleCancel } = useConfirm();
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -111,17 +120,21 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
       const session = JSON.parse(saved) as {
         messages: Array<{ text: string; isUser: boolean; timestamp: string }>;
       };
-      const restoredMessages: Message[] = session.messages.map((msg, index: number) => ({
-        id: index + 1,
-        text: msg.text,
-        isUser: msg.isUser,
-        timestamp: new Date(msg.timestamp),
-      }));
+      const restoredMessages: Message[] = session.messages.map(
+        (msg, index: number) => ({
+          id: index + 1,
+          text: msg.text,
+          isUser: msg.isUser,
+          timestamp: new Date(msg.timestamp),
+        })
+      );
 
       if (restoredMessages.length > 0) {
         messageIdCounter.current = restoredMessages.length;
         setMessages(restoredMessages);
-        console.log(`✅ Sessão restaurada (${restoredMessages.length} mensagens)`);
+        console.log(
+          `✅ Sessão restaurada (${restoredMessages.length} mensagens)`
+        );
         // Se restaurou mensagens, não deve mostrar prompt inicial
         initialPromptSet.current = true;
         return true;
@@ -149,7 +162,9 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
         });
       }
 
-      console.log(`✅ Sessão sincronizada com banco (${messages.length} mensagens)`);
+      console.log(
+        `✅ Sessão sincronizada com banco (${messages.length} mensagens)`
+      );
     } catch (error) {
       console.error("❌ Erro ao sincronizar com banco:", error);
     }
@@ -180,7 +195,7 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
     setIsManagingOllama(true);
     try {
       await apiPost("/api/ollama/start", {});
-      alert("Servidor Ollama iniciado! Aguarde alguns segundos...");
+      showSuccess("Servidor Ollama iniciado! Aguarde alguns segundos...");
 
       // Aguardar 3 segundos e verificar status novamente
       setTimeout(async () => {
@@ -192,7 +207,7 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
       }, 3000);
     } catch (error) {
       console.error("Erro ao iniciar Ollama:", error);
-      alert("Erro ao iniciar servidor Ollama");
+      showError("Erro ao iniciar servidor Ollama");
       setIsManagingOllama(false);
     }
   };
@@ -202,11 +217,11 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
     setIsManagingOllama(true);
     try {
       await apiPost("/api/ollama/stop", {});
-      alert("Servidor Ollama parado!");
+      showSuccess("Servidor Ollama parado!");
       await checkOllamaStatus();
     } catch (error) {
       console.error("Erro ao parar Ollama:", error);
-      alert("Erro ao parar servidor Ollama");
+      showError("Erro ao parar servidor Ollama");
     } finally {
       setIsManagingOllama(false);
     }
@@ -215,9 +230,13 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
   // Abrir página de download do Ollama
   const downloadOllama = async () => {
     try {
-      const response = await apiGet<{ url: string }>("/api/ollama/download-url");
+      const response = await apiGet<{ url: string }>(
+        "/api/ollama/download-url"
+      );
       window.open(response.url, "_blank");
-      alert("Após instalar o Ollama, reinicie o chat para verificar o status.");
+      showInfo(
+        "Após instalar o Ollama, reinicie o chat para verificar o status."
+      );
     } catch (error) {
       console.error("Erro ao obter URL de download:", error);
       window.open("https://ollama.com/download/windows", "_blank");
@@ -234,7 +253,9 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
 
     try {
       // Tentar listar modelos locais (pode falhar se Ollama não estiver rodando)
-      const localResponse = await apiGet<{ models: OllamaModel[] }>("/api/ollama/models");
+      const localResponse = await apiGet<{ models: OllamaModel[] }>(
+        "/api/ollama/models"
+      );
       localModels = localResponse.models || [];
       console.log("[loadModels] Modelos locais:", localModels.length);
     } catch {
@@ -248,7 +269,10 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
         "/api/ollama/models/available"
       );
       availableModelsForDownload = availableResponse.models || [];
-      console.log("[loadModels] Modelos disponíveis:", availableModelsForDownload.length);
+      console.log(
+        "[loadModels] Modelos disponíveis:",
+        availableModelsForDownload.length
+      );
     } catch (error) {
       console.error("Erro ao buscar modelos disponíveis:", error);
       // Se falhar, usar lista padrão
@@ -258,8 +282,16 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
           description: "600MB (recomendado)",
           size: "600MB",
         },
-        { name: "llama3.2:1b", description: "1.3GB (recomendado)", size: "1.3GB" },
-        { name: "gemma2:2b", description: "1.6GB (recomendado)", size: "1.6GB" },
+        {
+          name: "llama3.2:1b",
+          description: "1.3GB (recomendado)",
+          size: "1.3GB",
+        },
+        {
+          name: "gemma2:2b",
+          description: "1.6GB (recomendado)",
+          size: "1.6GB",
+        },
         { name: "llama3.2:3b", description: "2GB", size: "2GB" },
         { name: "phi3:mini", description: "2.3GB", size: "2.3GB" },
         { name: "mistral:7b", description: "4.1GB", size: "4.1GB" },
@@ -289,7 +321,10 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
 
     if (allModels.length > 0) {
       setAvailableModels(allModels as OllamaModel[]);
-      console.log("[loadModels] Total de modelos configurados:", allModels.length);
+      console.log(
+        "[loadModels] Total de modelos configurados:",
+        allModels.length
+      );
     } else {
       // Último fallback
       setAvailableModels([
@@ -321,9 +356,12 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
       console.log(`[ensureModelAvailable] Verificando modelo: ${modelName}`);
 
       // Verificar se modelo existe
-      const response = await apiPost<{ exists: boolean }>("/api/ollama/models/check", {
-        model: modelName,
-      });
+      const response = await apiPost<{ exists: boolean }>(
+        "/api/ollama/models/check",
+        {
+          model: modelName,
+        }
+      );
 
       console.log(`[ensureModelAvailable] Modelo existe:`, response.exists);
 
@@ -332,18 +370,27 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
       }
 
       // Se não existe, perguntar para baixar
-      const confirmDownload = window.confirm(
-        `O modelo "${modelName}" não está baixado.\n\nDeseja baixar agora?\n\n⚠️ O download pode demorar alguns minutos. Após concluído, você poderá enviar sua mensagem.`
-      );
+      const confirmDownload = await confirm({
+        title: "Modelo não encontrado",
+        message: `O modelo "${modelName}" não está baixado.\n\nDeseja baixar agora?\n\n⚠️ O download pode demorar alguns minutos. Após concluído, você poderá enviar sua mensagem.`,
+        confirmText: "Sim, baixar",
+        cancelText: "Cancelar",
+        variant: "info",
+      });
 
-      console.log(`[ensureModelAvailable] Usuário confirmou download:`, confirmDownload);
+      console.log(
+        `[ensureModelAvailable] Usuário confirmou download:`,
+        confirmDownload
+      );
 
       if (!confirmDownload) {
         return false;
       }
 
       // Iniciar download com progresso
-      console.log(`[ensureModelAvailable] Iniciando download do modelo ${modelName}...`);
+      console.log(
+        `[ensureModelAvailable] Iniciando download do modelo ${modelName}...`
+      );
       setIsPullingModel(true);
       setPullProgress({
         model: modelName,
@@ -357,7 +404,9 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
         // Simular progresso realista baseado no tempo
         let progress = 0;
 
-        console.log(`[ensureModelAvailable] Configurando intervalo de progresso...`);
+        console.log(
+          `[ensureModelAvailable] Configurando intervalo de progresso...`
+        );
         progressInterval = window.setInterval(() => {
           // Progresso mais lento no início, mais rápido no meio, muito lento no final
           if (progress < 10) {
@@ -380,15 +429,23 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
             const statusIndex = Math.floor(progress / 25);
             setPullProgress((prev) =>
               prev
-                ? { ...prev, progress, status: statusMessages[statusIndex] || "Baixando modelo..." }
+                ? {
+                    ...prev,
+                    progress,
+                    status: statusMessages[statusIndex] || "Baixando modelo...",
+                  }
                 : null
             );
           }
         }, 3000); // Atualizar a cada 3 segundos
 
         // Aguardar o download completo (backend agora aguarda)
-        console.log(`[ensureModelAvailable] Enviando requisição de pull para o backend...`);
-        const pullResponse = await apiPost("/api/ollama/models/pull", { model: modelName });
+        console.log(
+          `[ensureModelAvailable] Enviando requisição de pull para o backend...`
+        );
+        const pullResponse = await apiPost("/api/ollama/models/pull", {
+          model: modelName,
+        });
         console.log(`[ensureModelAvailable] Resposta do pull:`, pullResponse);
 
         if (progressInterval) clearInterval(progressInterval);
@@ -404,7 +461,9 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
           setPullProgress(null);
           setIsPullingModel(false);
           // Recarregar lista de modelos para mostrar o modelo como baixado
-          console.log("[ensureModelAvailable] Recarregando lista de modelos...");
+          console.log(
+            "[ensureModelAvailable] Recarregando lista de modelos..."
+          );
           await loadModels();
         }, 3000);
 
@@ -467,7 +526,9 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
     const loadFromDatabase = async () => {
       setIsLoadingHistory(true);
       try {
-        const history = await apiGet<AIMessageFromDB[]>(`/api/tickets/${ticketId}/ai-messages`);
+        const history = await apiGet<AIMessageFromDB[]>(
+          `/api/tickets/${ticketId}/ai-messages`
+        );
 
         if (history.length > 0) {
           // Converter histórico do banco para formato do chat
@@ -479,9 +540,13 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
           }));
 
           // Atualizar contador de IDs
-          messageIdCounter.current = Math.max(...loadedMessages.map((m) => m.id));
+          messageIdCounter.current = Math.max(
+            ...loadedMessages.map((m) => m.id)
+          );
           setMessages(loadedMessages);
-          console.log(`✅ Histórico carregado do banco (${loadedMessages.length} mensagens)`);
+          console.log(
+            `✅ Histórico carregado do banco (${loadedMessages.length} mensagens)`
+          );
 
           // Se tem histórico, marca que o prompt inicial não deve ser mostrado
           initialPromptSet.current = true;
@@ -623,11 +688,14 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
   }, [isOpen, ticketId, ticketTitle, ticketBody, addMessage]);
 
   const handleSend = async () => {
-    if (!inputMessage.trim() || !wsRef.current || !isConnected || isSending) return;
+    if (!inputMessage.trim() || !wsRef.current || !isConnected || isSending)
+      return;
 
     // Bloquear envio se está baixando modelo
     if (isPullingModel) {
-      alert("Aguarde o download do modelo terminar antes de enviar mensagens.");
+      showWarning(
+        "Aguarde o download do modelo terminar antes de enviar mensagens."
+      );
       return;
     }
 
@@ -732,9 +800,13 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
           }}
         >
           <div>
-            <div style={{ fontWeight: "600", fontSize: "16px" }}>Assistente IA</div>
+            <div style={{ fontWeight: "600", fontSize: "16px" }}>
+              Assistente IA
+            </div>
             <div style={{ fontSize: "12px", opacity: 0.9 }}>
-              {messages.length > 0 ? `${messages.length} mensagens` : "Clique para abrir"}
+              {messages.length > 0
+                ? `${messages.length} mensagens`
+                : "Clique para abrir"}
             </div>
           </div>
           <svg
@@ -781,7 +853,9 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
             }}
           >
             <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: "600", fontSize: "16px" }}>Assistente IA</div>
+              <div style={{ fontWeight: "600", fontSize: "16px" }}>
+                Assistente IA
+              </div>
               <div style={{ fontSize: "12px", opacity: 0.9 }}>
                 {isConnected ? "Online" : "Desconectado"}
                 {messages.length > 0 && ` • ${messages.length} mensagens`}
@@ -849,7 +923,13 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
                 gap: "12px",
               }}
             >
-              <div style={{ fontSize: "13px", fontWeight: "500", color: "#856404" }}>
+              <div
+                style={{
+                  fontSize: "13px",
+                  fontWeight: "500",
+                  color: "#856404",
+                }}
+              >
                 ⚠️ {ollamaStatus.message}
               </div>
 
@@ -896,7 +976,9 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
                     onClick={async () => {
                       await checkOllamaStatus();
                       // Recarregar lista de modelos ao verificar status
-                      console.log("[RefreshButton] Verificando status e recarregando modelos...");
+                      console.log(
+                        "[RefreshButton] Verificando status e recarregando modelos..."
+                      );
                       await loadModels();
                     }}
                     disabled={isCheckingOllama || isLoadingModels}
@@ -908,7 +990,10 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
                       borderRadius: "6px",
                       fontSize: "12px",
                       fontWeight: "500",
-                      cursor: isCheckingOllama || isLoadingModels ? "not-allowed" : "pointer",
+                      cursor:
+                        isCheckingOllama || isLoadingModels
+                          ? "not-allowed"
+                          : "pointer",
                       opacity: isCheckingOllama || isLoadingModels ? 0.6 : 1,
                     }}
                   >
@@ -931,7 +1016,13 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
                 justifyContent: "space-between",
               }}
             >
-              <span style={{ fontSize: "12px", fontWeight: "500", color: "#155724" }}>
+              <span
+                style={{
+                  fontSize: "12px",
+                  fontWeight: "500",
+                  color: "#155724",
+                }}
+              >
                 ✅ Ollama rodando
               </span>
               <button
@@ -1014,7 +1105,10 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
                       displayText += ` (${model.size})`;
                     }
                     // Adicionar (recomendado) se a descrição contiver isso
-                    if (model.description && model.description.includes("recomendado")) {
+                    if (
+                      model.description &&
+                      model.description.includes("recomendado")
+                    ) {
                       displayText += " (recomendado)";
                     }
                   }
@@ -1030,54 +1124,81 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
               )}
             </select>
             {isPullingModel && !pullProgress?.error && (
-              <span style={{ fontSize: "12px", color: "#ffc107" }}>⏳ Baixando...</span>
+              <span style={{ fontSize: "12px", color: "#ffc107" }}>
+                ⏳ Baixando...
+              </span>
             )}
             {/* Botão de remover modelo (só aparece se o modelo selecionado estiver baixado) */}
-            {availableModels.find((m) => m.name === selectedModel)?.downloaded && (
+            {availableModels.find((m) => m.name === selectedModel)
+              ?.downloaded && (
               <button
                 onClick={async () => {
-                  const confirmDelete = window.confirm(
-                    `Tem certeza que deseja remover o modelo "${selectedModel}"?\n\nEsta ação não pode ser desfeita.`
-                  );
+                  const confirmDelete = await confirm({
+                    title: "Remover Modelo",
+                    message: `Tem certeza que deseja remover o modelo "${selectedModel}"?\n\nEsta ação não pode ser desfeita.`,
+                    confirmText: "Sim, remover",
+                    cancelText: "Cancelar",
+                    variant: "danger",
+                  });
                   if (!confirmDelete) return;
 
                   setIsDeletingModel(true);
                   try {
-                    console.log(`[DeleteModel] Removendo modelo: ${selectedModel}`);
-                    const response = await fetch("http://localhost:8080/api/ollama/models/delete", {
-                      method: "DELETE",
-                      headers: {
-                        "Content-Type": "application/json",
-                      },
-                      body: JSON.stringify({ model: selectedModel }),
-                    });
+                    console.log(
+                      `[DeleteModel] Removendo modelo: ${selectedModel}`
+                    );
+                    const response = await fetch(
+                      "http://localhost:8080/api/ollama/models/delete",
+                      {
+                        method: "DELETE",
+                        headers: {
+                          "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({ model: selectedModel }),
+                      }
+                    );
 
-                    console.log(`[DeleteModel] Status da resposta:`, response.status);
+                    console.log(
+                      `[DeleteModel] Status da resposta:`,
+                      response.status
+                    );
 
                     // Tentar ler o JSON, mas não falhar se estiver vazio
                     let responseData = null;
                     const responseText = await response.text();
-                    console.log(`[DeleteModel] Resposta em texto:`, responseText);
+                    console.log(
+                      `[DeleteModel] Resposta em texto:`,
+                      responseText
+                    );
 
                     if (responseText) {
                       try {
                         responseData = JSON.parse(responseText);
                       } catch (jsonError) {
-                        console.warn(`[DeleteModel] Resposta não é JSON válido:`, jsonError);
+                        console.warn(
+                          `[DeleteModel] Resposta não é JSON válido:`,
+                          jsonError
+                        );
                       }
                     }
 
                     if (!response.ok) {
                       const errorMessage =
-                        responseData?.error || responseData?.details || "Erro ao remover modelo";
+                        responseData?.error ||
+                        responseData?.details ||
+                        "Erro ao remover modelo";
                       throw new Error(errorMessage);
                     }
 
                     console.log(`[DeleteModel] Modelo removido com sucesso!`);
-                    alert(`Modelo "${selectedModel}" removido com sucesso!`);
+                    showSuccess(
+                      `Modelo "${selectedModel}" removido com sucesso!`
+                    );
 
                     // Recarregar lista de modelos para refletir a remoção
-                    console.log("[DeleteModel] Recarregando lista de modelos...");
+                    console.log(
+                      "[DeleteModel] Recarregando lista de modelos..."
+                    );
                     await loadModels();
 
                     // Se o modelo removido era o selecionado, selecionar o primeiro disponível
@@ -1085,8 +1206,9 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
                   } catch (error: unknown) {
                     console.error(`[DeleteModel] Erro:`, error);
                     const err = error as { message?: string };
-                    const errorMessage = err.message || "Erro ao remover modelo";
-                    alert(`Erro ao remover modelo: ${errorMessage}`);
+                    const errorMessage =
+                      err.message || "Erro ao remover modelo";
+                    showError(`Erro ao remover modelo: ${errorMessage}`);
                   } finally {
                     setIsDeletingModel(false);
                   }
@@ -1104,7 +1226,10 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
                     isPullingModel || isLoadingModels || isDeletingModel
                       ? "not-allowed"
                       : "pointer",
-                  opacity: isPullingModel || isLoadingModels || isDeletingModel ? 0.6 : 1,
+                  opacity:
+                    isPullingModel || isLoadingModels || isDeletingModel
+                      ? 0.6
+                      : 1,
                 }}
                 title="Remover modelo"
               >
@@ -1130,7 +1255,9 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
                   marginBottom: "8px",
                 }}
               >
-                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <div
+                  style={{ display: "flex", alignItems: "center", gap: "8px" }}
+                >
                   <span
                     style={{
                       fontSize: "12px",
@@ -1168,7 +1295,9 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
                     </div>
                   )}
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <div
+                  style={{ display: "flex", alignItems: "center", gap: "8px" }}
+                >
                   <span
                     style={{
                       fontSize: "11px",
@@ -1213,7 +1342,8 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
                     style={{
                       width: `${pullProgress.progress}%`,
                       height: "100%",
-                      backgroundColor: pullProgress.progress === 100 ? "#28a745" : "#007bff",
+                      backgroundColor:
+                        pullProgress.progress === 100 ? "#28a745" : "#007bff",
                       transition: "width 0.3s ease",
                     }}
                   />
@@ -1251,11 +1381,23 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
             }}
           >
             {isLoadingHistory ? (
-              <div style={{ textAlign: "center", color: "#6c757d", marginTop: "40px" }}>
+              <div
+                style={{
+                  textAlign: "center",
+                  color: "#6c757d",
+                  marginTop: "40px",
+                }}
+              >
                 <p>⏳ Carregando histórico...</p>
               </div>
             ) : messages.length === 0 && !streamingMessage ? (
-              <div style={{ textAlign: "center", color: "#6c757d", marginTop: "40px" }}>
+              <div
+                style={{
+                  textAlign: "center",
+                  color: "#6c757d",
+                  marginTop: "40px",
+                }}
+              >
                 <p>👋 Olá! Sou seu assistente de IA.</p>
                 <p style={{ fontSize: "14px", marginTop: "8px" }}>
                   Como posso ajudar com este ticket?
@@ -1282,7 +1424,9 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
                         lineHeight: "1.5",
                         whiteSpace: "pre-wrap",
                         wordBreak: "break-word",
-                        boxShadow: msg.isUser ? "none" : "0 1px 2px rgba(0,0,0,0.1)",
+                        boxShadow: msg.isUser
+                          ? "none"
+                          : "0 1px 2px rgba(0,0,0,0.1)",
                       }}
                     >
                       {msg.text}
@@ -1331,13 +1475,17 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
               backgroundColor: "white",
             }}
           >
-            <div style={{ display: "flex", gap: "8px", alignItems: "flex-end" }}>
+            <div
+              style={{ display: "flex", gap: "8px", alignItems: "flex-end" }}
+            >
               <textarea
                 value={inputMessage}
                 onChange={(e) => setInputMessage(e.target.value)}
                 onKeyPress={handleKeyPress}
                 placeholder={
-                  isPullingModel ? "Aguarde o download do modelo..." : "Digite sua mensagem..."
+                  isPullingModel
+                    ? "Aguarde o download do modelo..."
+                    : "Digite sua mensagem..."
                 }
                 disabled={!isConnected || isSending || isPullingModel}
                 rows={2}
@@ -1354,7 +1502,12 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
               />
               <button
                 onClick={handleSend}
-                disabled={!isConnected || isSending || !inputMessage.trim() || isPullingModel}
+                disabled={
+                  !isConnected ||
+                  isSending ||
+                  !inputMessage.trim() ||
+                  isPullingModel
+                }
                 style={{
                   padding: "10px 16px",
                   backgroundColor: isPullingModel ? "#ffc107" : "#007bff",
@@ -1362,21 +1515,45 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
                   border: "none",
                   borderRadius: "8px",
                   cursor:
-                    !isConnected || isSending || !inputMessage.trim() || isPullingModel
+                    !isConnected ||
+                    isSending ||
+                    !inputMessage.trim() ||
+                    isPullingModel
                       ? "not-allowed"
                       : "pointer",
                   fontSize: "14px",
                   fontWeight: "500",
                   opacity:
-                    !isConnected || isSending || !inputMessage.trim() || isPullingModel ? 0.6 : 1,
+                    !isConnected ||
+                    isSending ||
+                    !inputMessage.trim() ||
+                    isPullingModel
+                      ? 0.6
+                      : 1,
                 }}
               >
-                {isPullingModel ? "⏳ Baixando..." : isSending ? "..." : "Enviar"}
+                {isPullingModel
+                  ? "⏳ Baixando..."
+                  : isSending
+                  ? "..."
+                  : "Enviar"}
               </button>
             </div>
           </div>
         </div>
       )}
+
+      {/* Modal de confirmação */}
+      <ConfirmModal
+        isOpen={confirmState.isOpen}
+        title={confirmState.title}
+        message={confirmState.message}
+        confirmText={confirmState.confirmText}
+        cancelText={confirmState.cancelText}
+        variant={confirmState.variant}
+        onConfirm={confirmState.onConfirm}
+        onCancel={handleCancel}
+      />
     </>
   );
 }

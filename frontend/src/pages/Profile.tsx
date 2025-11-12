@@ -1,17 +1,18 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import PasswordInput from "../components/PasswordInput";
+import Sidebar from "../components/Sidebar";
+import type { ToastType } from "../components/Toast";
+import Toast from "../components/Toast";
+import UserBadgeSmall from "../components/UserBadge";
 import {
+  changePassword,
   getCurrentUserName,
   getCurrentUserRole,
   getMyProfile,
   updateMyProfile,
-  changePassword,
 } from "../services/api";
-import { isAuthenticated, deleteCookie } from "../utils/cookies";
-import Sidebar from "../components/Sidebar";
-import Toast from "../components/Toast";
-import type { ToastType } from "../components/Toast";
-import UserBadgeSmall from "../components/UserBadge";
+import { deleteCookie, isAuthenticated } from "../utils/cookies";
 
 function UserBadge({ size = 80 }: { size?: number }) {
   const userName = getCurrentUserName();
@@ -58,7 +59,10 @@ export default function ProfilePage() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isEditing, setIsEditing] = useState(false);
-  const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
+  const [toast, setToast] = useState<{
+    message: string;
+    type: ToastType;
+  } | null>(null);
   const userRole = getCurrentUserRole();
   const roleLabel = userRole === "10" ? "Técnico" : "Usuário";
 
@@ -136,7 +140,11 @@ export default function ProfilePage() {
 
     try {
       // Envia apenas os campos que foram alterados
-      const updates: { username?: string; email?: string; profileImage?: string | null } = {};
+      const updates: {
+        username?: string;
+        email?: string;
+        profileImage?: string | null;
+      } = {};
 
       if (name && name.trim() && name !== originalData.name) {
         updates.username = name;
@@ -170,7 +178,10 @@ export default function ProfilePage() {
       setIsEditing(false);
     } catch (error) {
       console.error("Erro ao atualizar perfil:", error);
-      showToast(error instanceof Error ? error.message : "Erro ao atualizar perfil", "error");
+      showToast(
+        error instanceof Error ? error.message : "Erro ao atualizar perfil",
+        "error"
+      );
     }
   };
 
@@ -228,13 +239,22 @@ export default function ProfilePage() {
       setConfirmPassword("");
     } catch (error) {
       console.error("Erro ao alterar senha:", error);
-      showToast(error instanceof Error ? error.message : "Erro ao alterar senha", "error");
+      showToast(
+        error instanceof Error ? error.message : "Erro ao alterar senha",
+        "error"
+      );
     }
   };
 
   return (
     <>
-      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
       <div style={{ display: "flex", minHeight: "100vh" }}>
         <Sidebar />
 
@@ -273,9 +293,17 @@ export default function ProfilePage() {
             </div>
 
             <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+              <div
+                style={{ display: "flex", alignItems: "center", gap: "6px" }}
+              >
                 <UserBadgeSmall size={28} fontSize={11} />
-                <span style={{ fontSize: "13px", color: "#495057", fontWeight: "500" }}>
+                <span
+                  style={{
+                    fontSize: "13px",
+                    color: "#495057",
+                    fontWeight: "500",
+                  }}
+                >
                   {getCurrentUserName()}
                 </span>
               </div>
@@ -310,7 +338,9 @@ export default function ProfilePage() {
             </div>
           </header>
 
-          <main style={{ padding: "24px", maxWidth: "900px", margin: "0 auto" }}>
+          <main
+            style={{ padding: "24px", maxWidth: "900px", margin: "0 auto" }}
+          >
             {/* Card de Informações do Usuário */}
             <div
               style={{
@@ -355,7 +385,13 @@ export default function ProfilePage() {
                   />
                 </div>
                 <div style={{ flex: 1 }}>
-                  <h2 style={{ margin: "0 0 12px 0", fontSize: "24px", color: "#212529" }}>
+                  <h2
+                    style={{
+                      margin: "0 0 12px 0",
+                      fontSize: "24px",
+                      color: "#212529",
+                    }}
+                  >
                     {name}
                   </h2>
                   <div
@@ -372,10 +408,14 @@ export default function ProfilePage() {
                   >
                     {roleLabel}
                   </div>
-                  <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
+                  <div
+                    style={{ display: "flex", gap: "8px", marginTop: "8px" }}
+                  >
                     <button
                       type="button"
-                      onClick={() => document.getElementById("profile-image-input")?.click()}
+                      onClick={() =>
+                        document.getElementById("profile-image-input")?.click()
+                      }
                       style={{
                         padding: "6px 12px",
                         background: "transparent",
@@ -590,7 +630,13 @@ export default function ProfilePage() {
                 padding: "32px",
               }}
             >
-              <h3 style={{ margin: "0 0 20px 0", fontSize: "18px", color: "#212529" }}>
+              <h3
+                style={{
+                  margin: "0 0 20px 0",
+                  fontSize: "18px",
+                  color: "#212529",
+                }}
+              >
                 Alterar Senha
               </h3>
 
@@ -607,21 +653,12 @@ export default function ProfilePage() {
                   >
                     Senha atual
                   </label>
-                  <input
-                    type="password"
+                  <PasswordInput
+                    id="current-password"
                     value={currentPassword}
                     onChange={(e) => setCurrentPassword(e.target.value)}
                     placeholder="Digite sua senha atual"
-                    style={{
-                      width: "100%",
-                      padding: "10px 12px",
-                      fontSize: "14px",
-                      border: "1px solid #e0e0e0",
-                      borderRadius: "4px",
-                      background: "#ffffff",
-                      color: "#212529",
-                      boxSizing: "border-box",
-                    }}
+                    autoComplete="current-password"
                   />
                 </div>
 
@@ -637,21 +674,12 @@ export default function ProfilePage() {
                   >
                     Nova senha
                   </label>
-                  <input
-                    type="password"
+                  <PasswordInput
+                    id="new-password"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     placeholder="Digite sua nova senha"
-                    style={{
-                      width: "100%",
-                      padding: "10px 12px",
-                      fontSize: "14px",
-                      border: "1px solid #e0e0e0",
-                      borderRadius: "4px",
-                      background: "#ffffff",
-                      color: "#212529",
-                      boxSizing: "border-box",
-                    }}
+                    autoComplete="new-password"
                   />
                 </div>
 
@@ -667,39 +695,38 @@ export default function ProfilePage() {
                   >
                     Confirmar nova senha
                   </label>
-                  <input
-                    type="password"
+                  <PasswordInput
+                    id="confirm-password"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="Confirme sua nova senha"
-                    style={{
-                      width: "100%",
-                      padding: "10px 12px",
-                      fontSize: "14px",
-                      border: "1px solid #e0e0e0",
-                      borderRadius: "4px",
-                      background: "#ffffff",
-                      color: "#212529",
-                      boxSizing: "border-box",
-                    }}
+                    autoComplete="new-password"
                   />
                 </div>
 
                 <button
                   type="submit"
-                  disabled={!currentPassword || !newPassword || !confirmPassword}
+                  disabled={
+                    !currentPassword || !newPassword || !confirmPassword
+                  }
                   style={{
                     padding: "8px 16px",
                     background:
-                      currentPassword && newPassword && confirmPassword ? "#6c5ce7" : "#e9ecef",
+                      currentPassword && newPassword && confirmPassword
+                        ? "#6c5ce7"
+                        : "#e9ecef",
                     color:
-                      currentPassword && newPassword && confirmPassword ? "#ffffff" : "#adb5bd",
+                      currentPassword && newPassword && confirmPassword
+                        ? "#ffffff"
+                        : "#adb5bd",
                     border: "none",
                     borderRadius: "3px",
                     fontSize: "13px",
                     fontWeight: "500",
                     cursor:
-                      currentPassword && newPassword && confirmPassword ? "pointer" : "not-allowed",
+                      currentPassword && newPassword && confirmPassword
+                        ? "pointer"
+                        : "not-allowed",
                     transition: "all 0.15s",
                   }}
                   onMouseEnter={(e) => {

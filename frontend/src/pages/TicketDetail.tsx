@@ -1,5 +1,12 @@
-import { useState, useEffect, useRef, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import AIChat from "../components/AIChat";
+import ConfirmModal from "../components/ConfirmModal";
+import Sidebar from "../components/Sidebar";
+import UserBadge from "../components/UserBadge";
+import { useConfirm } from "../hooks/useConfirm";
+import { useToast } from "../hooks/useToast";
+import type { CreateCommentPayload, Ticket } from "../services/api";
 import {
   apiGet,
   apiPost,
@@ -7,11 +14,7 @@ import {
   getCurrentUserName,
   isTechnician,
 } from "../services/api";
-import type { Ticket, CreateCommentPayload } from "../services/api";
-import { isAuthenticated, deleteCookie } from "../utils/cookies";
-import Sidebar from "../components/Sidebar";
-import AIChat from "../components/AIChat";
-import UserBadge from "../components/UserBadge";
+import { deleteCookie, isAuthenticated } from "../utils/cookies";
 
 const STATUS_MAP: Record<number, string> = {
   1: "Aberto",
@@ -61,6 +64,8 @@ function formatDateTime(dateStr?: string) {
 export default function TicketDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { showSuccess, showError, showWarning, showInfo } = useToast();
+  const { confirm, confirmState, handleCancel } = useConfirm();
   const [ticket, setTicket] = useState<Ticket | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -95,7 +100,8 @@ export default function TicketDetailPage() {
         if (!mounted) return;
         setTicket(data);
       } catch (err) {
-        const msg = err instanceof Error ? err.message : "Erro ao carregar ticket";
+        const msg =
+          err instanceof Error ? err.message : "Erro ao carregar ticket";
         if (mounted) {
           setError(msg);
         }
@@ -155,7 +161,10 @@ export default function TicketDetailPage() {
     } catch (err: unknown) {
       console.error("Erro ao enviar mensagem:", err);
       const error = err as {
-        response?: { data?: { message?: string; errors?: string[] }; status?: number };
+        response?: {
+          data?: { message?: string; errors?: string[] };
+          status?: number;
+        };
         message?: string;
       };
 
@@ -169,7 +178,7 @@ export default function TicketDetailPage() {
         errorMessage = error.message;
       }
 
-      setError(errorMessage);
+      showError(errorMessage);
     } finally {
       setSending(false);
     }
@@ -230,7 +239,7 @@ export default function TicketDetailPage() {
         errorMessage = error.message;
       }
 
-      setError(errorMessage);
+      showError(errorMessage);
     } finally {
       setIsResolvingTicket(false);
     }
@@ -264,7 +273,10 @@ export default function TicketDetailPage() {
     } catch (err: unknown) {
       console.error("Erro ao alterar status do ticket:", err);
       const error = err as {
-        response?: { data?: { message?: string; error?: string }; status?: number };
+        response?: {
+          data?: { message?: string; error?: string };
+          status?: number;
+        };
         message?: string;
       };
 
@@ -280,7 +292,7 @@ export default function TicketDetailPage() {
         errorMessage = error.message;
       }
 
-      setError(errorMessage);
+      showError(errorMessage);
     } finally {
       setIsSettingPending(false);
     }
@@ -295,7 +307,7 @@ export default function TicketDetailPage() {
       await apiPost(`/tickets/${id}/approve-resolution`, {});
       const updatedTicket = await apiGet<Ticket>(`/tickets/${id}`);
       setTicket(updatedTicket);
-      alert("Solução aprovada! O ticket foi fechado.");
+      showSuccess("Solução aprovada! O ticket foi fechado.");
     } catch (err) {
       console.error("Erro ao aprovar solução:", err);
       setError("Erro ao aprovar solução");
@@ -328,12 +340,16 @@ export default function TicketDetailPage() {
       const updatedTicket = await apiGet<Ticket>(`/tickets/${id}`);
       setTicket(updatedTicket);
 
-      alert("Solução rejeitada. O ticket foi reaberto. Você pode enviar uma nova mensagem.");
+      showWarning(
+        "Solução rejeitada. O ticket foi reaberto. Você pode enviar uma nova mensagem."
+      );
 
       // Focar no campo de mensagem
       setTimeout(() => {
         document
-          .querySelector<HTMLTextAreaElement>('textarea[placeholder="Digite sua mensagem..."]')
+          .querySelector<HTMLTextAreaElement>(
+            'textarea[placeholder="Digite sua mensagem..."]'
+          )
           ?.focus();
       }, 100);
     } catch (err) {
@@ -355,17 +371,24 @@ export default function TicketDetailPage() {
     setEditError(null);
     try {
       // Usar fetch com método PUT
-      const response = await fetch(`http://localhost:8080/tickets/${id}/description`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${document.cookie.split("token=")[1]?.split(";")[0] || ""}`,
-        },
-        body: JSON.stringify({ ticketBody: editedDescription.trim() }),
-      });
+      const response = await fetch(
+        `http://localhost:8080/tickets/${id}/description`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${
+              document.cookie.split("token=")[1]?.split(";")[0] || ""
+            }`,
+          },
+          body: JSON.stringify({ ticketBody: editedDescription.trim() }),
+        }
+      );
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: "Erro ao atualizar" }));
+        const errorData = await response
+          .json()
+          .catch(() => ({ message: "Erro ao atualizar" }));
         throw new Error(errorData.message || "Erro ao atualizar descrição");
       }
 
@@ -374,23 +397,33 @@ export default function TicketDetailPage() {
       setIsEditingDescription(false);
       setEditedDescription("");
       setEditError(null);
-      alert("Descrição atualizada com sucesso!");
+      showSuccess("Descrição atualizada com sucesso!");
     } catch (err) {
       console.error("Erro ao atualizar descrição:", err);
-      const errorMessage = err instanceof Error ? err.message : "Erro ao atualizar descrição";
+      const errorMessage =
+        err instanceof Error ? err.message : "Erro ao atualizar descrição";
       setEditError(errorMessage);
     }
   }
 
   async function handleRequestDeletion() {
     if (!id) return;
-    if (!window.confirm("Tem certeza que deseja solicitar a exclusão deste ticket?")) return;
+
+    const confirmed = await confirm({
+      title: "Solicitar Exclusão",
+      message: "Tem certeza que deseja solicitar a exclusão deste ticket?",
+      confirmText: "Sim, solicitar",
+      cancelText: "Cancelar",
+      variant: "warning",
+    });
+
+    if (!confirmed) return;
 
     try {
       await apiPost(`/tickets/${id}/request-deletion`, {});
       const updatedTicket = await apiGet<Ticket>(`/tickets/${id}`);
       setTicket(updatedTicket);
-      alert("Solicitação de exclusão enviada ao usuário.");
+      showInfo("Solicitação de exclusão enviada ao usuário.");
     } catch (err) {
       console.error("Erro ao solicitar exclusão:", err);
       setError("Erro ao solicitar exclusão");
@@ -399,11 +432,20 @@ export default function TicketDetailPage() {
 
   async function handleApproveDeletion() {
     if (!id) return;
-    if (!window.confirm("Tem certeza que deseja mover este ticket para a lixeira?")) return;
+
+    const confirmed = await confirm({
+      title: "Mover para Lixeira",
+      message: "Tem certeza que deseja mover este ticket para a lixeira?",
+      confirmText: "Sim, mover",
+      cancelText: "Cancelar",
+      variant: "danger",
+    });
+
+    if (!confirmed) return;
 
     try {
       await apiPost(`/tickets/${id}/approve-deletion`, {});
-      alert("Ticket movido para a lixeira.");
+      showSuccess("Ticket movido para a lixeira.");
       navigate("/home");
     } catch (err) {
       console.error("Erro ao aprovar exclusão:", err);
@@ -426,7 +468,7 @@ export default function TicketDetailPage() {
 
       const updatedTicket = await apiGet<Ticket>(`/tickets/${id}`);
       setTicket(updatedTicket);
-      alert("Solicitação de exclusão rejeitada.");
+      showInfo("Solicitação de exclusão rejeitada.");
     } catch (err) {
       console.error("Erro ao rejeitar exclusão:", err);
       setError("Erro ao rejeitar exclusão");
@@ -436,7 +478,9 @@ export default function TicketDetailPage() {
   if (loading) {
     return (
       <div className="layout">
-        <div style={{ padding: "40px", textAlign: "center" }}>Carregando...</div>
+        <div style={{ padding: "40px", textAlign: "center" }}>
+          Carregando...
+        </div>
       </div>
     );
   }
@@ -447,7 +491,14 @@ export default function TicketDetailPage() {
         <div style={{ padding: "40px", textAlign: "center", color: "#dc3545" }}>
           {error}
           <br />
-          <Link to="/home" style={{ color: "#007bff", marginTop: "20px", display: "inline-block" }}>
+          <Link
+            to="/home"
+            style={{
+              color: "#007bff",
+              marginTop: "20px",
+              display: "inline-block",
+            }}
+          >
             ← Voltar para lista
           </Link>
         </div>
@@ -542,7 +593,13 @@ export default function TicketDetailPage() {
               }}
             >
               <UserBadge size={28} fontSize={11} />
-              <span style={{ fontSize: "13px", color: "#495057", fontWeight: "500" }}>
+              <span
+                style={{
+                  fontSize: "13px",
+                  color: "#495057",
+                  fontWeight: "500",
+                }}
+              >
                 {getCurrentUserName()}
               </span>
             </div>
@@ -579,7 +636,10 @@ export default function TicketDetailPage() {
 
         <main style={{ padding: "20px" }}>
           <div style={{ marginBottom: "20px" }}>
-            <Link to="/home" style={{ color: "#007bff", textDecoration: "none" }}>
+            <Link
+              to="/home"
+              style={{ color: "#007bff", textDecoration: "none" }}
+            >
               ← Voltar para lista de chamados
             </Link>
           </div>
@@ -682,31 +742,33 @@ export default function TicketDetailPage() {
                       ✏️ Editar
                     </button>
                   )}
-                  {isTechnician() && !ticket.isDeleted && !ticket.pendingDeletion && (
-                    <button
-                      onClick={handleRequestDeletion}
-                      style={{
-                        padding: "4px 8px",
-                        backgroundColor: "transparent",
-                        color: "#dc3545",
-                        border: "1px solid #dc3545",
-                        borderRadius: "3px",
-                        fontSize: "11px",
-                        cursor: "pointer",
-                        transition: "all 0.15s",
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = "#dc3545";
-                        e.currentTarget.style.color = "white";
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = "transparent";
-                        e.currentTarget.style.color = "#dc3545";
-                      }}
-                    >
-                      🗑️
-                    </button>
-                  )}
+                  {isTechnician() &&
+                    !ticket.isDeleted &&
+                    !ticket.pendingDeletion && (
+                      <button
+                        onClick={handleRequestDeletion}
+                        style={{
+                          padding: "4px 8px",
+                          backgroundColor: "transparent",
+                          color: "#dc3545",
+                          border: "1px solid #dc3545",
+                          borderRadius: "3px",
+                          fontSize: "11px",
+                          cursor: "pointer",
+                          transition: "all 0.15s",
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = "#dc3545";
+                          e.currentTarget.style.color = "white";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = "transparent";
+                          e.currentTarget.style.color = "#dc3545";
+                        }}
+                      >
+                        🗑️
+                      </button>
+                    )}
                 </div>
               </div>
               {isEditingDescription ? (
@@ -722,7 +784,9 @@ export default function TicketDetailPage() {
                       width: "100%",
                       padding: "8px",
                       borderRadius: "4px",
-                      border: editError ? "1px solid #dc3545" : "1px solid #ced4da",
+                      border: editError
+                        ? "1px solid #dc3545"
+                        : "1px solid #ced4da",
                       fontFamily: "inherit",
                       marginBottom: "8px",
                     }}
@@ -793,7 +857,13 @@ export default function TicketDetailPage() {
                   </div>
                 </div>
               ) : (
-                <p style={{ margin: 0, color: "#212529", whiteSpace: "pre-wrap" }}>
+                <p
+                  style={{
+                    margin: 0,
+                    color: "#212529",
+                    whiteSpace: "pre-wrap",
+                  }}
+                >
                   {ticket.ticketBody || "Sem descrição"}
                 </p>
               )}
@@ -812,15 +882,39 @@ export default function TicketDetailPage() {
               )}
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
-              <div style={{ display: "flex", alignItems: "baseline", gap: "8px" }}>
-                <p style={{ margin: 0, fontWeight: "600", fontSize: "14px", color: "#495057" }}>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: "16px",
+              }}
+            >
+              <div
+                style={{ display: "flex", alignItems: "baseline", gap: "8px" }}
+              >
+                <p
+                  style={{
+                    margin: 0,
+                    fontWeight: "600",
+                    fontSize: "14px",
+                    color: "#495057",
+                  }}
+                >
                   Urgência:
                 </p>
                 <p style={{ margin: 0 }}>{URGENCY_MAP[ticket.urgency]}</p>
               </div>
-              <div style={{ display: "flex", alignItems: "baseline", gap: "8px" }}>
-                <p style={{ margin: 0, fontWeight: "600", fontSize: "14px", color: "#495057" }}>
+              <div
+                style={{ display: "flex", alignItems: "baseline", gap: "8px" }}
+              >
+                <p
+                  style={{
+                    margin: 0,
+                    fontWeight: "600",
+                    fontSize: "14px",
+                    color: "#495057",
+                  }}
+                >
                   Última atualização:
                 </p>
                 <p style={{ margin: 0 }}>{formatDateTime(ticket.updatedAt)}</p>
@@ -839,8 +933,20 @@ export default function TicketDetailPage() {
               height: "500px",
             }}
           >
-            <div style={{ padding: "12px 16px", borderBottom: "1px solid #e9ecef" }}>
-              <h2 style={{ margin: 0, fontSize: "14px", fontWeight: "600", color: "#495057" }}>
+            <div
+              style={{
+                padding: "12px 16px",
+                borderBottom: "1px solid #e9ecef",
+              }}
+            >
+              <h2
+                style={{
+                  margin: 0,
+                  fontSize: "14px",
+                  fontWeight: "600",
+                  color: "#495057",
+                }}
+              >
                 Mensagens ({ticket.comments?.length || 0})
               </h2>
             </div>
@@ -857,14 +963,24 @@ export default function TicketDetailPage() {
               }}
             >
               {!ticket.comments || ticket.comments.length === 0 ? (
-                <p style={{ textAlign: "center", color: "#6c757d", marginTop: "40px" }}>
+                <p
+                  style={{
+                    textAlign: "center",
+                    color: "#6c757d",
+                    marginTop: "40px",
+                  }}
+                >
                   Nenhuma mensagem ainda. Seja o primeiro a comentar!
                 </p>
               ) : (
                 ticket.comments.map((comment) => {
                   const isOwn = comment.userId === currentUserId;
-                  const isRejectedSolution = comment.commentBody.startsWith("[SOLUÇÃO REJEITADA]");
-                  const isRejectedDeletion = comment.commentBody.startsWith("[EXCLUSÃO RECUSADA]");
+                  const isRejectedSolution = comment.commentBody.startsWith(
+                    "[SOLUÇÃO REJEITADA]"
+                  );
+                  const isRejectedDeletion = comment.commentBody.startsWith(
+                    "[EXCLUSÃO RECUSADA]"
+                  );
                   const messageContent = isRejectedSolution
                     ? comment.commentBody.replace("[SOLUÇÃO REJEITADA]\n\n", "")
                     : isRejectedDeletion
@@ -962,7 +1078,13 @@ export default function TicketDetailPage() {
                         >
                           {messageContent}
                         </div>
-                        <div style={{ fontSize: "10px", marginTop: "3px", opacity: 0.6 }}>
+                        <div
+                          style={{
+                            fontSize: "10px",
+                            marginTop: "3px",
+                            opacity: 0.6,
+                          }}
+                        >
                           {formatDateTime(comment.createdAt)}
                         </div>
                       </div>
@@ -974,103 +1096,115 @@ export default function TicketDetailPage() {
             </div>
 
             {/* Card de Solução FORA da área de mensagens - Aguardando aprovação (status 5) */}
-            {ticket.status === 5 && ticket.resolutionMessage && !isTechnician() && (
-              <div
-                style={{
-                  padding: "12px",
-                  backgroundColor: "#fffbf0",
-                  border: "1px solid #f0e8d0",
-                  borderRadius: "4px",
-                  margin: "12px 16px",
-                }}
-              >
+            {ticket.status === 5 &&
+              ticket.resolutionMessage &&
+              !isTechnician() && (
                 <div
                   style={{
-                    fontSize: "11px",
-                    fontWeight: "500",
-                    color: "#856404",
-                    marginBottom: "6px",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.3px",
+                    padding: "12px",
+                    backgroundColor: "#fffbf0",
+                    border: "1px solid #f0e8d0",
+                    borderRadius: "4px",
+                    margin: "12px 16px",
                   }}
                 >
-                  Solução Proposta
-                </div>
-                <p
-                  style={{
-                    margin: "0 0 10px 0",
-                    whiteSpace: "pre-wrap",
-                    color: "#495057",
-                    lineHeight: "1.4",
-                    fontSize: "13px",
-                  }}
-                >
-                  {ticket.resolutionMessage}
-                </p>
-                <div style={{ display: "flex", gap: "6px", justifyContent: "flex-end" }}>
-                  <button
-                    onClick={handleRejectResolution}
-                    disabled={isRejectingResolution}
+                  <div
                     style={{
-                      padding: "4px 10px",
-                      backgroundColor: "transparent",
-                      color: "#6c757d",
-                      border: "1px solid #dee2e6",
-                      borderRadius: "3px",
                       fontSize: "11px",
-                      fontWeight: "400",
-                      cursor: isRejectingResolution ? "not-allowed" : "pointer",
-                      opacity: isRejectingResolution ? 0.6 : 1,
-                      transition: "all 0.15s",
-                    }}
-                    onMouseEnter={(e) => {
-                      if (!isRejectingResolution) {
-                        e.currentTarget.style.borderColor = "#dc3545";
-                        e.currentTarget.style.color = "#dc3545";
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!isRejectingResolution) {
-                        e.currentTarget.style.borderColor = "#dee2e6";
-                        e.currentTarget.style.color = "#6c757d";
-                      }
+                      fontWeight: "500",
+                      color: "#856404",
+                      marginBottom: "6px",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.3px",
                     }}
                   >
-                    {isRejectingResolution ? "Rejeitando..." : "Rejeitar"}
-                  </button>
-                  <button
-                    onClick={handleApproveResolution}
-                    disabled={isApprovingResolution}
+                    Solução Proposta
+                  </div>
+                  <p
                     style={{
-                      padding: "4px 10px",
-                      backgroundColor: "transparent",
-                      color: "#28a745",
-                      border: "1px solid #28a745",
-                      borderRadius: "3px",
-                      fontSize: "11px",
-                      fontWeight: "400",
-                      cursor: isApprovingResolution ? "not-allowed" : "pointer",
-                      opacity: isApprovingResolution ? 0.6 : 1,
-                      transition: "all 0.15s",
-                    }}
-                    onMouseEnter={(e) => {
-                      if (!isApprovingResolution) {
-                        e.currentTarget.style.backgroundColor = "#28a745";
-                        e.currentTarget.style.color = "white";
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!isApprovingResolution) {
-                        e.currentTarget.style.backgroundColor = "transparent";
-                        e.currentTarget.style.color = "#28a745";
-                      }
+                      margin: "0 0 10px 0",
+                      whiteSpace: "pre-wrap",
+                      color: "#495057",
+                      lineHeight: "1.4",
+                      fontSize: "13px",
                     }}
                   >
-                    {isApprovingResolution ? "Aprovando..." : "Aprovar"}
-                  </button>
+                    {ticket.resolutionMessage}
+                  </p>
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: "6px",
+                      justifyContent: "flex-end",
+                    }}
+                  >
+                    <button
+                      onClick={handleRejectResolution}
+                      disabled={isRejectingResolution}
+                      style={{
+                        padding: "4px 10px",
+                        backgroundColor: "transparent",
+                        color: "#6c757d",
+                        border: "1px solid #dee2e6",
+                        borderRadius: "3px",
+                        fontSize: "11px",
+                        fontWeight: "400",
+                        cursor: isRejectingResolution
+                          ? "not-allowed"
+                          : "pointer",
+                        opacity: isRejectingResolution ? 0.6 : 1,
+                        transition: "all 0.15s",
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!isRejectingResolution) {
+                          e.currentTarget.style.borderColor = "#dc3545";
+                          e.currentTarget.style.color = "#dc3545";
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!isRejectingResolution) {
+                          e.currentTarget.style.borderColor = "#dee2e6";
+                          e.currentTarget.style.color = "#6c757d";
+                        }
+                      }}
+                    >
+                      {isRejectingResolution ? "Rejeitando..." : "Rejeitar"}
+                    </button>
+                    <button
+                      onClick={handleApproveResolution}
+                      disabled={isApprovingResolution}
+                      style={{
+                        padding: "4px 10px",
+                        backgroundColor: "transparent",
+                        color: "#28a745",
+                        border: "1px solid #28a745",
+                        borderRadius: "3px",
+                        fontSize: "11px",
+                        fontWeight: "400",
+                        cursor: isApprovingResolution
+                          ? "not-allowed"
+                          : "pointer",
+                        opacity: isApprovingResolution ? 0.6 : 1,
+                        transition: "all 0.15s",
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!isApprovingResolution) {
+                          e.currentTarget.style.backgroundColor = "#28a745";
+                          e.currentTarget.style.color = "white";
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!isApprovingResolution) {
+                          e.currentTarget.style.backgroundColor = "transparent";
+                          e.currentTarget.style.color = "#28a745";
+                        }
+                      }}
+                    >
+                      {isApprovingResolution ? "Aprovando..." : "Aprovar"}
+                    </button>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
             {/* Card de aprovação de exclusão - apenas para o criador do ticket */}
             {ticket.pendingDeletion && !isTechnician() && (
@@ -1105,7 +1239,13 @@ export default function TicketDetailPage() {
                 >
                   Um técnico solicitou a exclusão deste ticket.
                 </p>
-                <div style={{ display: "flex", gap: "6px", justifyContent: "flex-end" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    gap: "6px",
+                    justifyContent: "flex-end",
+                  }}
+                >
                   <button
                     onClick={handleRejectDeletion}
                     style={{
@@ -1159,7 +1299,9 @@ export default function TicketDetailPage() {
             )}
 
             {/* Formulário de Envio */}
-            <div style={{ padding: "12px 16px", borderTop: "1px solid #e9ecef" }}>
+            <div
+              style={{ padding: "12px 16px", borderTop: "1px solid #e9ecef" }}
+            >
               {error && (
                 <div
                   style={{
@@ -1232,7 +1374,8 @@ export default function TicketDetailPage() {
                     color: "#007bff",
                     border: "1px solid #007bff",
                     borderRadius: "3px",
-                    cursor: sending || !message.trim() ? "not-allowed" : "pointer",
+                    cursor:
+                      sending || !message.trim() ? "not-allowed" : "pointer",
                     fontSize: "12px",
                     fontWeight: "400",
                     transition: "all 0.15s",
@@ -1257,41 +1400,43 @@ export default function TicketDetailPage() {
               </form>
 
               {/* Solução Aprovada - Mostrar abaixo do formulário quando ticket resolvido (status 3) */}
-              {ticket.status === 3 && ticket.resolutionMessage && !isTechnician() && (
-                <div
-                  style={{
-                    marginTop: "12px",
-                    padding: "10px 12px",
-                    backgroundColor: "#f0f8f0",
-                    border: "1px solid #d0e8d0",
-                    borderRadius: "4px",
-                  }}
-                >
+              {ticket.status === 3 &&
+                ticket.resolutionMessage &&
+                !isTechnician() && (
                   <div
                     style={{
-                      fontSize: "11px",
-                      fontWeight: "500",
-                      color: "#28a745",
-                      marginBottom: "6px",
-                      textTransform: "uppercase",
-                      letterSpacing: "0.3px",
+                      marginTop: "12px",
+                      padding: "10px 12px",
+                      backgroundColor: "#f0f8f0",
+                      border: "1px solid #d0e8d0",
+                      borderRadius: "4px",
                     }}
                   >
-                    ✓ Solução Aprovada
+                    <div
+                      style={{
+                        fontSize: "11px",
+                        fontWeight: "500",
+                        color: "#28a745",
+                        marginBottom: "6px",
+                        textTransform: "uppercase",
+                        letterSpacing: "0.3px",
+                      }}
+                    >
+                      ✓ Solução Aprovada
+                    </div>
+                    <p
+                      style={{
+                        margin: 0,
+                        whiteSpace: "pre-wrap",
+                        color: "#495057",
+                        lineHeight: "1.4",
+                        fontSize: "13px",
+                      }}
+                    >
+                      {ticket.resolutionMessage}
+                    </p>
                   </div>
-                  <p
-                    style={{
-                      margin: 0,
-                      whiteSpace: "pre-wrap",
-                      color: "#495057",
-                      lineHeight: "1.4",
-                      fontSize: "13px",
-                    }}
-                  >
-                    {ticket.resolutionMessage}
-                  </p>
-                </div>
-              )}
+                )}
             </div>
           </div>
 
@@ -1421,8 +1566,9 @@ export default function TicketDetailPage() {
                         fontSize: "14px",
                       }}
                     >
-                      ⏸ Este ticket está <strong>pausado/pendente</strong>. Clique em "Retomar
-                      Atendimento" para continuar ou preencha a solução abaixo para fechá-lo.
+                      ⏸ Este ticket está <strong>pausado/pendente</strong>.
+                      Clique em "Retomar Atendimento" para continuar ou preencha
+                      a solução abaixo para fechá-lo.
                     </div>
                   )}
 
@@ -1470,7 +1616,10 @@ export default function TicketDetailPage() {
 
                     <button
                       type="submit"
-                      disabled={isResolvingTicket || resolutionMessage.trim().length < 10}
+                      disabled={
+                        isResolvingTicket ||
+                        resolutionMessage.trim().length < 10
+                      }
                       style={{
                         padding: "12px 24px",
                         background: "#28a745",
@@ -1478,17 +1627,24 @@ export default function TicketDetailPage() {
                         border: "none",
                         borderRadius: "6px",
                         cursor:
-                          isResolvingTicket || resolutionMessage.trim().length < 10
+                          isResolvingTicket ||
+                          resolutionMessage.trim().length < 10
                             ? "not-allowed"
                             : "pointer",
                         fontSize: "14px",
                         fontWeight: "500",
                         transition: "background 0.2s",
                         opacity:
-                          isResolvingTicket || resolutionMessage.trim().length < 10 ? 0.6 : 1,
+                          isResolvingTicket ||
+                          resolutionMessage.trim().length < 10
+                            ? 0.6
+                            : 1,
                       }}
                       onMouseEnter={(e) => {
-                        if (!isResolvingTicket && resolutionMessage.trim().length >= 10) {
+                        if (
+                          !isResolvingTicket &&
+                          resolutionMessage.trim().length >= 10
+                        ) {
                           e.currentTarget.style.background = "#218838";
                         }
                       }}
@@ -1496,7 +1652,9 @@ export default function TicketDetailPage() {
                         e.currentTarget.style.background = "#28a745";
                       }}
                     >
-                      {isResolvingTicket ? "Resolvendo..." : "Resolver e Fechar Ticket"}
+                      {isResolvingTicket
+                        ? "Resolvendo..."
+                        : "Resolver e Fechar Ticket"}
                     </button>
                   </form>
                 </div>
@@ -1514,6 +1672,18 @@ export default function TicketDetailPage() {
           ticketBody={ticket.ticketBody || ""}
         />
       )}
+
+      {/* Modal de confirmação */}
+      <ConfirmModal
+        isOpen={confirmState.isOpen}
+        title={confirmState.title}
+        message={confirmState.message}
+        confirmText={confirmState.confirmText}
+        cancelText={confirmState.cancelText}
+        variant={confirmState.variant}
+        onConfirm={confirmState.onConfirm}
+        onCancel={handleCancel}
+      />
     </div>
   );
 }
