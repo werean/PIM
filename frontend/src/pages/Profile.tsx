@@ -227,13 +227,13 @@ export default function ProfilePage() {
         newPassword: newPassword,
       });
 
-      showToast("Senha alterada com sucesso!", "success");
+      showToast("Senha alterada com sucesso", "success");
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
     } catch (error) {
       console.error("Erro ao alterar senha:", error);
-      showToast(error instanceof Error ? error.message : "Erro ao alterar senha", "error");
+      showToast("Falha ao alterar a senha", "error");
     }
   };
 

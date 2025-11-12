@@ -1,5 +1,6 @@
 // Equivalente a src/modules/users/dto/user.dto.ts
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace CSharp.DTOs
 {
@@ -63,10 +64,12 @@ namespace CSharp.DTOs
     public class ChangePasswordDTO
     {
         [Required]
+        [JsonPropertyName("currentPassword")]
         public string CurrentPassword { get; set; } = string.Empty;
 
         [Required]
         [MinLength(6)]
+        [JsonPropertyName("newPassword")]
         public string NewPassword { get; set; } = string.Empty;
     }
 }

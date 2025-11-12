@@ -62,7 +62,7 @@ namespace CSharp.Services
             {
                 Username = dto.Username,
                 Email = dto.Email,
-                Password = dto.Password, // Hash em AuthService
+                Password = BCrypt.Net.BCrypt.HashPassword(dto.Password), // Hash com BCrypt
                 Role = (UserRole)dto.Role
             };
             _context.Users.Add(user);
@@ -109,20 +109,29 @@ namespace CSharp.Services
 
         public async Task<string> ChangePasswordAsync(Guid userId, ChangePasswordDTO dto)
         {
-            var user = await _context.Users.FindAsync(userId);
-            if (user == null) return "not_found";
-
-            // Verificar se a senha atual está correta
-            if (!BCrypt.Net.BCrypt.Verify(dto.CurrentPassword, user.Password))
+            try
             {
-                return "invalid_password";
-            }
+                var user = await _context.Users.FindAsync(userId);
+                if (user == null) return "not_found";
 
-            // Hash da nova senha
-            user.Password = BCrypt.Net.BCrypt.HashPassword(dto.NewPassword);
-            await _context.SaveChangesAsync();
-            
-            return "success";
+                // Verificar se a senha atual está correta
+                if (!BCrypt.Net.BCrypt.Verify(dto.CurrentPassword, user.Password))
+                {
+                    return "invalid_password";
+                }
+
+                // Hash da nova senha
+                user.Password = BCrypt.Net.BCrypt.HashPassword(dto.NewPassword);
+                await _context.SaveChangesAsync();
+                
+                return "success";
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Erro em ChangePasswordAsync: {ex.Message}");
+                Console.WriteLine($"StackTrace: {ex.StackTrace}");
+                throw;
+            }
         }
     }
 }

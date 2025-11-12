@@ -12,7 +12,13 @@ namespace CSharp.Controllers
     public class UsersController : ControllerBase
     {
         private readonly UserService _service;
-        public UsersController(UserService service) => _service = service;
+        private readonly ILogger<UsersController> _logger;
+        
+        public UsersController(UserService service, ILogger<UsersController> logger)
+        {
+            _service = service;
+            _logger = logger;
+        }
 
         [HttpGet]
         [Authorize]
@@ -219,6 +225,8 @@ namespace CSharp.Controllers
             }
             catch (Exception ex)
             {
+                _logger.LogError($"Erro ao alterar senha: {ex.Message}");
+                _logger.LogError($"StackTrace: {ex.StackTrace}");
                 return StatusCode(500, new { message = "Erro ao alterar senha", error = ex.Message });
             }
         }

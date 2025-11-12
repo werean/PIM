@@ -100,8 +100,7 @@ export default function TicketDetailPage() {
         if (!mounted) return;
         setTicket(data);
       } catch (err) {
-        const msg =
-          err instanceof Error ? err.message : "Erro ao carregar ticket";
+        const msg = err instanceof Error ? err.message : "Erro ao carregar ticket";
         if (mounted) {
           setError(msg);
         }
@@ -340,16 +339,12 @@ export default function TicketDetailPage() {
       const updatedTicket = await apiGet<Ticket>(`/tickets/${id}`);
       setTicket(updatedTicket);
 
-      showWarning(
-        "Solução rejeitada. O ticket foi reaberto. Você pode enviar uma nova mensagem."
-      );
+      showWarning("Solução rejeitada. O ticket foi reaberto. Você pode enviar uma nova mensagem.");
 
       // Focar no campo de mensagem
       setTimeout(() => {
         document
-          .querySelector<HTMLTextAreaElement>(
-            'textarea[placeholder="Digite sua mensagem..."]'
-          )
+          .querySelector<HTMLTextAreaElement>('textarea[placeholder="Digite sua mensagem..."]')
           ?.focus();
       }, 100);
     } catch (err) {
@@ -371,24 +366,17 @@ export default function TicketDetailPage() {
     setEditError(null);
     try {
       // Usar fetch com método PUT
-      const response = await fetch(
-        `http://localhost:8080/tickets/${id}/description`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${
-              document.cookie.split("token=")[1]?.split(";")[0] || ""
-            }`,
-          },
-          body: JSON.stringify({ ticketBody: editedDescription.trim() }),
-        }
-      );
+      const response = await fetch(`http://localhost:8080/tickets/${id}/description`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${document.cookie.split("token=")[1]?.split(";")[0] || ""}`,
+        },
+        body: JSON.stringify({ ticketBody: editedDescription.trim() }),
+      });
 
       if (!response.ok) {
-        const errorData = await response
-          .json()
-          .catch(() => ({ message: "Erro ao atualizar" }));
+        const errorData = await response.json().catch(() => ({ message: "Erro ao atualizar" }));
         throw new Error(errorData.message || "Erro ao atualizar descrição");
       }
 
@@ -400,8 +388,7 @@ export default function TicketDetailPage() {
       showSuccess("Descrição atualizada com sucesso!");
     } catch (err) {
       console.error("Erro ao atualizar descrição:", err);
-      const errorMessage =
-        err instanceof Error ? err.message : "Erro ao atualizar descrição";
+      const errorMessage = err instanceof Error ? err.message : "Erro ao atualizar descrição";
       setEditError(errorMessage);
     }
   }
@@ -478,9 +465,7 @@ export default function TicketDetailPage() {
   if (loading) {
     return (
       <div className="layout">
-        <div style={{ padding: "40px", textAlign: "center" }}>
-          Carregando...
-        </div>
+        <div style={{ padding: "40px", textAlign: "center" }}>Carregando...</div>
       </div>
     );
   }
@@ -636,10 +621,7 @@ export default function TicketDetailPage() {
 
         <main style={{ padding: "20px" }}>
           <div style={{ marginBottom: "20px" }}>
-            <Link
-              to="/home"
-              style={{ color: "#007bff", textDecoration: "none" }}
-            >
+            <Link to="/home" style={{ color: "#007bff", textDecoration: "none" }}>
               ← Voltar para lista de chamados
             </Link>
           </div>
@@ -742,33 +724,31 @@ export default function TicketDetailPage() {
                       ✏️ Editar
                     </button>
                   )}
-                  {isTechnician() &&
-                    !ticket.isDeleted &&
-                    !ticket.pendingDeletion && (
-                      <button
-                        onClick={handleRequestDeletion}
-                        style={{
-                          padding: "4px 8px",
-                          backgroundColor: "transparent",
-                          color: "#dc3545",
-                          border: "1px solid #dc3545",
-                          borderRadius: "3px",
-                          fontSize: "11px",
-                          cursor: "pointer",
-                          transition: "all 0.15s",
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.backgroundColor = "#dc3545";
-                          e.currentTarget.style.color = "white";
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.backgroundColor = "transparent";
-                          e.currentTarget.style.color = "#dc3545";
-                        }}
-                      >
-                        🗑️
-                      </button>
-                    )}
+                  {isTechnician() && !ticket.isDeleted && !ticket.pendingDeletion && (
+                    <button
+                      onClick={handleRequestDeletion}
+                      style={{
+                        padding: "4px 8px",
+                        backgroundColor: "transparent",
+                        color: "#dc3545",
+                        border: "1px solid #dc3545",
+                        borderRadius: "3px",
+                        fontSize: "11px",
+                        cursor: "pointer",
+                        transition: "all 0.15s",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = "#dc3545";
+                        e.currentTarget.style.color = "white";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = "transparent";
+                        e.currentTarget.style.color = "#dc3545";
+                      }}
+                    >
+                      🗑️
+                    </button>
+                  )}
                 </div>
               </div>
               {isEditingDescription ? (
@@ -784,9 +764,7 @@ export default function TicketDetailPage() {
                       width: "100%",
                       padding: "8px",
                       borderRadius: "4px",
-                      border: editError
-                        ? "1px solid #dc3545"
-                        : "1px solid #ced4da",
+                      border: editError ? "1px solid #dc3545" : "1px solid #ced4da",
                       fontFamily: "inherit",
                       marginBottom: "8px",
                     }}
@@ -889,9 +867,7 @@ export default function TicketDetailPage() {
                 gap: "16px",
               }}
             >
-              <div
-                style={{ display: "flex", alignItems: "baseline", gap: "8px" }}
-              >
+              <div style={{ display: "flex", alignItems: "baseline", gap: "8px" }}>
                 <p
                   style={{
                     margin: 0,
@@ -904,9 +880,7 @@ export default function TicketDetailPage() {
                 </p>
                 <p style={{ margin: 0 }}>{URGENCY_MAP[ticket.urgency]}</p>
               </div>
-              <div
-                style={{ display: "flex", alignItems: "baseline", gap: "8px" }}
-              >
+              <div style={{ display: "flex", alignItems: "baseline", gap: "8px" }}>
                 <p
                   style={{
                     margin: 0,
@@ -975,12 +949,8 @@ export default function TicketDetailPage() {
               ) : (
                 ticket.comments.map((comment) => {
                   const isOwn = comment.userId === currentUserId;
-                  const isRejectedSolution = comment.commentBody.startsWith(
-                    "[SOLUÇÃO REJEITADA]"
-                  );
-                  const isRejectedDeletion = comment.commentBody.startsWith(
-                    "[EXCLUSÃO RECUSADA]"
-                  );
+                  const isRejectedSolution = comment.commentBody.startsWith("[SOLUÇÃO REJEITADA]");
+                  const isRejectedDeletion = comment.commentBody.startsWith("[EXCLUSÃO RECUSADA]");
                   const messageContent = isRejectedSolution
                     ? comment.commentBody.replace("[SOLUÇÃO REJEITADA]\n\n", "")
                     : isRejectedDeletion
@@ -1096,115 +1066,109 @@ export default function TicketDetailPage() {
             </div>
 
             {/* Card de Solução FORA da área de mensagens - Aguardando aprovação (status 5) */}
-            {ticket.status === 5 &&
-              ticket.resolutionMessage &&
-              !isTechnician() && (
+            {ticket.status === 5 && ticket.resolutionMessage && ticket.userId === currentUserId && (
+              <div
+                style={{
+                  padding: "12px",
+                  backgroundColor: "#fffbf0",
+                  border: "1px solid #f0e8d0",
+                  borderRadius: "4px",
+                  margin: "12px 16px",
+                }}
+              >
                 <div
                   style={{
-                    padding: "12px",
-                    backgroundColor: "#fffbf0",
-                    border: "1px solid #f0e8d0",
-                    borderRadius: "4px",
-                    margin: "12px 16px",
+                    fontSize: "11px",
+                    fontWeight: "500",
+                    color: "#856404",
+                    marginBottom: "6px",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.3px",
                   }}
                 >
-                  <div
-                    style={{
-                      fontSize: "11px",
-                      fontWeight: "500",
-                      color: "#856404",
-                      marginBottom: "6px",
-                      textTransform: "uppercase",
-                      letterSpacing: "0.3px",
-                    }}
-                  >
-                    Solução Proposta
-                  </div>
-                  <p
-                    style={{
-                      margin: "0 0 10px 0",
-                      whiteSpace: "pre-wrap",
-                      color: "#495057",
-                      lineHeight: "1.4",
-                      fontSize: "13px",
-                    }}
-                  >
-                    {ticket.resolutionMessage}
-                  </p>
-                  <div
-                    style={{
-                      display: "flex",
-                      gap: "6px",
-                      justifyContent: "flex-end",
-                    }}
-                  >
-                    <button
-                      onClick={handleRejectResolution}
-                      disabled={isRejectingResolution}
-                      style={{
-                        padding: "4px 10px",
-                        backgroundColor: "transparent",
-                        color: "#6c757d",
-                        border: "1px solid #dee2e6",
-                        borderRadius: "3px",
-                        fontSize: "11px",
-                        fontWeight: "400",
-                        cursor: isRejectingResolution
-                          ? "not-allowed"
-                          : "pointer",
-                        opacity: isRejectingResolution ? 0.6 : 1,
-                        transition: "all 0.15s",
-                      }}
-                      onMouseEnter={(e) => {
-                        if (!isRejectingResolution) {
-                          e.currentTarget.style.borderColor = "#dc3545";
-                          e.currentTarget.style.color = "#dc3545";
-                        }
-                      }}
-                      onMouseLeave={(e) => {
-                        if (!isRejectingResolution) {
-                          e.currentTarget.style.borderColor = "#dee2e6";
-                          e.currentTarget.style.color = "#6c757d";
-                        }
-                      }}
-                    >
-                      {isRejectingResolution ? "Rejeitando..." : "Rejeitar"}
-                    </button>
-                    <button
-                      onClick={handleApproveResolution}
-                      disabled={isApprovingResolution}
-                      style={{
-                        padding: "4px 10px",
-                        backgroundColor: "transparent",
-                        color: "#28a745",
-                        border: "1px solid #28a745",
-                        borderRadius: "3px",
-                        fontSize: "11px",
-                        fontWeight: "400",
-                        cursor: isApprovingResolution
-                          ? "not-allowed"
-                          : "pointer",
-                        opacity: isApprovingResolution ? 0.6 : 1,
-                        transition: "all 0.15s",
-                      }}
-                      onMouseEnter={(e) => {
-                        if (!isApprovingResolution) {
-                          e.currentTarget.style.backgroundColor = "#28a745";
-                          e.currentTarget.style.color = "white";
-                        }
-                      }}
-                      onMouseLeave={(e) => {
-                        if (!isApprovingResolution) {
-                          e.currentTarget.style.backgroundColor = "transparent";
-                          e.currentTarget.style.color = "#28a745";
-                        }
-                      }}
-                    >
-                      {isApprovingResolution ? "Aprovando..." : "Aprovar"}
-                    </button>
-                  </div>
+                  Solução Proposta
                 </div>
-              )}
+                <p
+                  style={{
+                    margin: "0 0 10px 0",
+                    whiteSpace: "pre-wrap",
+                    color: "#495057",
+                    lineHeight: "1.4",
+                    fontSize: "13px",
+                  }}
+                >
+                  {ticket.resolutionMessage}
+                </p>
+                <div
+                  style={{
+                    display: "flex",
+                    gap: "6px",
+                    justifyContent: "flex-end",
+                  }}
+                >
+                  <button
+                    onClick={handleRejectResolution}
+                    disabled={isRejectingResolution}
+                    style={{
+                      padding: "4px 10px",
+                      backgroundColor: "transparent",
+                      color: "#6c757d",
+                      border: "1px solid #dee2e6",
+                      borderRadius: "3px",
+                      fontSize: "11px",
+                      fontWeight: "400",
+                      cursor: isRejectingResolution ? "not-allowed" : "pointer",
+                      opacity: isRejectingResolution ? 0.6 : 1,
+                      transition: "all 0.15s",
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isRejectingResolution) {
+                        e.currentTarget.style.borderColor = "#dc3545";
+                        e.currentTarget.style.color = "#dc3545";
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isRejectingResolution) {
+                        e.currentTarget.style.borderColor = "#dee2e6";
+                        e.currentTarget.style.color = "#6c757d";
+                      }
+                    }}
+                  >
+                    {isRejectingResolution ? "Rejeitando..." : "Rejeitar"}
+                  </button>
+                  <button
+                    onClick={handleApproveResolution}
+                    disabled={isApprovingResolution}
+                    style={{
+                      padding: "4px 10px",
+                      backgroundColor: "transparent",
+                      color: "#28a745",
+                      border: "1px solid #28a745",
+                      borderRadius: "3px",
+                      fontSize: "11px",
+                      fontWeight: "400",
+                      cursor: isApprovingResolution ? "not-allowed" : "pointer",
+                      opacity: isApprovingResolution ? 0.6 : 1,
+                      transition: "all 0.15s",
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isApprovingResolution) {
+                        e.currentTarget.style.backgroundColor = "#28a745";
+                        e.currentTarget.style.color = "white";
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isApprovingResolution) {
+                        e.currentTarget.style.backgroundColor = "transparent";
+                        e.currentTarget.style.color = "#28a745";
+                      }
+                    }}
+                  >
+                    {isApprovingResolution ? "Aprovando..." : "Aprovar"}
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Card de aprovação de exclusão - apenas para o criador do ticket */}
             {ticket.pendingDeletion && !isTechnician() && (
@@ -1299,81 +1263,82 @@ export default function TicketDetailPage() {
             )}
 
             {/* Card informativo para TÉCNICOS - Solução aguardando aprovação (status 5) */}
-            {ticket.status === 5 && ticket.resolutionMessage && isTechnician() && (
-              <div
-                style={{
-                  padding: "12px",
-                  backgroundColor: "#e8f5e9",
-                  border: "1px solid #c8e6c9",
-                  borderRadius: "4px",
-                  margin: "12px 16px",
-                }}
-              >
+            {ticket.status === 5 &&
+              ticket.resolutionMessage &&
+              isTechnician() &&
+              ticket.userId !== currentUserId && (
                 <div
                   style={{
-                    fontSize: "11px",
-                    fontWeight: "500",
-                    color: "#2e7d32",
-                    marginBottom: "6px",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.3px",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "4px",
-                  }}
-                >
-                  ✓ Solução Encaminhada
-                </div>
-                <p
-                  style={{
-                    margin: "0 0 8px 0",
-                    color: "#1b5e20",
-                    lineHeight: "1.4",
-                    fontSize: "12px",
-                    fontWeight: "500",
-                  }}
-                >
-                  Uma solução foi enviada e está aguardando aprovação do usuário.
-                </p>
-                <div
-                  style={{
-                    backgroundColor: "white",
-                    padding: "8px",
-                    borderRadius: "3px",
+                    padding: "12px",
+                    backgroundColor: "#e8f5e9",
                     border: "1px solid #c8e6c9",
+                    borderRadius: "4px",
+                    margin: "12px 16px",
                   }}
                 >
                   <div
                     style={{
-                      fontSize: "10px",
-                      fontWeight: "600",
-                      color: "#4caf50",
-                      marginBottom: "4px",
+                      fontSize: "11px",
+                      fontWeight: "500",
+                      color: "#2e7d32",
+                      marginBottom: "6px",
                       textTransform: "uppercase",
                       letterSpacing: "0.3px",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "4px",
                     }}
                   >
-                    Solução enviada:
+                    ✓ Solução Encaminhada
                   </div>
                   <p
                     style={{
-                      margin: "0",
-                      whiteSpace: "pre-wrap",
-                      color: "#495057",
+                      margin: "0 0 8px 0",
+                      color: "#1b5e20",
                       lineHeight: "1.4",
-                      fontSize: "13px",
+                      fontSize: "12px",
+                      fontWeight: "500",
                     }}
                   >
-                    {ticket.resolutionMessage}
+                    Uma solução foi enviada e está aguardando aprovação do usuário.
                   </p>
+                  <div
+                    style={{
+                      backgroundColor: "white",
+                      padding: "8px",
+                      borderRadius: "3px",
+                      border: "1px solid #c8e6c9",
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: "10px",
+                        fontWeight: "600",
+                        color: "#4caf50",
+                        marginBottom: "4px",
+                        textTransform: "uppercase",
+                        letterSpacing: "0.3px",
+                      }}
+                    >
+                      Solução enviada:
+                    </div>
+                    <p
+                      style={{
+                        margin: "0",
+                        whiteSpace: "pre-wrap",
+                        color: "#495057",
+                        lineHeight: "1.4",
+                        fontSize: "13px",
+                      }}
+                    >
+                      {ticket.resolutionMessage}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
             {/* Formulário de Envio */}
-            <div
-              style={{ padding: "12px 16px", borderTop: "1px solid #e9ecef" }}
-            >
+            <div style={{ padding: "12px 16px", borderTop: "1px solid #e9ecef" }}>
               {error && (
                 <div
                   style={{
@@ -1446,8 +1411,7 @@ export default function TicketDetailPage() {
                     color: "#007bff",
                     border: "1px solid #007bff",
                     borderRadius: "3px",
-                    cursor:
-                      sending || !message.trim() ? "not-allowed" : "pointer",
+                    cursor: sending || !message.trim() ? "not-allowed" : "pointer",
                     fontSize: "12px",
                     fontWeight: "400",
                     transition: "all 0.15s",
@@ -1472,43 +1436,41 @@ export default function TicketDetailPage() {
               </form>
 
               {/* Solução Aprovada - Mostrar abaixo do formulário quando ticket resolvido (status 3) */}
-              {ticket.status === 3 &&
-                ticket.resolutionMessage &&
-                !isTechnician() && (
+              {ticket.status === 3 && ticket.resolutionMessage && !isTechnician() && (
+                <div
+                  style={{
+                    marginTop: "12px",
+                    padding: "10px 12px",
+                    backgroundColor: "#f0f8f0",
+                    border: "1px solid #d0e8d0",
+                    borderRadius: "4px",
+                  }}
+                >
                   <div
                     style={{
-                      marginTop: "12px",
-                      padding: "10px 12px",
-                      backgroundColor: "#f0f8f0",
-                      border: "1px solid #d0e8d0",
-                      borderRadius: "4px",
+                      fontSize: "11px",
+                      fontWeight: "500",
+                      color: "#28a745",
+                      marginBottom: "6px",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.3px",
                     }}
                   >
-                    <div
-                      style={{
-                        fontSize: "11px",
-                        fontWeight: "500",
-                        color: "#28a745",
-                        marginBottom: "6px",
-                        textTransform: "uppercase",
-                        letterSpacing: "0.3px",
-                      }}
-                    >
-                      ✓ Solução Aprovada
-                    </div>
-                    <p
-                      style={{
-                        margin: 0,
-                        whiteSpace: "pre-wrap",
-                        color: "#495057",
-                        lineHeight: "1.4",
-                        fontSize: "13px",
-                      }}
-                    >
-                      {ticket.resolutionMessage}
-                    </p>
+                    ✓ Solução Aprovada
                   </div>
-                )}
+                  <p
+                    style={{
+                      margin: 0,
+                      whiteSpace: "pre-wrap",
+                      color: "#495057",
+                      lineHeight: "1.4",
+                      fontSize: "13px",
+                    }}
+                  >
+                    {ticket.resolutionMessage}
+                  </p>
+                </div>
+              )}
             </div>
           </div>
 
@@ -1638,9 +1600,8 @@ export default function TicketDetailPage() {
                         fontSize: "14px",
                       }}
                     >
-                      ⏸ Este ticket está <strong>pausado/pendente</strong>.
-                      Clique em "Retomar Atendimento" para continuar ou preencha
-                      a solução abaixo para fechá-lo.
+                      ⏸ Este ticket está <strong>pausado/pendente</strong>. Clique em "Retomar
+                      Atendimento" para continuar ou preencha a solução abaixo para fechá-lo.
                     </div>
                   )}
 
@@ -1688,10 +1649,7 @@ export default function TicketDetailPage() {
 
                     <button
                       type="submit"
-                      disabled={
-                        isResolvingTicket ||
-                        resolutionMessage.trim().length < 10
-                      }
+                      disabled={isResolvingTicket || resolutionMessage.trim().length < 10}
                       style={{
                         padding: "12px 24px",
                         background: "#28a745",
@@ -1699,24 +1657,17 @@ export default function TicketDetailPage() {
                         border: "none",
                         borderRadius: "6px",
                         cursor:
-                          isResolvingTicket ||
-                          resolutionMessage.trim().length < 10
+                          isResolvingTicket || resolutionMessage.trim().length < 10
                             ? "not-allowed"
                             : "pointer",
                         fontSize: "14px",
                         fontWeight: "500",
                         transition: "background 0.2s",
                         opacity:
-                          isResolvingTicket ||
-                          resolutionMessage.trim().length < 10
-                            ? 0.6
-                            : 1,
+                          isResolvingTicket || resolutionMessage.trim().length < 10 ? 0.6 : 1,
                       }}
                       onMouseEnter={(e) => {
-                        if (
-                          !isResolvingTicket &&
-                          resolutionMessage.trim().length >= 10
-                        ) {
+                        if (!isResolvingTicket && resolutionMessage.trim().length >= 10) {
                           e.currentTarget.style.background = "#218838";
                         }
                       }}
@@ -1724,9 +1675,7 @@ export default function TicketDetailPage() {
                         e.currentTarget.style.background = "#28a745";
                       }}
                     >
-                      {isResolvingTicket
-                        ? "Resolvendo..."
-                        : "Resolver e Fechar Ticket"}
+                      {isResolvingTicket ? "Resolvendo..." : "Resolver e Fechar Ticket"}
                     </button>
                   </form>
                 </div>

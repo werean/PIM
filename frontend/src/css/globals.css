@@ -97,3 +97,15 @@ textarea {
   display: flex;
   gap: var(--spacing-md);
 }
+
+/* Toast animations */
+@keyframes slideInRight {
+  from {
+    transform: translateX(400px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}

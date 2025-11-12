@@ -32,8 +32,27 @@ namespace CSharp.Services
                 throw new InvalidOperationException("EMAIL_NOT_FOUND");
             }
             
-            // TODO: Implementar hash seguro
-            if (user.Password != password) 
+            // Verificar senha com BCrypt
+            bool isPasswordValid = false;
+            try
+            {
+                isPasswordValid = BCrypt.Net.BCrypt.Verify(password, user.Password);
+            }
+            catch (Exception)
+            {
+                // Se falhar (senha em texto plano antiga), tenta comparação direta como fallback
+                isPasswordValid = user.Password == password;
+                
+                // Se a senha está correta mas em texto plano, vamos atualizá-la para BCrypt
+                if (isPasswordValid)
+                {
+                    user.Password = BCrypt.Net.BCrypt.HashPassword(password);
+                    await _context.SaveChangesAsync();
+                    _logger.LogInformation($"Senha do usuário {user.Email} migrada para BCrypt");
+                }
+            }
+            
+            if (!isPasswordValid)
             {
                 // Lança exceção específica para senha incorreta
                 throw new InvalidOperationException("INVALID_PASSWORD");
