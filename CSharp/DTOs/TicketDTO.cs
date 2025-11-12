@@ -31,6 +31,7 @@ namespace CSharp.DTOs
         public int Urgency { get; set; }
         public int Status { get; set; }
         public DateTime CreatedAt { get; set; }
+        public DateTime? DeletedAt { get; set; }
         public Guid UserId { get; set; }
         public string? Username { get; set; }
     }

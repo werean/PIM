@@ -1,6 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
 import logoLJFT from "../assets/images/logoLJFT.png";
-import { getCurrentUserRole } from "../services/api";
+import { isTechnician } from "../services/api";
 
 /**
  * Sidebar navigation component
@@ -20,6 +20,9 @@ export default function Sidebar() {
     if (path === "/ticket/new") {
       return currentPath === "/ticket/new";
     }
+    if (path === "/knowledgebase") {
+      return currentPath.startsWith("/knowledgebase");
+    }
     return false;
   };
 
@@ -35,9 +38,7 @@ export default function Sidebar() {
         <div className="sidebar__nav-items">
           <Link
             to="/home"
-            className={`sidebar__nav-item ${
-              isActive("/home") ? "sidebar__nav-item--active" : ""
-            }`}
+            className={`sidebar__nav-item ${isActive("/home") ? "sidebar__nav-item--active" : ""}`}
           >
             Chamados
           </Link>
@@ -51,15 +52,26 @@ export default function Sidebar() {
             Criar chamado
           </Link>
 
-          {getCurrentUserRole() === "10" && (
-            <Link
-              to="/trash"
-              className={`sidebar__nav-item ${
-                isActive("/trash") ? "sidebar__nav-item--active" : ""
-              }`}
-            >
-              Lixeira
-            </Link>
+          {isTechnician() && (
+            <>
+              <Link
+                to="/knowledgebase"
+                className={`sidebar__nav-item ${
+                  isActive("/knowledgebase") ? "sidebar__nav-item--active" : ""
+                }`}
+              >
+                Base de Conhecimento
+              </Link>
+
+              <Link
+                to="/trash"
+                className={`sidebar__nav-item ${
+                  isActive("/trash") ? "sidebar__nav-item--active" : ""
+                }`}
+              >
+                Lixeira
+              </Link>
+            </>
           )}
         </div>
       </nav>

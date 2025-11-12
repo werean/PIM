@@ -1,72 +1,41 @@
 import { useState, useEffect, type FormEvent } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import logoLJFT from "../assets/images/logoLJFT.png";
+import { useNavigate } from "react-router-dom";
 import { apiPost } from "../services/api";
 import { isAuthenticated } from "../utils/cookies";
-import { ErrorMessage, FieldError } from "../components/ErrorMessage";
+import PageHeader from "../components/PageHeader";
+import PageLayout from "../components/PageLayout";
+import FormField from "../components/FormField";
+import { useToast } from "../hooks/useToast";
 
 export default function RegisterTicketPage() {
   const [title, setTitle] = useState("");
   const [ticketBody, setTicketBody] = useState("");
-  const [urgency, setUrgency] = useState("1"); // 1 = Low, 2 = Medium, 3 = High
+  const [urgency, setUrgency] = useState("1");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [errors, setErrors] = useState<string[]>([]);
-  const [fieldErrors, setFieldErrors] = useState<{
-    title?: string;
-    ticketBody?: string;
-  }>({});
-  const [success, setSuccess] = useState(false);
   const navigate = useNavigate();
+  const { showSuccess, showError } = useToast();
 
-  // Proteção de rota: redireciona para login se não estiver autenticado
   useEffect(() => {
     if (!isAuthenticated()) {
       navigate("/login");
     }
   }, [navigate]);
 
-  // Validação do formulário
-  const validateForm = (): boolean => {
-    const newFieldErrors: {
-      title?: string;
-      ticketBody?: string;
-    } = {};
-    let isValid = true;
-
-    // Validar título
-    if (!title.trim()) {
-      newFieldErrors.title = "Título é obrigatório";
-      isValid = false;
-    } else if (title.length < 5) {
-      newFieldErrors.title = "Título deve ter no mínimo 5 caracteres";
-      isValid = false;
-    } else if (title.length > 200) {
-      newFieldErrors.title = "Título deve ter no máximo 200 caracteres";
-      isValid = false;
-    }
-
-    // Validar descrição
-    if (!ticketBody.trim()) {
-      newFieldErrors.ticketBody = "Descrição é obrigatória";
-      isValid = false;
-    } else if (ticketBody.length < 10) {
-      newFieldErrors.ticketBody = "Descrição deve ter no mínimo 10 caracteres";
-      isValid = false;
-    }
-
-    setFieldErrors(newFieldErrors);
-    return isValid;
-  };
-
-  async function handleSubmit(e: FormEvent) {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    setError(null);
-    setErrors([]);
-    setFieldErrors({});
 
-    // Validação do formulário
-    if (!validateForm()) {
+    if (!title.trim()) {
+      showError("Título é obrigatório");
+      return;
+    }
+
+    if (title.length < 5) {
+      showError("Título deve ter no mínimo 5 caracteres");
+      return;
+    }
+
+    if (!ticketBody.trim()) {
+      showError("Descrição é obrigatória");
       return;
     }
 
@@ -74,129 +43,83 @@ export default function RegisterTicketPage() {
 
     try {
       await apiPost("/tickets", {
-        title,
-        ticketBody,
-        urgency: Number(urgency),
+        title: title.trim(),
+        ticketBody: ticketBody.trim(),
+        urgency: parseInt(urgency, 10),
       });
 
-      setSuccess(true);
-
-      // Redireciona para home após 2 segundos
-      setTimeout(() => {
-        navigate("/home");
-      }, 2000);
+      showSuccess("Chamado criado com sucesso!");
+      navigate("/home");
     } catch (err: unknown) {
-      const error = err as {
-        response?: { data?: { message?: string; errors?: string[] } };
-        message?: string;
-      };
-      if (error.response?.data?.errors) {
-        setErrors(error.response.data.errors);
-      }
-      setError(error.response?.data?.message || error.message || "Erro ao criar chamado");
+      console.error("Erro ao criar chamado:", err);
+      const error = err as { response?: { data?: { message?: string } } };
+      showError(error?.response?.data?.message || "Erro ao criar chamado");
+    } finally {
       setLoading(false);
     }
-  }
-
-  if (success) {
-    return (
-      <div className="login-page">
-        <div className="login-page__card">
-          <img src={logoLJFT} alt="Logo LIFT" className="login-page__logo" />
-          <div className="login-form">
-            <h2 className="login-form__title">✅ Chamado criado com sucesso!</h2>
-            <p style={{ textAlign: "center", marginTop: "20px" }}>
-              Redirecionando para a lista de chamados...
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  };
 
   return (
-    <div className="login-page">
-      <div className="login-page__card">
-        <img src={logoLJFT} alt="Logo LIFT" className="login-page__logo" />
-        <form onSubmit={handleSubmit} className="login-form">
-          <h2 className="login-form__title">Criar novo chamado</h2>
+    <PageLayout>
+      <PageHeader breadcrumbs={[{ label: "Chamados", path: "/home" }, { label: "Novo Chamado" }]} />
 
-          {(error || errors.length > 0) && (
-            <ErrorMessage message={error || undefined} errors={errors} />
-          )}
+      <div className="form-container">
+        <form className="form" onSubmit={handleSubmit}>
+          <FormField
+            id="title"
+            label="Título do chamado"
+            required
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Ex: Problema com impressora"
+            maxLength={200}
+            disabled={loading}
+          />
 
-          <div className="login-form__group">
-            <label htmlFor="title" className="login-form__label">
-              Título do chamado *
-            </label>
-            <input
-              id="title"
-              type="text"
-              className="login-form__input"
-              placeholder="Ex: Problema com impressora"
-              value={title}
-              onChange={(e) => {
-                setTitle(e.target.value);
-                if (fieldErrors.title) {
-                  setFieldErrors({ ...fieldErrors, title: undefined });
-                }
-              }}
-              required
-              maxLength={200}
-            />
-            <FieldError error={fieldErrors.title} />
-          </div>
+          <FormField
+            id="ticketBody"
+            label="Descrição do problema"
+            required
+            as="textarea"
+            rows={5}
+            value={ticketBody}
+            onChange={(e) => setTicketBody(e.target.value)}
+            placeholder="Descreva o problema em detalhes..."
+            disabled={loading}
+            style={{ minHeight: "150px", resize: "vertical" }}
+          />
 
-          <div className="login-form__group">
-            <label htmlFor="ticketBody" className="login-form__label">
-              Descrição do problema *
-            </label>
-            <textarea
-              id="ticketBody"
-              className="login-form__input"
-              placeholder="Descreva o problema em detalhes..."
-              value={ticketBody}
-              onChange={(e) => {
-                setTicketBody(e.target.value);
-                if (fieldErrors.ticketBody) {
-                  setFieldErrors({ ...fieldErrors, ticketBody: undefined });
-                }
-              }}
-              required
-              rows={5}
-              style={{ resize: "vertical", fontFamily: "inherit" }}
-            />
-            <FieldError error={fieldErrors.ticketBody} />
-          </div>
+          <FormField
+            id="urgency"
+            label="Urgência"
+            required
+            as="select"
+            value={urgency}
+            onChange={(e) => setUrgency(e.target.value)}
+            options={[
+              { value: "1", label: "Baixa" },
+              { value: "2", label: "Média" },
+              { value: "3", label: "Alta" },
+            ]}
+            disabled={loading}
+          />
 
-          <div className="login-form__group">
-            <label htmlFor="urgency" className="login-form__label">
-              Urgência *
-            </label>
-            <select
-              id="urgency"
-              className="login-form__input"
-              value={urgency}
-              onChange={(e) => setUrgency(e.target.value)}
-              required
+          <div className="form__actions">
+            <button
+              type="button"
+              className="btn btn--secondary"
+              onClick={() => navigate("/home")}
+              disabled={loading}
             >
-              <option value="1">Baixa</option>
-              <option value="2">Média</option>
-              <option value="3">Alta</option>
-            </select>
+              Cancelar
+            </button>
+            <button type="submit" className="btn btn--primary" disabled={loading}>
+              {loading ? "Criando..." : "Criar Chamado"}
+            </button>
           </div>
-
-          <button type="submit" className="login-form__submit" disabled={loading}>
-            {loading ? "Criando..." : "Criar chamado"}
-          </button>
-
-          <p className="login-form__footer">
-            <Link to="/home" className="login-form__link">
-              ← Voltar para lista de chamados
-            </Link>
-          </p>
         </form>
       </div>
-    </div>
+    </PageLayout>
   );
 }

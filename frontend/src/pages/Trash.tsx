@@ -1,29 +1,20 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import ConfirmModal from "../components/ConfirmModal";
-import Sidebar from "../components/Sidebar";
-import UserBadge from "../components/UserBadge";
+import PageLayout from "../components/PageLayout";
+import PageHeader from "../components/PageHeader";
+import DataTable, { type DataTableColumn } from "../components/DataTable";
+import StatusBadge from "../components/StatusBadge";
+import UrgencyBadge from "../components/UrgencyBadge";
 import { useConfirm } from "../hooks/useConfirm";
 import { useToast } from "../hooks/useToast";
 import type { Ticket } from "../services/api";
-import {
-  apiGet,
-  getCurrentUserName,
-  getCurrentUserRole,
-} from "../services/api";
-import { deleteCookie, isAuthenticated } from "../utils/cookies";
+import { apiGet, isTechnician } from "../services/api";
+import { isAuthenticated } from "../utils/cookies";
 
 type TicketsResponse = Ticket[] | { message: string };
-
-const STATUS_MAP: Record<number, string> = {
-  1: "Aberto",
-  2: "Pendente",
-  3: "Resolvido",
-  4: "Reaberto",
-  5: "Aguardando Aprovação",
-  6: "Aguardando Exclusão",
-  7: "Deletado",
-};
+type SortField = "id" | "createdAt" | "deletedAt";
+type SortOrder = "asc" | "desc" | "default";
 
 function formatDate(dateStr?: string) {
   if (!dateStr) return "-";
@@ -43,6 +34,8 @@ export default function TrashPage() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [sortField, setSortField] = useState<SortField | null>(null);
+  const [sortOrder, setSortOrder] = useState<SortOrder>("default");
   const navigate = useNavigate();
   const { showSuccess, showError } = useToast();
   const { confirm, confirmState, handleCancel } = useConfirm();
@@ -53,7 +46,7 @@ export default function TrashPage() {
       navigate("/login");
       return;
     }
-    if (getCurrentUserRole() !== "10") {
+    if (!isTechnician()) {
       navigate("/home");
       return;
     }
@@ -64,9 +57,7 @@ export default function TrashPage() {
     (async () => {
       try {
         setLoading(true);
-        const data = (await apiGet<TicketsResponse>(
-          "/tickets/deleted"
-        )) as Ticket[];
+        const data = (await apiGet<TicketsResponse>("/tickets/deleted")) as Ticket[];
         if (mounted) {
           setTickets(data);
           setLoading(false);
@@ -83,11 +74,49 @@ export default function TrashPage() {
     };
   }, []);
 
-  function handleLogout() {
-    deleteCookie("user");
-    deleteCookie("token");
-    navigate("/login");
-  }
+  const handleSort = (field: string) => {
+    const newField = field as SortField;
+
+    if (sortField === newField) {
+      // Ciclo: default -> asc -> desc -> default
+      if (sortOrder === "default") {
+        setSortOrder("asc");
+      } else if (sortOrder === "asc") {
+        setSortOrder("desc");
+      } else {
+        setSortOrder("default");
+        setSortField(null);
+      }
+    } else {
+      setSortField(newField);
+      setSortOrder("asc");
+    }
+  };
+
+  const sortedTickets = useMemo(() => {
+    if (!sortField || sortOrder === "default") {
+      return tickets;
+    }
+
+    const sorted = [...tickets].sort((a, b) => {
+      let aVal: string | number | undefined = a[sortField];
+      let bVal: string | number | undefined = b[sortField];
+
+      // Converter datas para timestamp
+      if (sortField === "createdAt" || sortField === "deletedAt") {
+        aVal = aVal ? new Date(aVal).getTime() : 0;
+        bVal = bVal ? new Date(bVal).getTime() : 0;
+      }
+
+      if (sortOrder === "asc") {
+        return (aVal ?? 0) > (bVal ?? 0) ? 1 : -1;
+      } else {
+        return (aVal ?? 0) < (bVal ?? 0) ? 1 : -1;
+      }
+    });
+
+    return sorted;
+  }, [tickets, sortField, sortOrder]);
 
   async function handlePermanentDelete(ticketId: number, ticketTitle: string) {
     const confirmed = await confirm({
@@ -101,17 +130,12 @@ export default function TrashPage() {
     if (!confirmed) return;
 
     try {
-      const response = await fetch(
-        `http://localhost:8080/tickets/${ticketId}/permanent-delete`,
-        {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${
-              document.cookie.split("token=")[1]?.split(";")[0] || ""
-            }`,
-          },
-        }
-      );
+      const response = await fetch(`http://localhost:8080/tickets/${ticketId}/permanent-delete`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${document.cookie.split("token=")[1]?.split(";")[0] || ""}`,
+        },
+      });
 
       if (!response.ok) {
         throw new Error("Erro ao deletar permanentemente");
@@ -126,247 +150,141 @@ export default function TrashPage() {
     }
   }
 
-  if (loading) {
-    return (
-      <div className="layout">
-        <div style={{ padding: "40px", textAlign: "center" }}>
-          Carregando...
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="layout">
-        <div style={{ padding: "40px", color: "red" }}>{error}</div>
-      </div>
-    );
-  }
-
-  return (
-    <div style={{ display: "flex", minHeight: "100vh" }}>
-      <Sidebar />
-
-      <div
-        style={{
-          marginLeft: "240px",
-          width: "calc(100% - 240px)",
-          minHeight: "100vh",
-          background: "#f8f9fa",
-        }}
-      >
-        <header
+  const columns: DataTableColumn<Ticket>[] = [
+    {
+      key: "id",
+      label: "ID",
+      sortable: true,
+      className: "data-table__cell--id",
+      render: (ticket) => `#${ticket.id}`,
+    },
+    {
+      key: "title",
+      label: "Título",
+      className: "data-table__cell--title",
+    },
+    {
+      key: "urgency",
+      label: "Urgência",
+      render: (ticket) => <UrgencyBadge urgency={ticket.urgency || 1} />,
+    },
+    {
+      key: "status",
+      label: "Status",
+      render: (ticket) => <StatusBadge status={ticket.status} />,
+    },
+    {
+      key: "username",
+      label: "Usuário",
+      render: (ticket) => ticket.username || "-",
+    },
+    {
+      key: "createdAt",
+      label: "Criado em",
+      sortable: true,
+      className: "data-table__cell--date",
+      render: (ticket) => formatDate(ticket.createdAt),
+    },
+    {
+      key: "deletedAt",
+      label: "Deletado em",
+      sortable: true,
+      className: "data-table__cell--date",
+      render: (ticket) => formatDate(ticket.deletedAt),
+    },
+    {
+      key: "actions",
+      label: "Ações",
+      render: (ticket) => (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            handlePermanentDelete(ticket.id!, ticket.title);
+          }}
           style={{
-            background: "#ffffff",
-            borderBottom: "1px solid #e9ecef",
-            padding: "12px 20px",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
+            padding: "4px 8px",
+            backgroundColor: "transparent",
+            color: "#dc3545",
+            border: "1px solid #dc3545",
+            borderRadius: "3px",
+            fontSize: "11px",
+            cursor: "pointer",
+            transition: "all 0.15s",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = "#dc3545";
+            e.currentTarget.style.color = "white";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = "transparent";
+            e.currentTarget.style.color = "#dc3545";
           }}
         >
+          🗑️
+        </button>
+      ),
+    },
+  ];
+
+  return (
+    <PageLayout>
+      <PageHeader breadcrumbs={[{ label: "Lixeira" }]} />
+
+      <main className="home-page">
+        <section className="home-page__filters">
           <div
             style={{
-              fontSize: "12px",
-              color: "#6c757d",
+              background: "#fff",
+              padding: "12px 16px",
+              borderRadius: "6px",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
+              border: "1px solid #e9ecef",
+              display: "flex",
+              alignItems: "center",
+              gap: "12px",
             }}
           >
-            <span
-              style={{ cursor: "pointer", transition: "color 0.15s" }}
-              onClick={() => navigate("/home")}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.color = "#212529";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.color = "#6c757d";
-              }}
-            >
-              Home
-            </span>{" "}
-            / <strong style={{ color: "#212529" }}>Lixeira</strong>
-          </div>
-
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
             <div
               style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "6px",
-                cursor: "pointer",
-                transition: "all 0.2s ease",
-                padding: "6px 10px",
-                borderRadius: "4px",
-                border: "1px solid transparent",
+                width: "4px",
+                height: "40px",
+                borderRadius: "2px",
+                background: "linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)",
               }}
-              onClick={() => navigate("/profile")}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = "#fafbfc";
-                e.currentTarget.style.borderColor = "#e1e4e8";
-                e.currentTarget.style.transform = "translateY(-1px)";
-                e.currentTarget.style.boxShadow = "0 2px 4px rgba(0,0,0,0.04)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = "transparent";
-                e.currentTarget.style.borderColor = "transparent";
-                e.currentTarget.style.transform = "translateY(0)";
-                e.currentTarget.style.boxShadow = "none";
-              }}
-            >
-              <UserBadge size={28} fontSize={11} />
-              <span
-                style={{
-                  fontSize: "13px",
-                  color: "#495057",
-                  fontWeight: "500",
-                }}
-              >
-                {getCurrentUserName()}
-              </span>
-            </div>
-            <button
-              onClick={handleLogout}
-              style={{
-                background: "transparent",
-                color: "#6c757d",
-                border: "1px solid #dee2e6",
-                padding: "6px 12px",
-                borderRadius: "3px",
-                cursor: "pointer",
-                fontSize: "12px",
-                fontWeight: "400",
-                transition: "all 0.15s",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = "#dc3545";
-                e.currentTarget.style.color = "#dc3545";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = "#dee2e6";
-                e.currentTarget.style.color = "#6c757d";
-              }}
-            >
-              Sair
-            </button>
-          </div>
-        </header>
-
-        <main style={{ padding: "20px" }}>
-          <section>
-            <div style={{ marginBottom: "20px" }}>
+            />
+            <div>
               <div
                 style={{
-                  padding: "12px 16px",
-                  background: "#fff5f5",
-                  border: "1px solid #ffcdd2",
-                  borderRadius: "4px",
-                  fontSize: "13px",
+                  fontSize: "11px",
+                  color: "#6c757d",
                   fontWeight: "500",
-                  color: "#c62828",
-                  display: "inline-block",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.5px",
                 }}
               >
-                {tickets.length} Tickets na lixeira
+                Tickets na Lixeira
+              </div>
+              <div
+                style={{ fontSize: "20px", fontWeight: "700", color: "#212529", marginTop: "2px" }}
+              >
+                {tickets.length}
               </div>
             </div>
+          </div>
+        </section>
 
-            <div
-              className="data-table"
-              role="table"
-              aria-label="Tabela de Lixeira"
-            >
-              <div className="data-table__header" role="row">
-                <div role="columnheader">ID</div>
-                <div role="columnheader">Título</div>
-                <div role="columnheader">Urgência</div>
-                <div role="columnheader">Status</div>
-                <div role="columnheader">Usuário</div>
-                <div role="columnheader">Criado em</div>
-                <div role="columnheader">Deletado em</div>
-                <div role="columnheader">Ações</div>
-              </div>
-
-              {tickets.length === 0 ? (
-                <div
-                  style={{
-                    padding: "20px",
-                    textAlign: "center",
-                    color: "#6c757d",
-                  }}
-                >
-                  Nenhum ticket na lixeira
-                </div>
-              ) : (
-                tickets.map((ticket) => (
-                  <div key={ticket.id} className="data-table__row" role="row">
-                    <div role="cell">{ticket.id}</div>
-                    <div role="cell" style={{ fontWeight: 500 }}>
-                      {ticket.title}
-                    </div>
-                    <div role="cell">
-                      <span
-                        className="status-badge"
-                        style={{
-                          backgroundColor:
-                            ticket.urgency === 3
-                              ? "#dc3545"
-                              : ticket.urgency === 2
-                              ? "#ffc107"
-                              : "#28a745",
-                        }}
-                      >
-                        {ticket.urgency === 3
-                          ? "Alta"
-                          : ticket.urgency === 2
-                          ? "Média"
-                          : "Baixa"}
-                      </span>
-                    </div>
-                    <div role="cell">
-                      <span
-                        className="status-badge"
-                        style={{ backgroundColor: "#6c757d" }}
-                      >
-                        {STATUS_MAP[ticket.status]}
-                      </span>
-                    </div>
-                    <div role="cell">{ticket.username || "-"}</div>
-                    <div role="cell">{formatDate(ticket.createdAt)}</div>
-                    <div role="cell">{formatDate(ticket.deletedAt)}</div>
-                    <div role="cell">
-                      <button
-                        onClick={() =>
-                          handlePermanentDelete(ticket.id!, ticket.title)
-                        }
-                        style={{
-                          padding: "4px 8px",
-                          backgroundColor: "transparent",
-                          color: "#dc3545",
-                          border: "1px solid #dc3545",
-                          borderRadius: "3px",
-                          fontSize: "11px",
-                          cursor: "pointer",
-                          transition: "all 0.15s",
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.backgroundColor = "#dc3545";
-                          e.currentTarget.style.color = "white";
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.backgroundColor = "transparent";
-                          e.currentTarget.style.color = "#dc3545";
-                        }}
-                      >
-                        🗑️
-                      </button>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </section>
-        </main>
-      </div>
+        <DataTable
+          columns={columns}
+          data={sortedTickets}
+          loading={loading}
+          error={error}
+          emptyMessage="Nenhum ticket na lixeira"
+          sortField={sortField}
+          sortOrder={sortOrder}
+          onSort={handleSort}
+          getRowKey={(ticket) => ticket.id!}
+        />
+      </main>
 
       {/* Modal de confirmação */}
       <ConfirmModal
@@ -379,6 +297,6 @@ export default function TrashPage() {
         onConfirm={confirmState.onConfirm}
         onCancel={handleCancel}
       />
-    </div>
+    </PageLayout>
   );
 }

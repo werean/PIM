@@ -3,6 +3,7 @@
   margin: 0 32px 32px 32px;
   overflow-x: auto;
 }
+
 .data-table__table {
   width: 100%;
   border-collapse: collapse;
@@ -12,41 +13,106 @@
   border-radius: 6px;
   overflow: hidden;
 }
+
 .data-table__head {
-  background-color: #ebebeb;
+  background-color: #f8f9fa;
   font-weight: 700;
-  color: #222;
+  color: #6c757d;
+  border-bottom: 1px solid #e9ecef;
 }
-.data-table__table th,
-.data-table__table td {
+
+.data-table__head-row {
+  border-bottom: 2px solid #ddd;
+}
+
+.data-table__head-cell {
   padding: 12px 16px;
   text-align: left;
-  border-bottom: 1px solid #ddd;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+  color: #6c757d;
 }
+
+.data-table__head-cell--sortable {
+  cursor: pointer;
+  user-select: none;
+  transition: color 0.2s;
+}
+
+.data-table__head-cell--sortable:hover {
+  color: #6c5ce7;
+}
+
+.data-table__head-cell--active {
+  color: #6c5ce7;
+}
+
 .data-table__table th:first-child,
 .data-table__table td:first-child {
   width: 70px;
 }
+
+.data-table__row {
+  transition: background-color 0.15s;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.data-table__row--clickable {
+  cursor: pointer;
+}
+
+.data-table__row--clickable:hover {
+  background-color: #f8f9fa;
+}
+
+.data-table__cell {
+  padding: 12px 16px;
+  text-align: left;
+  font-size: 13px;
+  color: #495057;
+}
+
+.data-table__cell--center {
+  text-align: center;
+  color: #6c757d;
+  padding: 20px;
+}
+
+.data-table__cell--error {
+  color: #dc3545;
+}
+
+.data-table__cell--id {
+  font-weight: 600;
+  color: #495057;
+}
+
+.data-table__cell--title {
+  font-weight: 600;
+  max-width: 500px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #212529;
+}
+
+.data-table__cell--date {
+  color: #6c757d;
+  font-size: 12px;
+}
+
 .data-table__status {
   display: flex;
   align-items: center;
   gap: 8px;
   font-weight: 600;
 }
+
 .data-table__status-dot {
   width: 14px;
   height: 14px;
   border-radius: 50%;
   display: inline-block;
-}
-.data-table__title {
-  font-weight: 600;
-  max-width: 500px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.data-table__body tr:hover {
-  background-color: #f9f9f9;
-  cursor: pointer;
 }

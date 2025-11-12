@@ -17,6 +17,7 @@ namespace CSharp.Data
         public DbSet<Attachment> Attachments { get; set; }
         public DbSet<TicketAISession> TicketAISessions { get; set; }
         public DbSet<AIMessage> AIMessages { get; set; }
+        public DbSet<KnowledgeBaseArticle> KnowledgeBaseArticles { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -83,6 +84,15 @@ namespace CSharp.Data
                 .OnDelete(DeleteBehavior.SetNull);
             modelBuilder.Entity<AIMessage>()
                 .HasIndex(m => m.TicketId); // Index para performance
+
+            // KnowledgeBaseArticle
+            modelBuilder.Entity<KnowledgeBaseArticle>()
+                .HasOne(k => k.CreatedByUser)
+                .WithMany()
+                .HasForeignKey(k => k.CreatedBy)
+                .OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<KnowledgeBaseArticle>()
+                .HasIndex(k => k.CreatedAt);
         }
     }
 }

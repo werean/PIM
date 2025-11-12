@@ -60,6 +60,38 @@ export async function apiPost<T>(path: string, body: unknown, init?: RequestInit
   return res.json() as Promise<T>;
 }
 
+export async function apiPut<T>(path: string, body: unknown, init?: RequestInit): Promise<T> {
+  const token = getCookie("token");
+  const headers: HeadersInit = { "Content-Type": "application/json" };
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
+  const res = await fetch(`${BASE_URL}${path}`, {
+    method: "PUT",
+    headers,
+    body: JSON.stringify(body),
+    ...init,
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    try {
+      const data = JSON.parse(text);
+      const error = new Error(
+        `PUT ${path} failed: ${res.status} ${data?.message || text}`
+      ) as Error & { response?: { data: unknown } };
+      error.response = { data };
+      throw error;
+    } catch (parseError) {
+      if ((parseError as Error & { response?: unknown }).response) {
+        throw parseError;
+      }
+      throw new Error(`PUT ${path} failed: ${res.status} ${text}`);
+    }
+  }
+  return res.json() as Promise<T>;
+}
+
 export type Role = 5 | 10; // 5 = Usuário, 10 = Técnico
 
 export interface CreateUserPayload {

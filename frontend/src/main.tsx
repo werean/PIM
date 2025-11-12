@@ -7,6 +7,7 @@ import { ToastProvider } from "./contexts/ToastContext";
 
 // Estilos
 import "./css/styles.css";
+import "./css/KnowledgeBase.css";
 
 // Páginas
 import HomePage from "./pages/Home";
@@ -16,6 +17,9 @@ import RegisterTicketPage from "./pages/RegisterTicket";
 import RegisterUserPage from "./pages/RegisterUser";
 import TicketDetailPage from "./pages/TicketDetail";
 import TrashPage from "./pages/Trash";
+import KnowledgeBasePage from "./pages/KnowledgeBase";
+import CreateArticlePage from "./pages/CreateArticle";
+import ViewArticlePage from "./pages/ViewArticle";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
@@ -30,6 +34,9 @@ createRoot(document.getElementById("root")!).render(
           <Route path="/ticket/:id" element={<TicketDetailPage />} />
           <Route path="/trash" element={<TrashPage />} />
           <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/knowledgebase" element={<KnowledgeBasePage />} />
+          <Route path="/knowledgebase/create" element={<CreateArticlePage />} />
+          <Route path="/knowledgebase/:id" element={<ViewArticlePage />} />
         </Routes>
       </BrowserRouter>
     </ToastProvider>

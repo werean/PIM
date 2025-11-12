@@ -49,6 +49,7 @@ namespace CSharp.Services
                 Urgency = (int)t.Urgency,
                 Status = (int)t.Status,
                 CreatedAt = t.CreatedAt,
+                DeletedAt = t.DeletedAt,
                 UserId = t.UserId,
                 Username = t.User?.Username
             }).ToList();
