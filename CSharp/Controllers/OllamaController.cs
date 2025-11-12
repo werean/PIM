@@ -38,7 +38,7 @@ namespace CSharp.Controllers
                     return BadRequest(new { error = "OLLAMA_SERVER não configurado" });
                 }
 
-                var baseUrl = ollamaServer.Replace("/api/generate", "/api/tags");
+                var baseUrl = ollamaServer.Replace("/api/chat", "/api/tags");
 
                 var client = _httpClientFactory.CreateClient();
                 var response = await client.GetAsync(baseUrl);
@@ -128,7 +128,7 @@ namespace CSharp.Controllers
                     return BadRequest(new { error = "OLLAMA_SERVER não configurado" });
                 }
 
-                var baseUrl = ollamaServer.Replace("/api/generate", "/api/pull");
+                var baseUrl = ollamaServer.Replace("/api/chat", "/api/pull");
 
                 var requestBody = new { name = request.Model };
                 var client = _httpClientFactory.CreateClient();
@@ -199,7 +199,7 @@ namespace CSharp.Controllers
                     return BadRequest(new { error = "OLLAMA_SERVER não configurado" });
                 }
 
-                var baseUrl = ollamaServer.Replace("/api/generate", "/api/show");
+                var baseUrl = ollamaServer.Replace("/api/chat", "/api/show");
 
                 var requestBody = new { name = request.Model };
                 var client = _httpClientFactory.CreateClient();
@@ -256,7 +256,7 @@ namespace CSharp.Controllers
                     return BadRequest(new { error = "OLLAMA_SERVER não configurado" });
                 }
 
-                var baseUrl = ollamaServer.Replace("/api/generate", "/api/delete");
+                var baseUrl = ollamaServer.Replace("/api/chat", "/api/delete");
 
                 var requestBody = new { name = request.Model };
                 var client = _httpClientFactory.CreateClient();
@@ -323,7 +323,7 @@ namespace CSharp.Controllers
                 
                 try
                 {
-                    var response = await client.GetAsync(ollamaServer.Replace("/api/generate", "/api/tags"));
+                    var response = await client.GetAsync(ollamaServer.Replace("/api/chat", "/api/tags"));
                     
                     if (response.IsSuccessStatusCode)
                     {

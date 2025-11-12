@@ -88,10 +88,34 @@ namespace CSharp.Services
                     return;
                 }
 
+                // System prompt definindo a persona de Técnico de TI
+                var systemPrompt = @"Você é um assistente técnico especializado em TI e suporte técnico. 
+Sua missão é ajudar técnicos a resolver problemas reportados em chamados de suporte.
+
+REGRAS CRÍTICAS:
+- Seja EXTREMAMENTE objetivo e direto
+- Respostas CURTAS e PONTUAIS (máximo 3-4 parágrafos)
+- Vá direto ao ponto, sem introduções longas
+- Use passos numerados APENAS quando necessário (máximo 5 passos)
+- Evite explicações excessivas ou redundantes
+- Foque APENAS no problema específico
+
+Comportamento:
+- Identifique a causa raiz rapidamente
+- Sugira a solução mais direta
+- Use comandos ou verificações quando relevante
+- Linguagem técnica mas clara
+
+Sempre priorize BREVIDADE e AÇÃO imediata.";
+
                 var requestBody = new
                 {
                     model = "qwen3:0.6b",
-                    prompt = prompt,
+                    messages = new[]
+                    {
+                        new { role = "system", content = systemPrompt },
+                        new { role = "user", content = prompt }
+                    },
                     stream = true
                 };
 
@@ -126,18 +150,22 @@ namespace CSharp.Services
                         using var doc = JsonDocument.Parse(line);
                         var root = doc.RootElement;
 
-                        if (root.TryGetProperty("response", out var responseProperty))
+                        // API /api/chat retorna message.content em vez de response
+                        if (root.TryGetProperty("message", out var messageProperty))
                         {
-                            var responseText = responseProperty.GetString() ?? "";
-                            
-                            // Apenas enviar se o chunk não estiver vazio
-                            if (!string.IsNullOrEmpty(responseText))
+                            if (messageProperty.TryGetProperty("content", out var contentProperty))
                             {
-                                fullResponse.Append(responseText);
+                                var responseText = contentProperty.GetString() ?? "";
                                 
-                                // Enviar chunk e aguardar um pouco para simular streaming
-                                await onChunkReceived(responseText);
-                                await Task.Delay(10); // 10ms de delay entre chunks
+                                // Apenas enviar se o chunk não estiver vazio
+                                if (!string.IsNullOrEmpty(responseText))
+                                {
+                                    fullResponse.Append(responseText);
+                                    
+                                    // Enviar chunk e aguardar um pouco para simular streaming
+                                    await onChunkReceived(responseText);
+                                    await Task.Delay(10); // 10ms de delay entre chunks
+                                }
                             }
                         }
 

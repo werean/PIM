@@ -221,10 +221,35 @@ namespace CSharp.Controllers
                                 continue;
                             }
 
+                            // System prompt definindo a persona de Técnico de TI
+                            var systemPrompt = @"Você é um assistente técnico especializado em TI e suporte técnico. 
+Sua missão é ajudar técnicos a resolver problemas reportados em chamados de suporte.
+
+REGRAS CRÍTICAS:
+- Seja EXTREMAMENTE objetivo e direto
+- Respostas CURTAS e PONTUAIS (máximo 3-4 parágrafos)
+- Vá direto ao ponto, sem introduções longas
+- Use passos numerados APENAS quando necessário (máximo 5 passos)
+- Evite explicações excessivas ou redundantes
+- Foque APENAS no problema específico
+
+Comportamento:
+- Identifique a causa raiz rapidamente
+- Sugira a solução mais direta
+- Use comandos ou verificações quando relevante
+- Linguagem técnica mas clara
+
+Sempre priorize BREVIDADE e AÇÃO imediata.";
+
+                            // Usar API /api/chat com messages array (nova API do Ollama)
                             var requestBody = new
                             {
                                 model = modelName,
-                                prompt = promptText,
+                                messages = new[]
+                                {
+                                    new { role = "system", content = systemPrompt },
+                                    new { role = "user", content = promptText }
+                                },
                                 stream = true
                             };
 
@@ -272,14 +297,17 @@ namespace CSharp.Controllers
                                     using var doc = JsonDocument.Parse(line);
                                     var root = doc.RootElement;
 
-                                    // Enviar o chunk de resposta imediatamente
-                                    if (root.TryGetProperty("response", out var responseProperty))
+                                    // API /api/chat retorna message.content em vez de response
+                                    if (root.TryGetProperty("message", out var messageProperty))
                                     {
-                                        var responseText = responseProperty.GetString();
-                                        if (!string.IsNullOrEmpty(responseText))
+                                        if (messageProperty.TryGetProperty("content", out var contentProperty))
                                         {
-                                            _logger.LogInformation($"[STREAM] Enviando para WebSocket: {responseText.Substring(0, Math.Min(30, responseText.Length))}");
-                                            await SendRawMessage(webSocket, responseText);
+                                            var responseText = contentProperty.GetString();
+                                            if (!string.IsNullOrEmpty(responseText))
+                                            {
+                                                _logger.LogInformation($"[STREAM] Enviando para WebSocket: {responseText.Substring(0, Math.Min(30, responseText.Length))}");
+                                                await SendRawMessage(webSocket, responseText);
+                                            }
                                         }
                                     }
 

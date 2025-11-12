@@ -12,6 +12,7 @@ import { useToast } from "../hooks/useToast";
 
 // Components
 import { FieldError } from "../components/ErrorMessage";
+import PasswordInput from "../components/PasswordInput";
 
 // Imagens
 import logoLJFT from "../assets/images/logoLJFT.png";
@@ -163,11 +164,8 @@ export default function LoginPage() {
             <label htmlFor="senha" className="login-form__label">
               Senha
             </label>
-            <input
+            <PasswordInput
               id="senha"
-              type="password"
-              className="login-form__input"
-              placeholder="Digite sua senha..."
               value={senha}
               onChange={(e) => {
                 setSenha(e.target.value);
@@ -175,7 +173,10 @@ export default function LoginPage() {
                   setFieldErrors({ ...fieldErrors, password: undefined });
                 }
               }}
+              placeholder="Digite sua senha..."
+              className="login-form__input"
               required
+              autoComplete="current-password"
             />
             <FieldError error={fieldErrors.password} />
           </div>
