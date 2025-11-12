@@ -60,11 +60,23 @@ namespace CSharp.Controllers
                     return BadRequest(new { message = "Tipo de usuário inválido" });
                 }
 
-                var user = await _service.CreateAsync(dto);
+                User? user = null;
+                try
+                {
+                    user = await _service.CreateAsync(dto);
+                }
+                catch (InvalidOperationException ex)
+                {
+                    if (ex.Message == "EMAIL_ALREADY_EXISTS")
+                    {
+                        return BadRequest(new { message = "Este e-mail já está cadastrado", field = "email" });
+                    }
+                    throw;
+                }
                 
                 if (user == null)
                 {
-                    return BadRequest(new { message = "Não foi possível criar usuário. Email pode já estar em uso." });
+                    return BadRequest(new { message = "Não foi possível criar usuário" });
                 }
 
                 return CreatedAtAction(nameof(GetById), new { id = user.Id }, user);

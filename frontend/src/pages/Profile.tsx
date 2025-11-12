@@ -59,6 +59,9 @@ export default function ProfilePage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isEditing, setIsEditing] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const userRole = getCurrentUserRole();
   const roleLabel = userRole === "10" ? "Técnico" : "Usuário";
 
@@ -607,22 +610,47 @@ export default function ProfilePage() {
                   >
                     Senha atual
                   </label>
-                  <input
-                    type="password"
-                    value={currentPassword}
-                    onChange={(e) => setCurrentPassword(e.target.value)}
-                    placeholder="Digite sua senha atual"
-                    style={{
-                      width: "100%",
-                      padding: "10px 12px",
-                      fontSize: "14px",
-                      border: "1px solid #e0e0e0",
-                      borderRadius: "4px",
-                      background: "#ffffff",
-                      color: "#212529",
-                      boxSizing: "border-box",
-                    }}
-                  />
+                  <div style={{ position: "relative" }}>
+                    <input
+                      type={showCurrentPassword ? "text" : "password"}
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
+                      placeholder="Digite sua senha atual"
+                      style={{
+                        width: "100%",
+                        padding: "10px 12px",
+                        paddingRight: "40px",
+                        fontSize: "14px",
+                        border: "1px solid #e0e0e0",
+                        borderRadius: "4px",
+                        background: "#ffffff",
+                        color: "#212529",
+                        boxSizing: "border-box",
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                      style={{
+                        position: "absolute",
+                        right: "8px",
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        background: "transparent",
+                        border: "none",
+                        cursor: "pointer",
+                        padding: "4px 8px",
+                        color: "#6c757d",
+                        fontSize: "14px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                      title={showCurrentPassword ? "Ocultar senha" : "Mostrar senha"}
+                    >
+                      {showCurrentPassword ? "👁️" : "👁️‍🗨️"}
+                    </button>
+                  </div>
                 </div>
 
                 <div style={{ marginBottom: "16px" }}>
@@ -637,22 +665,47 @@ export default function ProfilePage() {
                   >
                     Nova senha
                   </label>
-                  <input
-                    type="password"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="Digite sua nova senha"
-                    style={{
-                      width: "100%",
-                      padding: "10px 12px",
-                      fontSize: "14px",
-                      border: "1px solid #e0e0e0",
-                      borderRadius: "4px",
-                      background: "#ffffff",
-                      color: "#212529",
-                      boxSizing: "border-box",
-                    }}
-                  />
+                  <div style={{ position: "relative" }}>
+                    <input
+                      type={showNewPassword ? "text" : "password"}
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="Digite sua nova senha"
+                      style={{
+                        width: "100%",
+                        padding: "10px 12px",
+                        paddingRight: "40px",
+                        fontSize: "14px",
+                        border: "1px solid #e0e0e0",
+                        borderRadius: "4px",
+                        background: "#ffffff",
+                        color: "#212529",
+                        boxSizing: "border-box",
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPassword(!showNewPassword)}
+                      style={{
+                        position: "absolute",
+                        right: "8px",
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        background: "transparent",
+                        border: "none",
+                        cursor: "pointer",
+                        padding: "4px 8px",
+                        color: "#6c757d",
+                        fontSize: "14px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                      title={showNewPassword ? "Ocultar senha" : "Mostrar senha"}
+                    >
+                      {showNewPassword ? "👁️" : "👁️‍🗨️"}
+                    </button>
+                  </div>
                 </div>
 
                 <div style={{ marginBottom: "20px" }}>
@@ -667,22 +720,47 @@ export default function ProfilePage() {
                   >
                     Confirmar nova senha
                   </label>
-                  <input
-                    type="password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="Confirme sua nova senha"
-                    style={{
-                      width: "100%",
-                      padding: "10px 12px",
-                      fontSize: "14px",
-                      border: "1px solid #e0e0e0",
-                      borderRadius: "4px",
-                      background: "#ffffff",
-                      color: "#212529",
-                      boxSizing: "border-box",
-                    }}
-                  />
+                  <div style={{ position: "relative" }}>
+                    <input
+                      type={showConfirmPassword ? "text" : "password"}
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="Confirme sua nova senha"
+                      style={{
+                        width: "100%",
+                        padding: "10px 12px",
+                        paddingRight: "40px",
+                        fontSize: "14px",
+                        border: "1px solid #e0e0e0",
+                        borderRadius: "4px",
+                        background: "#ffffff",
+                        color: "#212529",
+                        boxSizing: "border-box",
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      style={{
+                        position: "absolute",
+                        right: "8px",
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        background: "transparent",
+                        border: "none",
+                        cursor: "pointer",
+                        padding: "4px 8px",
+                        color: "#6c757d",
+                        fontSize: "14px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                      title={showConfirmPassword ? "Ocultar senha" : "Mostrar senha"}
+                    >
+                      {showConfirmPassword ? "👁️" : "👁️‍🗨️"}
+                    </button>
+                  </div>
                 </div>
 
                 <button

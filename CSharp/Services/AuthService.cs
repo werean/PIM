@@ -26,9 +26,19 @@ namespace CSharp.Services
         public async Task<User?> ValidateUserAsync(string email, string password)
         {
             var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
-            if (user == null) return null;
+            if (user == null) 
+            {
+                // Lança exceção específica para email não encontrado
+                throw new InvalidOperationException("EMAIL_NOT_FOUND");
+            }
+            
             // TODO: Implementar hash seguro
-            if (user.Password != password) return null;
+            if (user.Password != password) 
+            {
+                // Lança exceção específica para senha incorreta
+                throw new InvalidOperationException("INVALID_PASSWORD");
+            }
+            
             return user;
         }
 

@@ -24,6 +24,7 @@ export default function LoginPage() {
     password?: string;
   }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
 
   // Redireciona para /home se já estiver autenticado
@@ -108,13 +109,31 @@ export default function LoginPage() {
       navigate("/home");
     } catch (err: unknown) {
       const error = err as {
-        response?: { data?: { message?: string; errors?: string[] } };
+        response?: {
+          data?: {
+            message?: string;
+            errors?: string[];
+            field?: string;
+          };
+        };
         message?: string;
       };
-      if (error.response?.data?.errors) {
+
+      // Se o backend retornou qual campo teve erro, mostrar no campo específico
+      if (error.response?.data?.field) {
+        const field = error.response.data.field;
+        const message = error.response.data.message || "Campo inválido";
+
+        if (field === "email") {
+          setFieldErrors({ email: message });
+        } else if (field === "password") {
+          setFieldErrors({ password: message });
+        }
+      } else if (error.response?.data?.errors) {
         setErrors(error.response.data.errors);
+      } else {
+        setError(error.response?.data?.message || error.message || "Erro ao efetuar login");
       }
-      setError(error.response?.data?.message || error.message || "Erro ao efetuar login");
     } finally {
       setIsSubmitting(false);
     }
@@ -156,20 +175,45 @@ export default function LoginPage() {
             <label htmlFor="senha" className="login-form__label">
               Senha
             </label>
-            <input
-              id="senha"
-              type="password"
-              className="login-form__input"
-              placeholder="Digite sua senha..."
-              value={senha}
-              onChange={(e) => {
-                setSenha(e.target.value);
-                if (fieldErrors.password) {
-                  setFieldErrors({ ...fieldErrors, password: undefined });
-                }
-              }}
-              required
-            />
+            <div style={{ position: "relative" }}>
+              <input
+                id="senha"
+                type={showPassword ? "text" : "password"}
+                className="login-form__input"
+                placeholder="Digite sua senha..."
+                value={senha}
+                onChange={(e) => {
+                  setSenha(e.target.value);
+                  if (fieldErrors.password) {
+                    setFieldErrors({ ...fieldErrors, password: undefined });
+                  }
+                }}
+                required
+                style={{ paddingRight: "40px" }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                style={{
+                  position: "absolute",
+                  right: "8px",
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  background: "transparent",
+                  border: "none",
+                  cursor: "pointer",
+                  padding: "4px 8px",
+                  color: "#6c757d",
+                  fontSize: "14px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+                title={showPassword ? "Ocultar senha" : "Mostrar senha"}
+              >
+                {showPassword ? "👁️" : "👁️‍🗨️"}
+              </button>
+            </div>
             <FieldError error={fieldErrors.password} />
           </div>
 

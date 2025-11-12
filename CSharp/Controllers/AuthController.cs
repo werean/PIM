@@ -48,7 +48,24 @@ namespace CSharp.Controllers
                     return BadRequest(new { message = "Senha deve ter no mínimo 6 caracteres" });
                 }
 
-                var user = await _authService.ValidateUserAsync(request.Email, request.Password);
+                User? user = null;
+                try
+                {
+                    user = await _authService.ValidateUserAsync(request.Email, request.Password);
+                }
+                catch (InvalidOperationException ex)
+                {
+                    if (ex.Message == "EMAIL_NOT_FOUND")
+                    {
+                        return Unauthorized(new { message = "E-mail inválido, tente novamente", field = "email" });
+                    }
+                    else if (ex.Message == "INVALID_PASSWORD")
+                    {
+                        return Unauthorized(new { message = "Senha inválida, tente novamente", field = "password" });
+                    }
+                    throw;
+                }
+
                 if (user == null)
                 {
                     return Unauthorized(new { message = "Email ou senha incorretos" });

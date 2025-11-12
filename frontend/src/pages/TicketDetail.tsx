@@ -1158,6 +1158,78 @@ export default function TicketDetailPage() {
               </div>
             )}
 
+            {/* Card informativo para TÉCNICOS - Solução aguardando aprovação (status 5) */}
+            {ticket.status === 5 && ticket.resolutionMessage && isTechnician() && (
+              <div
+                style={{
+                  padding: "12px",
+                  backgroundColor: "#e8f5e9",
+                  border: "1px solid #c8e6c9",
+                  borderRadius: "4px",
+                  margin: "12px 16px",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: "11px",
+                    fontWeight: "500",
+                    color: "#2e7d32",
+                    marginBottom: "6px",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.3px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "4px",
+                  }}
+                >
+                  ✓ Solução Encaminhada
+                </div>
+                <p
+                  style={{
+                    margin: "0 0 8px 0",
+                    color: "#1b5e20",
+                    lineHeight: "1.4",
+                    fontSize: "12px",
+                    fontWeight: "500",
+                  }}
+                >
+                  Uma solução foi enviada e está aguardando aprovação do usuário.
+                </p>
+                <div
+                  style={{
+                    backgroundColor: "white",
+                    padding: "8px",
+                    borderRadius: "3px",
+                    border: "1px solid #c8e6c9",
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: "10px",
+                      fontWeight: "600",
+                      color: "#4caf50",
+                      marginBottom: "4px",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.3px",
+                    }}
+                  >
+                    Solução enviada:
+                  </div>
+                  <p
+                    style={{
+                      margin: "0",
+                      whiteSpace: "pre-wrap",
+                      color: "#495057",
+                      lineHeight: "1.4",
+                      fontSize: "13px",
+                    }}
+                  >
+                    {ticket.resolutionMessage}
+                  </p>
+                </div>
+              </div>
+            )}
+
             {/* Formulário de Envio */}
             <div style={{ padding: "12px 16px", borderTop: "1px solid #e9ecef" }}>
               {error && (

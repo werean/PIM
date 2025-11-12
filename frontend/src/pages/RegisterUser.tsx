@@ -30,6 +30,7 @@ export default function RegisterUserPage() {
     email?: string;
     password?: string;
   }>({});
+  const [showPassword, setShowPassword] = useState(false);
 
   // Se já estiver autenticado, mostrar link para voltar à home
   const authenticated = isAuthenticated();
@@ -115,13 +116,33 @@ export default function RegisterUserPage() {
       setForm({ username: "", email: "", password: "", role: 5 });
     } catch (err: unknown) {
       const error = err as {
-        response?: { data?: { message?: string; errors?: string[] } };
+        response?: {
+          data?: {
+            message?: string;
+            errors?: string[];
+            field?: string;
+          };
+        };
         message?: string;
       };
-      if (error.response?.data?.errors) {
+
+      // Se o backend retornou qual campo teve erro, mostrar no campo específico
+      if (error.response?.data?.field) {
+        const field = error.response.data.field;
+        const message = error.response.data.message || "Campo inválido";
+
+        if (field === "email") {
+          setFieldErrors({ email: message });
+        } else if (field === "username") {
+          setFieldErrors({ username: message });
+        } else if (field === "password") {
+          setFieldErrors({ password: message });
+        }
+      } else if (error.response?.data?.errors) {
         setErrors(error.response.data.errors);
+      } else {
+        setError(error.response?.data?.message || error.message || "Erro ao criar usuário");
       }
-      setError(error.response?.data?.message || error.message || "Erro ao criar usuário");
     } finally {
       setLoading(false);
     }
@@ -209,16 +230,41 @@ export default function RegisterUserPage() {
             <label htmlFor="reg-password" className="register-form__label">
               Senha
             </label>
-            <input
-              id="reg-password"
-              className="register-form__input"
-              name="password"
-              type="password"
-              value={form.password}
-              onChange={handleChange}
-              placeholder="Senha (mín. 6 caracteres)"
-              required
-            />
+            <div style={{ position: "relative" }}>
+              <input
+                id="reg-password"
+                className="register-form__input"
+                name="password"
+                type={showPassword ? "text" : "password"}
+                value={form.password}
+                onChange={handleChange}
+                placeholder="Senha (mín. 6 caracteres)"
+                required
+                style={{ paddingRight: "40px" }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                style={{
+                  position: "absolute",
+                  right: "8px",
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  background: "transparent",
+                  border: "none",
+                  cursor: "pointer",
+                  padding: "4px 8px",
+                  color: "#6c757d",
+                  fontSize: "14px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+                title={showPassword ? "Ocultar senha" : "Mostrar senha"}
+              >
+                {showPassword ? "👁️" : "👁️‍🗨️"}
+              </button>
+            </div>
             <FieldError error={fieldErrors.password} />
           </div>
 

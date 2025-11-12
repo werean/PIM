@@ -43,9 +43,17 @@ export async function apiPost<T>(path: string, body: unknown, init?: RequestInit
     const text = await res.text();
     try {
       const data = JSON.parse(text);
-      const msg = data?.message ?? JSON.stringify(data);
-      throw new Error(`POST ${path} failed: ${res.status} ${msg}`);
-    } catch {
+      // Lança um erro estruturado que preserva a resposta completa
+      const error = new Error(
+        `POST ${path} failed: ${res.status} ${data?.message || text}`
+      ) as Error & { response?: { data: unknown } };
+      error.response = { data };
+      throw error;
+    } catch (parseError) {
+      // Se não conseguir fazer parse do JSON, lança erro simples
+      if ((parseError as Error & { response?: unknown }).response) {
+        throw parseError; // Re-lança se já é nosso erro estruturado
+      }
       throw new Error(`POST ${path} failed: ${res.status} ${text}`);
     }
   }

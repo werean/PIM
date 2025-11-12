@@ -44,6 +44,13 @@ namespace CSharp.Services
 
         public async Task<User?> CreateAsync(UserCreateDTO dto)
         {
+            // Verificar se o email já existe
+            var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.Email == dto.Email);
+            if (existingUser != null)
+            {
+                throw new InvalidOperationException("EMAIL_ALREADY_EXISTS");
+            }
+
             // Validar role (apenas 5 ou 10 são permitidos)
             if (dto.Role != 5 && dto.Role != 10)
             {
