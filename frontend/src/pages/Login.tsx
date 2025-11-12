@@ -1,14 +1,17 @@
-import { useState, useEffect, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 // API
 import { apiPost } from "../services/api";
 
 // Utils
-import { setCookie, isAuthenticated } from "../utils/cookies";
+import { isAuthenticated, setCookie } from "../utils/cookies";
+
+// Hooks
+import { useToast } from "../hooks/useToast";
 
 // Components
-import { ErrorMessage, FieldError } from "../components/ErrorMessage";
+import { FieldError } from "../components/ErrorMessage";
 
 // Imagens
 import logoLJFT from "../assets/images/logoLJFT.png";
@@ -17,15 +20,13 @@ export default function LoginPage() {
   const [usuario, setUsuario] = useState("");
   const [senha, setSenha] = useState("");
   const [lembrar, setLembrar] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [errors, setErrors] = useState<string[]>([]);
   const [fieldErrors, setFieldErrors] = useState<{
     email?: string;
     password?: string;
   }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
+  const { showSuccess } = useToast();
 
   // Redireciona para /home se já estiver autenticado
   useEffect(() => {
@@ -67,8 +68,6 @@ export default function LoginPage() {
 
   async function handleLogin(e: FormEvent) {
     e.preventDefault();
-    setError(null);
-    setErrors([]);
     setFieldErrors({});
 
     // Validação do formulário
@@ -105,6 +104,9 @@ export default function LoginPage() {
         localStorage.removeItem("usuario");
       }
 
+      // Mostrar mensagem de sucesso
+      showSuccess("Login realizado com sucesso!");
+
       // After successful login, navigate to the home page
       navigate("/home");
     } catch (err: unknown) {
@@ -112,27 +114,17 @@ export default function LoginPage() {
         response?: {
           data?: {
             message?: string;
-            errors?: string[];
             field?: string;
           };
         };
         message?: string;
       };
 
-      // Se o backend retornou qual campo teve erro, mostrar no campo específico
+      // Se houver erro específico de campo
       if (error.response?.data?.field) {
         const field = error.response.data.field;
         const message = error.response.data.message || "Campo inválido";
-
-        if (field === "email") {
-          setFieldErrors({ email: message });
-        } else if (field === "password") {
-          setFieldErrors({ password: message });
-        }
-      } else if (error.response?.data?.errors) {
-        setErrors(error.response.data.errors);
-      } else {
-        setError(error.response?.data?.message || error.message || "Erro ao efetuar login");
+        setFieldErrors({ [field]: message });
       }
     } finally {
       setIsSubmitting(false);
@@ -145,10 +137,6 @@ export default function LoginPage() {
         <img src={logoLJFT} alt="Logo LIFT" className="login-page__logo" />
         <form onSubmit={handleLogin} className="login-form">
           <h2 className="login-form__title">Faça login na sua conta</h2>
-
-          {(error || errors.length > 0) && (
-            <ErrorMessage message={error || undefined} errors={errors} />
-          )}
 
           <div className="login-form__group">
             <label htmlFor="usuario" className="login-form__label">
@@ -175,45 +163,20 @@ export default function LoginPage() {
             <label htmlFor="senha" className="login-form__label">
               Senha
             </label>
-            <div style={{ position: "relative" }}>
-              <input
-                id="senha"
-                type={showPassword ? "text" : "password"}
-                className="login-form__input"
-                placeholder="Digite sua senha..."
-                value={senha}
-                onChange={(e) => {
-                  setSenha(e.target.value);
-                  if (fieldErrors.password) {
-                    setFieldErrors({ ...fieldErrors, password: undefined });
-                  }
-                }}
-                required
-                style={{ paddingRight: "40px" }}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                style={{
-                  position: "absolute",
-                  right: "8px",
-                  top: "50%",
-                  transform: "translateY(-50%)",
-                  background: "transparent",
-                  border: "none",
-                  cursor: "pointer",
-                  padding: "4px 8px",
-                  color: "#6c757d",
-                  fontSize: "14px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-                title={showPassword ? "Ocultar senha" : "Mostrar senha"}
-              >
-                {showPassword ? "👁️" : "👁️‍🗨️"}
-              </button>
-            </div>
+            <input
+              id="senha"
+              type="password"
+              className="login-form__input"
+              placeholder="Digite sua senha..."
+              value={senha}
+              onChange={(e) => {
+                setSenha(e.target.value);
+                if (fieldErrors.password) {
+                  setFieldErrors({ ...fieldErrors, password: undefined });
+                }
+              }}
+              required
+            />
             <FieldError error={fieldErrors.password} />
           </div>
 

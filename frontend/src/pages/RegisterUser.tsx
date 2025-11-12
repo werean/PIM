@@ -10,6 +10,7 @@ import { isAuthenticated } from "../utils/cookies";
 
 // Components
 import { ErrorMessage, FieldError } from "../components/ErrorMessage";
+import PasswordInput from "../components/PasswordInput";
 
 // Imagens
 import logoLJFT from "../assets/images/logoLJFT.png";
@@ -30,7 +31,6 @@ export default function RegisterUserPage() {
     email?: string;
     password?: string;
   }>({});
-  const [showPassword, setShowPassword] = useState(false);
 
   // Se já estiver autenticado, mostrar link para voltar à home
   const authenticated = isAuthenticated();
@@ -230,41 +230,16 @@ export default function RegisterUserPage() {
             <label htmlFor="reg-password" className="register-form__label">
               Senha
             </label>
-            <div style={{ position: "relative" }}>
-              <input
-                id="reg-password"
-                className="register-form__input"
-                name="password"
-                type={showPassword ? "text" : "password"}
-                value={form.password}
-                onChange={handleChange}
-                placeholder="Senha (mín. 6 caracteres)"
-                required
-                style={{ paddingRight: "40px" }}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                style={{
-                  position: "absolute",
-                  right: "8px",
-                  top: "50%",
-                  transform: "translateY(-50%)",
-                  background: "transparent",
-                  border: "none",
-                  cursor: "pointer",
-                  padding: "4px 8px",
-                  color: "#6c757d",
-                  fontSize: "14px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-                title={showPassword ? "Ocultar senha" : "Mostrar senha"}
-              >
-                {showPassword ? "👁️" : "👁️‍🗨️"}
-              </button>
-            </div>
+            <PasswordInput
+              id="reg-password"
+              name="password"
+              value={form.password}
+              onChange={handleChange}
+              placeholder="Senha (mín. 6 caracteres)"
+              className="register-form__input"
+              required
+              autoComplete="new-password"
+            />
             <FieldError error={fieldErrors.password} />
           </div>
 

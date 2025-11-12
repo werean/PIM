@@ -1,17 +1,17 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import Sidebar from "../components/Sidebar";
+import type { ToastType } from "../components/Toast";
+import Toast from "../components/Toast";
+import UserBadgeSmall from "../components/UserBadge";
 import {
+  changePassword,
   getCurrentUserName,
   getCurrentUserRole,
   getMyProfile,
   updateMyProfile,
-  changePassword,
 } from "../services/api";
-import { isAuthenticated, deleteCookie } from "../utils/cookies";
-import Sidebar from "../components/Sidebar";
-import Toast from "../components/Toast";
-import type { ToastType } from "../components/Toast";
-import UserBadgeSmall from "../components/UserBadge";
+import { deleteCookie, isAuthenticated } from "../utils/cookies";
 
 function UserBadge({ size = 80 }: { size?: number }) {
   const userName = getCurrentUserName();
@@ -139,7 +139,11 @@ export default function ProfilePage() {
 
     try {
       // Envia apenas os campos que foram alterados
-      const updates: { username?: string; email?: string; profileImage?: string | null } = {};
+      const updates: {
+        username?: string;
+        email?: string;
+        profileImage?: string | null;
+      } = {};
 
       if (name && name.trim() && name !== originalData.name) {
         updates.username = name;
@@ -278,7 +282,13 @@ export default function ProfilePage() {
             <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                 <UserBadgeSmall size={28} fontSize={11} />
-                <span style={{ fontSize: "13px", color: "#495057", fontWeight: "500" }}>
+                <span
+                  style={{
+                    fontSize: "13px",
+                    color: "#495057",
+                    fontWeight: "500",
+                  }}
+                >
                   {getCurrentUserName()}
                 </span>
               </div>
@@ -358,7 +368,13 @@ export default function ProfilePage() {
                   />
                 </div>
                 <div style={{ flex: 1 }}>
-                  <h2 style={{ margin: "0 0 12px 0", fontSize: "24px", color: "#212529" }}>
+                  <h2
+                    style={{
+                      margin: "0 0 12px 0",
+                      fontSize: "24px",
+                      color: "#212529",
+                    }}
+                  >
                     {name}
                   </h2>
                   <div
@@ -593,7 +609,13 @@ export default function ProfilePage() {
                 padding: "32px",
               }}
             >
-              <h3 style={{ margin: "0 0 20px 0", fontSize: "18px", color: "#212529" }}>
+              <h3
+                style={{
+                  margin: "0 0 20px 0",
+                  fontSize: "18px",
+                  color: "#212529",
+                }}
+              >
                 Alterar Senha
               </h3>
 
