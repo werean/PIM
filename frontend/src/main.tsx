@@ -16,6 +16,7 @@ import ProfilePage from "./pages/Profile";
 import RegisterTicketPage from "./pages/RegisterTicket";
 import RegisterUserPage from "./pages/RegisterUser";
 import TicketDetailPage from "./pages/TicketDetail";
+import TicketTriagePage from "./pages/TicketTriage";
 import TrashPage from "./pages/Trash";
 import KnowledgeBasePage from "./pages/KnowledgeBase";
 import CreateArticlePage from "./pages/CreateArticle";
@@ -32,6 +33,7 @@ createRoot(document.getElementById("root")!).render(
           <Route path="/register" element={<RegisterUserPage />} />
           <Route path="/ticket/new" element={<RegisterTicketPage />} />
           <Route path="/ticket/:id" element={<TicketDetailPage />} />
+          <Route path="/ticket-triage" element={<TicketTriagePage />} />
           <Route path="/trash" element={<TrashPage />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/knowledgebase" element={<KnowledgeBasePage />} />

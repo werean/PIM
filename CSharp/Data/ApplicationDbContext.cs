@@ -92,6 +92,11 @@ namespace CSharp.Data
                 .HasForeignKey(k => k.CreatedBy)
                 .OnDelete(DeleteBehavior.Restrict);
             modelBuilder.Entity<KnowledgeBaseArticle>()
+                .HasOne(k => k.Ticket)
+                .WithMany()
+                .HasForeignKey(k => k.TicketId)
+                .OnDelete(DeleteBehavior.SetNull);
+            modelBuilder.Entity<KnowledgeBaseArticle>()
                 .HasIndex(k => k.CreatedAt);
         }
     }

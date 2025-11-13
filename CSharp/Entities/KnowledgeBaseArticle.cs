@@ -21,6 +21,11 @@ namespace CSharp.Entities
         [ForeignKey("CreatedBy")]
         public User? CreatedByUser { get; set; }
 
+        public int? TicketId { get; set; }
+
+        [ForeignKey("TicketId")]
+        public Ticket? Ticket { get; set; }
+
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;

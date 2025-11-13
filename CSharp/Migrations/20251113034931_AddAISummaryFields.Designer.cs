@@ -3,6 +3,7 @@ using System;
 using CSharp.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace PIM.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251113034931_AddAISummaryFields")]
+    partial class AddAISummaryFields
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "8.0.0");
@@ -123,9 +126,6 @@ namespace PIM.Migrations
                     b.Property<Guid>("CreatedBy")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<int?>("TicketId")
-                        .HasColumnType("INTEGER");
-
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -139,8 +139,6 @@ namespace PIM.Migrations
                     b.HasIndex("CreatedAt");
 
                     b.HasIndex("CreatedBy");
-
-                    b.HasIndex("TicketId");
 
                     b.ToTable("KnowledgeBaseArticles");
                 });
@@ -343,14 +341,7 @@ namespace PIM.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("CSharp.Entities.Ticket", "Ticket")
-                        .WithMany()
-                        .HasForeignKey("TicketId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
                     b.Navigation("CreatedByUser");
-
-                    b.Navigation("Ticket");
                 });
 
             modelBuilder.Entity("CSharp.Entities.Ticket", b =>

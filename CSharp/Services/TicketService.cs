@@ -4,6 +4,7 @@ using CSharp.DTOs;
 using CSharp.Helpers;
 using Microsoft.EntityFrameworkCore;
 using CSharp.Data;
+using CSharp.Models;
 
 namespace CSharp.Services
 {
@@ -108,6 +109,9 @@ namespace CSharp.Services
                 EditedAt = ticket.EditedAt,
                 EditedBy = ticket.EditedBy,
                 EditedByUsername = editedByUsername,
+                AISummary = ticket.AISummary,
+                AIConclusion = ticket.AIConclusion,
+                AISummaryGeneratedAt = ticket.AISummaryGeneratedAt,
                 CreatedAt = ticket.CreatedAt,
                 UpdatedAt = ticket.UpdatedAt,
                 UserId = ticket.UserId,
@@ -231,6 +235,18 @@ namespace CSharp.Services
             return true;
         }
 
+        public async Task<bool> UpdateUrgencyAsync(int id, int urgency)
+        {
+            var ticket = await _context.Tickets.FindAsync(id);
+            if (ticket == null) return false;
+            
+            ticket.Urgency = (Urgency)urgency;
+            ticket.UpdatedAt = DateTimeHelper.GetBrasiliaTime();
+            
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
         public async Task<bool> SoftDeleteAsync(int id)
         {
             var ticket = await _context.Tickets.FindAsync(id);
@@ -323,6 +339,102 @@ namespace CSharp.Services
             _context.Tickets.Remove(ticket);
             await _context.SaveChangesAsync();
             return true;
+        }
+
+        public async Task GenerateAISummaryAsync(int ticketId, List<ConversationMessage> conversationHistory)
+        {
+            try
+            {
+                var ticket = await _context.Tickets.FindAsync(ticketId);
+                if (ticket == null)
+                {
+                    _logger.LogError($"Ticket {ticketId} não encontrado para gerar resumo");
+                    return;
+                }
+
+                // Criar o prompt para gerar o resumo
+                var conversationText = string.Join("\n", conversationHistory.Select((msg, index) =>
+                {
+                    if (msg.Role == "user") return $"Usuário: {msg.Content}";
+                    if (msg.Role == "assistant") return $"Assistente: {msg.Content}";
+                    return "";
+                }).Where(s => !string.IsNullOrEmpty(s)));
+
+                var summaryPrompt = $@"Analise a seguinte conversa entre o usuário e o assistente técnico de triagem:
+
+{conversationText}
+
+Gere dois textos separados:
+
+1. RESUMO DAS AÇÕES: Liste todas as ações que o assistente solicitou ao usuário executar durante a conversa (testes, verificações, configurações, etc.). Seja específico e direto.
+
+2. SÍNTESE E HIPÓTESES: Produza uma síntese conclusiva com as hipóteses e deduções sobre a causa provável do problema, baseada nas informações coletadas. Ao final, sugira um nível de urgência (Baixa, Média ou Alta) com base na gravidade do problema identificado.
+
+Formate sua resposta EXATAMENTE assim:
+[RESUMO]
+(coloque aqui o resumo das ações)
+
+[CONCLUSÃO]
+(coloque aqui a síntese, hipóteses e sugestão de urgência)";
+
+                using var httpClient = new HttpClient();
+                var requestBody = new
+                {
+                    model = "qwen3-coder:480b-cloud",
+                    prompt = summaryPrompt,
+                    stream = false,
+                    options = new
+                    {
+                        temperature = 0.5,
+                        top_p = 0.9,
+                        num_predict = 1024
+                    }
+                };
+
+                var json = System.Text.Json.JsonSerializer.Serialize(requestBody);
+                var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
+
+                var response = await httpClient.PostAsync("http://localhost:11434/api/generate", content);
+                
+                if (response.IsSuccessStatusCode)
+                {
+                    var responseText = await response.Content.ReadAsStringAsync();
+                    var doc = System.Text.Json.JsonDocument.Parse(responseText);
+                    var fullResponse = doc.RootElement.GetProperty("response").GetString() ?? "";
+
+                    // Extrair resumo e conclusão
+                    var summaryMatch = System.Text.RegularExpressions.Regex.Match(
+                        fullResponse,
+                        @"\[RESUMO\](.*?)\[CONCLUS[ÃA]O\](.*)",
+                        System.Text.RegularExpressions.RegexOptions.Singleline
+                    );
+
+                    if (summaryMatch.Success)
+                    {
+                        ticket.AISummary = summaryMatch.Groups[1].Value.Trim();
+                        ticket.AIConclusion = summaryMatch.Groups[2].Value.Trim();
+                    }
+                    else
+                    {
+                        // Se não conseguir parsear, salva a resposta completa
+                        ticket.AISummary = fullResponse;
+                        ticket.AIConclusion = "Não foi possível gerar uma conclusão estruturada.";
+                    }
+
+                    ticket.AISummaryGeneratedAt = DateTimeHelper.GetBrasiliaTime();
+                    await _context.SaveChangesAsync();
+
+                    _logger.LogInformation($"Resumo da IA gerado com sucesso para ticket {ticketId}");
+                }
+                else
+                {
+                    _logger.LogError($"Erro ao chamar Ollama: {response.StatusCode}");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Erro ao gerar resumo da IA: {ex.Message}");
+            }
         }
     }
 }

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using CSharp.Services;
 using CSharp.DTOs;
 using CSharp.Entities;
+using CSharp.Models;
 using Microsoft.AspNetCore.Authorization;
 
 namespace CSharp.Controllers
@@ -12,7 +13,15 @@ namespace CSharp.Controllers
     public class TicketsController : ControllerBase
     {
         private readonly TicketService _service;
-        public TicketsController(TicketService service) => _service = service;
+        private readonly ILogger<TicketsController> _logger;
+        private readonly IServiceScopeFactory _scopeFactory;
+        
+        public TicketsController(TicketService service, ILogger<TicketsController> logger, IServiceScopeFactory scopeFactory)
+        {
+            _service = service;
+            _logger = logger;
+            _scopeFactory = scopeFactory;
+        }
 
         [HttpGet]
         [Authorize]
@@ -513,5 +522,62 @@ namespace CSharp.Controllers
                 return StatusCode(500, new { message = "Erro ao deletar ticket permanentemente", error = ex.Message });
             }
         }
+
+        [HttpPost("{id}/urgency")]
+        [Authorize]
+        public async Task<IActionResult> UpdateUrgency(int id, [FromBody] UpdateUrgencyDTO dto)
+        {
+            try
+            {
+                var userRoleClaim = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+                
+                // Apenas técnicos podem atualizar urgência
+                if (userRoleClaim != "10")
+                    return Forbid();
+                
+                var ok = await _service.UpdateUrgencyAsync(id, dto.Urgency);
+                if (!ok) return NotFound(new { message = "Ticket não encontrado" });
+                
+                return Ok(new { message = "Urgência atualizada com sucesso" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Erro ao atualizar urgência", error = ex.Message });
+            }
+        }
+
+        [HttpPost("{id}/ai-summary")]
+        [Authorize]
+        public async Task<IActionResult> GenerateAISummary(int id, [FromBody] AISummaryRequest request)
+        {
+            try
+            {
+                // Processar em background com novo scope para evitar disposed context
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        using var scope = _scopeFactory.CreateScope();
+                        var ticketService = scope.ServiceProvider.GetRequiredService<TicketService>();
+                        await ticketService.GenerateAISummaryAsync(id, request.ConversationHistory);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError($"Erro ao gerar resumo da IA: {ex.Message}");
+                    }
+                });
+
+                return Ok(new { message = "Resumo será gerado em background" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Erro ao iniciar geração do resumo", error = ex.Message });
+            }
+        }
+    }
+
+    public class AISummaryRequest
+    {
+        public List<ConversationMessage> ConversationHistory { get; set; } = new();
     }
 }

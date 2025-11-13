@@ -10,6 +10,20 @@ namespace CSharp.DTOs
 
         [Required(ErrorMessage = "Corpo do artigo é obrigatório")]
         public string Body { get; set; } = string.Empty;
+
+        public int? TicketId { get; set; }
+    }
+
+    public class GenerateArticleFromTicketDto
+    {
+        [Required]
+        public int TicketId { get; set; }
+    }
+
+    public class GeneratedArticleDto
+    {
+        public string Title { get; set; } = string.Empty;
+        public string Content { get; set; } = string.Empty;
     }
 
     public class UpdateKnowledgeBaseArticleDto

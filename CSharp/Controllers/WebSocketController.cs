@@ -350,9 +350,392 @@ Sempre priorize BREVIDADE e AÇÃO imediata.";
             }
         }
 
+        /// <summary>
+        /// Endpoint WebSocket para triagem inicial com IA
+        /// </summary>
+        [HttpGet("triage")]
+        public async Task GetTriage()
+        {
+            if (HttpContext.WebSockets.IsWebSocketRequest)
+            {
+                using var webSocket = await HttpContext.WebSockets.AcceptWebSocketAsync();
+                await HandleTriageWebSocketConnection(webSocket);
+            }
+            else
+            {
+                HttpContext.Response.StatusCode = StatusCodes.Status400BadRequest;
+            }
+        }
+
+        private async Task HandleTriageWebSocketConnection(WebSocket webSocket)
+        {
+            var buffer = new byte[1024 * 4];
+            var conversationHistory = new List<object>();
+            string? ticketTitle = null;
+            string? ticketDescription = null;
+            int ticketUrgency = 1;
+
+            try
+            {
+                while (webSocket.State == WebSocketState.Open)
+                {
+                    var receiveResult = await webSocket.ReceiveAsync(
+                        new ArraySegment<byte>(buffer),
+                        CancellationToken.None);
+
+                    if (receiveResult.CloseStatus.HasValue)
+                    {
+                        break;
+                    }
+
+                    if (receiveResult.MessageType == WebSocketMessageType.Text)
+                    {
+                        var message = Encoding.UTF8.GetString(buffer, 0, receiveResult.Count);
+
+                        try
+                        {
+                            using var doc = JsonDocument.Parse(message);
+                            var root = doc.RootElement;
+
+                            // Verificar se é mensagem inicial ou mensagem do usuário
+                            if (root.TryGetProperty("type", out var typeProperty))
+                            {
+                                var messageType = typeProperty.GetString();
+
+                                if (messageType == "initial")
+                                {
+                                    // Mensagem inicial com dados do problema
+                                    ticketTitle = root.GetProperty("title").GetString();
+                                    ticketDescription = root.GetProperty("description").GetString();
+                                    ticketUrgency = root.GetProperty("urgency").GetInt32();
+
+                                    // System prompt para a IA
+                                    var systemPrompt = $@"Você é um assistente técnico inteligente responsável por ajudar usuários na triagem de chamados.
+Seu papel é tentar resolver o problema antes que o ticket seja criado.
+
+Informações do problema:
+- Título: {ticketTitle}
+- Descrição: {ticketDescription}
+- Urgência: {(ticketUrgency == 3 ? "Alta" : ticketUrgency == 2 ? "Média" : "Baixa")}
+
+Regras:
+1. Na sua primeira resposta, apresente uma solução direta e prática para o problema descrito.
+2. Caso o usuário indique que o problema não foi resolvido, nas próximas respostas investigue possíveis causas, solicitando informações adicionais, logs, prints ou resultados de testes conforme necessário.
+3. Mantenha uma linguagem profissional, clara e objetiva, com foco em diagnóstico e resolução.
+4. Evite respostas genéricas.
+5. Seja conciso e direto ao ponto.
+6. Use APENAS texto puro, sem formatação Markdown (sem **, sem ##, sem ```). Escreva de forma simples e direta.
+
+Forneça agora sua primeira resposta tentando resolver o problema descrito.";
+
+                                    conversationHistory.Add(new { role = "system", content = systemPrompt });
+
+                                    // Enviar primeira resposta da IA
+                                    var ollamaServer = _configuration["OllamaServer"] 
+                                        ?? Environment.GetEnvironmentVariable("OLLAMA_SERVER")
+                                        ?? "http://localhost:11434/api/chat";
+                                    using var httpClient = _httpClientFactory.CreateClient();
+
+                                    var requestBody = new
+                                    {
+                                        model = "qwen3-coder:480b-cloud",
+                                        messages = conversationHistory,
+                                        stream = true,
+                                        options = new
+                                        {
+                                            temperature = 0.7,
+                                            top_p = 0.9,
+                                            num_predict = 512
+                                        }
+                                    };
+
+                                    var json = JsonSerializer.Serialize(requestBody);
+                                    var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                                    var response = await httpClient.PostAsync(ollamaServer, content);
+                                    response.EnsureSuccessStatusCode();
+
+                                    _logger.LogInformation("[TRIAGE INITIAL] Iniciando streaming da primeira resposta");
+                                    var fullResponse = "";
+                                    using (var stream = await response.Content.ReadAsStreamAsync())
+                                    using (var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: false, bufferSize: 1))
+                                    {
+                                        var currentLine = new StringBuilder();
+                                        
+                                        while (!reader.EndOfStream)
+                                        {
+                                            var ch = (char)reader.Read();
+                                            if (ch == '\n')
+                                            {
+                                                var line = currentLine.ToString();
+                                                currentLine.Clear();
+                                                
+                                                if (string.IsNullOrWhiteSpace(line)) continue;
+
+                                                try
+                                                {
+                                                    using var responseDoc = JsonDocument.Parse(line);
+                                                    var responseRoot = responseDoc.RootElement;
+
+                                                    if (responseRoot.TryGetProperty("message", out var messageProperty))
+                                                    {
+                                                        if (messageProperty.TryGetProperty("content", out var contentProperty))
+                                                        {
+                                                            var chunk = contentProperty.GetString();
+                                                            if (!string.IsNullOrEmpty(chunk))
+                                                            {
+                                                                // Filtrar tokens especiais ANTES de enviar
+                                                                var cleanChunk = chunk
+                                                                    .Replace("<|im_start|>", "")
+                                                                    .Replace("<|im_end|>", "")
+                                                                    .Replace("<|endoftext|>", "")
+                                                                    .Replace("<|system|>", "")
+                                                                    .Replace("<|user|>", "")
+                                                                    .Replace("<|assistant|>", "");
+                                                                
+                                                                if (cleanChunk.Length > 0)
+                                                                {
+                                                                    fullResponse += cleanChunk;
+                                                                    await SendRawMessage(webSocket, cleanChunk);
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+
+                                                    if (responseRoot.TryGetProperty("done", out var doneProperty) && doneProperty.GetBoolean())
+                                                    {
+                                                        break;
+                                                    }
+                                                }
+                                                catch (Exception ex)
+                                                {
+                                                    _logger.LogError($"[ERROR PARSE] {ex.Message}");
+                                                }
+                                            }
+                                            else
+                                            {
+                                                currentLine.Append(ch);
+                                            }
+                                        }
+                                    }
+
+                                    // Adicionar resposta da IA ao histórico
+                                    conversationHistory.Add(new { role = "assistant", content = fullResponse });
+                                    
+                                    _logger.LogInformation("[TRIAGE INITIAL] Streaming completo, enviando [FIM]");
+                                    // Enviar marcador de fim
+                                    await SendRawMessage(webSocket, "[FIM]");
+                                }
+                                else if (messageType == "message")
+                                {
+                                    // Mensagem do usuário durante a conversa
+                                    var userMessage = root.GetProperty("prompt").GetString() ?? "";
+                                    
+                                    // Adicionar mensagem do usuário ao histórico
+                                    conversationHistory.Add(new { role = "user", content = userMessage });
+
+                                    // Enviar para a IA
+                                    var ollamaServer = _configuration["OllamaServer"] 
+                                        ?? Environment.GetEnvironmentVariable("OLLAMA_SERVER")
+                                        ?? "http://localhost:11434/api/chat";
+                                    using var httpClient = _httpClientFactory.CreateClient();
+
+                                    var requestBody = new
+                                    {
+                                        model = "qwen3-coder:480b-cloud",
+                                        messages = conversationHistory,
+                                        stream = true,
+                                        options = new
+                                        {
+                                            temperature = 0.7,
+                                            top_p = 0.9,
+                                            num_predict = 512
+                                        }
+                                    };
+
+                                    var json = JsonSerializer.Serialize(requestBody);
+                                    var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                                    var response = await httpClient.PostAsync(ollamaServer, content);
+                                    response.EnsureSuccessStatusCode();
+
+                                    _logger.LogInformation("[TRIAGE MESSAGE] Iniciando streaming da resposta");
+                                    var fullResponse = "";
+                                    using (var stream = await response.Content.ReadAsStreamAsync())
+                                    using (var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: false, bufferSize: 1))
+                                    {
+                                        var currentLine = new StringBuilder();
+                                        
+                                        while (!reader.EndOfStream)
+                                        {
+                                            var ch = (char)reader.Read();
+                                            if (ch == '\n')
+                                            {
+                                                var line = currentLine.ToString();
+                                                currentLine.Clear();
+                                                
+                                                if (string.IsNullOrWhiteSpace(line)) continue;
+
+                                                try
+                                                {
+                                                    using var responseDoc = JsonDocument.Parse(line);
+                                                    var responseRoot = responseDoc.RootElement;
+
+                                                    if (responseRoot.TryGetProperty("message", out var messageProperty))
+                                                    {
+                                                        if (messageProperty.TryGetProperty("content", out var contentProperty))
+                                                        {
+                                                            var chunk = contentProperty.GetString();
+                                                            if (!string.IsNullOrEmpty(chunk))
+                                                            {
+                                                                // Filtrar tokens especiais ANTES de enviar
+                                                                var cleanChunk = chunk
+                                                                    .Replace("<|im_start|>", "")
+                                                                    .Replace("<|im_end|>", "")
+                                                                    .Replace("<|endoftext|>", "")
+                                                                    .Replace("<|system|>", "")
+                                                                    .Replace("<|user|>", "")
+                                                                    .Replace("<|assistant|>", "");
+                                                                
+                                                                if (cleanChunk.Length > 0)
+                                                                {
+                                                                    fullResponse += cleanChunk;
+                                                                    await SendRawMessage(webSocket, cleanChunk);
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+
+                                                    if (responseRoot.TryGetProperty("done", out var doneProperty) && doneProperty.GetBoolean())
+                                                    {
+                                                        break;
+                                                    }
+                                                }
+                                                catch (Exception ex)
+                                                {
+                                                    _logger.LogError($"[ERROR PARSE] {ex.Message}");
+                                                }
+                                            }
+                                            else
+                                            {
+                                                currentLine.Append(ch);
+                                            }
+                                        }
+                                    }
+
+                                    // Adicionar resposta da IA ao histórico
+                                    conversationHistory.Add(new { role = "assistant", content = fullResponse });
+                                    
+                                    _logger.LogInformation("[TRIAGE MESSAGE] Streaming completo, enviando [FIM]");
+                                    // Enviar marcador de fim
+                                    await SendRawMessage(webSocket, "[FIM]");
+                                }
+                                else if (messageType == "message")
+                                {
+                                    // Mensagem normal do usuário
+                                    var userPrompt = root.GetProperty("prompt").GetString();
+                                    var model = root.TryGetProperty("model", out var modelProp) 
+                                        ? modelProp.GetString() 
+                                        : "qwen2.5-coder:0.5b";
+
+                                    // Adicionar mensagem do usuário ao histórico
+                                    conversationHistory.Add(new { role = "user", content = userPrompt });
+
+                                    // Enviar para Ollama
+                                    var ollamaUrl = _configuration["Ollama:ServerUrl"] ?? "http://localhost:11434";
+                                    using var httpClient = _httpClientFactory.CreateClient();
+
+                                    var requestBody = new
+                                    {
+                                        model = model,
+                                        messages = conversationHistory,
+                                        stream = true,
+                                        options = new
+                                        {
+                                            temperature = 0.7,
+                                            top_p = 0.9,
+                                            num_predict = 512
+                                        }
+                                    };
+
+                                    var json = JsonSerializer.Serialize(requestBody);
+                                    var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                                    var response = await httpClient.PostAsync($"{ollamaUrl}/api/chat", content);
+                                    response.EnsureSuccessStatusCode();
+
+                                    var fullResponse = "";
+                                    using (var stream = await response.Content.ReadAsStreamAsync())
+                                    using (var reader = new StreamReader(stream))
+                                    {
+                                        while (!reader.EndOfStream)
+                                        {
+                                            var line = await reader.ReadLineAsync();
+                                            if (string.IsNullOrWhiteSpace(line)) continue;
+
+                                            try
+                                            {
+                                                using var responseDoc = JsonDocument.Parse(line);
+                                                var responseRoot = responseDoc.RootElement;
+
+                                                if (responseRoot.TryGetProperty("message", out var messageProperty))
+                                                {
+                                                    if (messageProperty.TryGetProperty("content", out var contentProperty))
+                                                    {
+                                                        var chunk = contentProperty.GetString();
+                                                        if (!string.IsNullOrEmpty(chunk))
+                                                        {
+                                                            fullResponse += chunk;
+                                                            await SendRawMessage(webSocket, chunk);
+                                                        }
+                                                    }
+                                                }
+
+                                                if (responseRoot.TryGetProperty("done", out var doneProperty) && doneProperty.GetBoolean())
+                                                {
+                                                    break;
+                                                }
+                                            }
+                                            catch { }
+                                        }
+                                    }
+
+                                    // Adicionar resposta da IA ao histórico
+                                    conversationHistory.Add(new { role = "assistant", content = fullResponse });
+                                    
+                                    // Enviar marcador de fim
+                                    await SendRawMessage(webSocket, "[FIM]");
+                                }
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError($"Erro ao processar mensagem de triagem: {ex.Message}");
+                            await SendRawMessage(webSocket, "Erro ao processar mensagem. Tente novamente.");
+                            await SendRawMessage(webSocket, "[FIM]");
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Erro no WebSocket de triagem: {ex.Message}");
+            }
+            finally
+            {
+                if (webSocket.State == WebSocketState.Open)
+                {
+                    await webSocket.CloseAsync(
+                        WebSocketCloseStatus.NormalClosure,
+                        "Conexão encerrada",
+                        CancellationToken.None);
+                }
+            }
+        }
+
         private async Task SendRawMessage(WebSocket webSocket, string message)
         {
-            if (webSocket.State == WebSocketState.Open)
+            if (webSocket.State == WebSocketState.Open && message.Length > 0)
             {
                 var bytes = Encoding.UTF8.GetBytes(message);
                 await webSocket.SendAsync(

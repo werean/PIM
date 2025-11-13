@@ -1,7 +1,7 @@
 import { useState, useEffect, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import { apiPost } from "../services/api";
 import { isAuthenticated } from "../utils/cookies";
+import { isTechnician, apiPost } from "../services/api";
 import PageHeader from "../components/PageHeader";
 import PageLayout from "../components/PageLayout";
 import FormField from "../components/FormField";
@@ -11,9 +11,9 @@ export default function RegisterTicketPage() {
   const [title, setTitle] = useState("");
   const [ticketBody, setTicketBody] = useState("");
   const [urgency, setUrgency] = useState("1");
-  const [loading, setLoading] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
   const navigate = useNavigate();
-  const { showSuccess, showError } = useToast();
+  const { showError, showSuccess } = useToast();
 
   useEffect(() => {
     if (!isAuthenticated()) {
@@ -39,24 +39,35 @@ export default function RegisterTicketPage() {
       return;
     }
 
-    setLoading(true);
+    // ✅ TÉCNICOS criam ticket direto (sem triagem)
+    if (isTechnician()) {
+      setIsCreating(true);
+      try {
+        const response = await apiPost<{ id: number }>("/tickets", {
+          title: title.trim(),
+          ticketBody: ticketBody.trim(),
+          urgency: parseInt(urgency, 10),
+        });
 
-    try {
-      await apiPost("/tickets", {
+        showSuccess("Chamado criado com sucesso!");
+        navigate(`/tickets/${response.id}`);
+      } catch (error) {
+        console.error("Erro ao criar ticket:", error);
+        showError("Erro ao criar chamado. Tente novamente.");
+      } finally {
+        setIsCreating(false);
+      }
+      return;
+    }
+
+    // ✅ USUÁRIOS vão para triagem com IA
+    navigate("/ticket-triage", {
+      state: {
         title: title.trim(),
         ticketBody: ticketBody.trim(),
         urgency: parseInt(urgency, 10),
-      });
-
-      showSuccess("Chamado criado com sucesso!");
-      navigate("/home");
-    } catch (err: unknown) {
-      console.error("Erro ao criar chamado:", err);
-      const error = err as { response?: { data?: { message?: string } } };
-      showError(error?.response?.data?.message || "Erro ao criar chamado");
-    } finally {
-      setLoading(false);
-    }
+      },
+    });
   };
 
   return (
@@ -74,7 +85,6 @@ export default function RegisterTicketPage() {
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Ex: Problema com impressora"
             maxLength={200}
-            disabled={loading}
           />
 
           <FormField
@@ -86,7 +96,6 @@ export default function RegisterTicketPage() {
             value={ticketBody}
             onChange={(e) => setTicketBody(e.target.value)}
             placeholder="Descreva o problema em detalhes..."
-            disabled={loading}
             style={{ minHeight: "150px", resize: "vertical" }}
           />
 
@@ -102,7 +111,6 @@ export default function RegisterTicketPage() {
               { value: "2", label: "Média" },
               { value: "3", label: "Alta" },
             ]}
-            disabled={loading}
           />
 
           <div className="form__actions">
@@ -110,12 +118,12 @@ export default function RegisterTicketPage() {
               type="button"
               className="btn btn--secondary"
               onClick={() => navigate("/home")}
-              disabled={loading}
+              disabled={isCreating}
             >
               Cancelar
             </button>
-            <button type="submit" className="btn btn--primary" disabled={loading}>
-              {loading ? "Criando..." : "Criar Chamado"}
+            <button type="submit" className="btn btn--primary" disabled={isCreating}>
+              Continuar
             </button>
           </div>
         </form>

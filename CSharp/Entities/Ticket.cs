@@ -54,6 +54,11 @@ namespace CSharp.Entities
         public DateTime? EditedAt { get; set; } // Data da última edição da descrição
         public Guid? EditedBy { get; set; } // Usuário que editou
 
+        // Resumo da IA (triagem)
+        public string? AISummary { get; set; } // Resumo das ações solicitadas ao usuário
+        public string? AIConclusion { get; set; } // Síntese e hipóteses da IA
+        public DateTime? AISummaryGeneratedAt { get; set; } // Data de geração do resumo
+
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
 

@@ -124,6 +124,9 @@ export interface Ticket {
   editedAt?: string;
   editedBy?: string;
   editedByUsername?: string;
+  aiSummary?: string; // Resumo das ações da triagem com IA
+  aiConclusion?: string; // Síntese conclusiva da triagem
+  aiSummaryGeneratedAt?: string; // Data de geração do resumo
   createdAt?: string;
   updatedAt?: string;
   userId?: string;

@@ -79,6 +79,12 @@ export default function TicketDetailPage() {
   const [isEditingDescription, setIsEditingDescription] = useState(false);
   const [editedDescription, setEditedDescription] = useState("");
   const [editError, setEditError] = useState<string | null>(null);
+  const [isEditingUrgency, setIsEditingUrgency] = useState(false);
+  const [editedUrgency, setEditedUrgency] = useState<1 | 2 | 3>(1);
+  const [isGeneratingArticle, setIsGeneratingArticle] = useState(false);
+  const [showArticleModal, setShowArticleModal] = useState(false);
+  const [generatedArticle, setGeneratedArticle] = useState({ title: "", content: "" });
+  const [isSavingArticle, setIsSavingArticle] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const currentUserId = getCurrentUserId();
 
@@ -393,6 +399,21 @@ export default function TicketDetailPage() {
     }
   }
 
+  async function handleUpdateUrgency() {
+    if (!id) return;
+
+    try {
+      await apiPost(`/tickets/${id}/urgency`, { urgency: editedUrgency });
+      const updatedTicket = await apiGet<Ticket>(`/tickets/${id}`);
+      setTicket(updatedTicket);
+      setIsEditingUrgency(false);
+      showSuccess("Urgência atualizada com sucesso!");
+    } catch (err) {
+      console.error("Erro ao atualizar urgência:", err);
+      showError("Erro ao atualizar urgência");
+    }
+  }
+
   async function handleRequestDeletion() {
     if (!id) return;
 
@@ -459,6 +480,55 @@ export default function TicketDetailPage() {
     } catch (err) {
       console.error("Erro ao rejeitar exclusão:", err);
       setError("Erro ao rejeitar exclusão");
+    }
+  }
+
+  async function handleGenerateArticle() {
+    if (!id) return;
+    setIsGeneratingArticle(true);
+
+    try {
+      const response = await apiPost<{ title: string; content: string }>(
+        "/api/knowledgebase/generate-from-ticket",
+        { ticketId: parseInt(id) }
+      );
+
+      setGeneratedArticle({
+        title: response.title,
+        content: response.content,
+      });
+      setShowArticleModal(true);
+    } catch (err) {
+      console.error("Erro ao gerar artigo:", err);
+      showError("Erro ao gerar artigo com IA. Tente novamente.");
+    } finally {
+      setIsGeneratingArticle(false);
+    }
+  }
+
+  async function handleSaveArticle() {
+    if (!generatedArticle.title.trim() || !generatedArticle.content.trim()) {
+      showError("Título e conteúdo são obrigatórios.");
+      return;
+    }
+
+    setIsSavingArticle(true);
+
+    try {
+      await apiPost("/api/knowledgebase", {
+        title: generatedArticle.title.trim(),
+        body: generatedArticle.content.trim(),
+        ticketId: parseInt(id!),
+      });
+
+      showSuccess("Artigo criado com sucesso na base de conhecimento!");
+      setShowArticleModal(false);
+      setGeneratedArticle({ title: "", content: "" });
+    } catch (err) {
+      console.error("Erro ao salvar artigo:", err);
+      showError("Erro ao salvar artigo. Tente novamente.");
+    } finally {
+      setIsSavingArticle(false);
     }
   }
 
@@ -878,7 +948,76 @@ export default function TicketDetailPage() {
                 >
                   Urgência:
                 </p>
-                <p style={{ margin: 0 }}>{URGENCY_MAP[ticket.urgency]}</p>
+                {isEditingUrgency ? (
+                  <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                    <select
+                      value={editedUrgency}
+                      onChange={(e) => setEditedUrgency(parseInt(e.target.value) as 1 | 2 | 3)}
+                      style={{
+                        padding: "4px 8px",
+                        fontSize: "13px",
+                        border: "1px solid #dee2e6",
+                        borderRadius: "3px",
+                      }}
+                    >
+                      <option value={1}>Baixa</option>
+                      <option value={2}>Média</option>
+                      <option value={3}>Alta</option>
+                    </select>
+                    <button
+                      onClick={handleUpdateUrgency}
+                      style={{
+                        padding: "4px 8px",
+                        fontSize: "11px",
+                        background: "#28a745",
+                        color: "white",
+                        border: "none",
+                        borderRadius: "3px",
+                        cursor: "pointer",
+                      }}
+                    >
+                      Salvar
+                    </button>
+                    <button
+                      onClick={() => setIsEditingUrgency(false)}
+                      style={{
+                        padding: "4px 8px",
+                        fontSize: "11px",
+                        background: "#6c757d",
+                        color: "white",
+                        border: "none",
+                        borderRadius: "3px",
+                        cursor: "pointer",
+                      }}
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <p style={{ margin: 0 }}>{URGENCY_MAP[ticket.urgency]}</p>
+                    {isTechnician() && (
+                      <button
+                        onClick={() => {
+                          setIsEditingUrgency(true);
+                          setEditedUrgency(ticket.urgency);
+                        }}
+                        style={{
+                          padding: "2px 6px",
+                          fontSize: "11px",
+                          background: "transparent",
+                          color: "#6c757d",
+                          border: "1px solid #dee2e6",
+                          borderRadius: "3px",
+                          cursor: "pointer",
+                          marginLeft: "8px",
+                        }}
+                      >
+                        Editar
+                      </button>
+                    )}
+                  </>
+                )}
               </div>
               <div style={{ display: "flex", alignItems: "baseline", gap: "8px" }}>
                 <p
@@ -895,6 +1034,94 @@ export default function TicketDetailPage() {
               </div>
             </div>
           </div>
+
+          {/* Card de Resumo da IA (aparece apenas para técnicos) */}
+          {isTechnician() && ticket.aiSummary && (
+            <div
+              style={{
+                background: "#ffffff",
+                borderRadius: "4px",
+                padding: "16px",
+                marginBottom: "16px",
+                border: "1px solid #e9ecef",
+                boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+              }}
+            >
+              <div
+                style={{
+                  marginBottom: "12px",
+                  borderBottom: "1px solid #e9ecef",
+                  paddingBottom: "8px",
+                }}
+              >
+                <h3 style={{ margin: 0, fontSize: "14px", fontWeight: "600", color: "#495057" }}>
+                  Resumo da Triagem Inteligente
+                </h3>
+                {ticket.aiSummaryGeneratedAt && (
+                  <p style={{ margin: "4px 0 0 0", fontSize: "11px", color: "#6c757d" }}>
+                    Gerado em {formatDateTime(ticket.aiSummaryGeneratedAt)}
+                  </p>
+                )}
+              </div>
+
+              <div
+                style={{
+                  marginBottom: "12px",
+                }}
+              >
+                <p
+                  style={{
+                    margin: "0 0 6px 0",
+                    fontSize: "12px",
+                    fontWeight: "600",
+                    color: "#6c757d",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.5px",
+                  }}
+                >
+                  Ações Realizadas
+                </p>
+                <p
+                  style={{
+                    margin: 0,
+                    fontSize: "13px",
+                    lineHeight: "1.6",
+                    whiteSpace: "pre-wrap",
+                    color: "#212529",
+                  }}
+                >
+                  {ticket.aiSummary}
+                </p>
+              </div>
+
+              {ticket.aiConclusion && (
+                <div>
+                  <p
+                    style={{
+                      margin: "0 0 6px 0",
+                      fontSize: "12px",
+                      fontWeight: "600",
+                      color: "#6c757d",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.5px",
+                    }}
+                  >
+                    Hipóteses e Conclusões
+                  </p>
+                  <p
+                    style={{
+                      margin: 0,
+                      fontSize: "13px",
+                      lineHeight: "1.6",
+                      whiteSpace: "pre-wrap",
+                    }}
+                  >
+                    {ticket.aiConclusion}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Área de Mensagens */}
           <div
@@ -1527,6 +1754,41 @@ export default function TicketDetailPage() {
                       {ticket.resolutionMessage}
                     </p>
                   </div>
+
+                  {/* Botão para gerar artigo KB */}
+                  <button
+                    onClick={handleGenerateArticle}
+                    disabled={isGeneratingArticle}
+                    style={{
+                      marginTop: "16px",
+                      padding: "10px 20px",
+                      background: "transparent",
+                      color: "#007bff",
+                      border: "1px solid #007bff",
+                      borderRadius: "6px",
+                      cursor: isGeneratingArticle ? "not-allowed" : "pointer",
+                      fontSize: "14px",
+                      fontWeight: "500",
+                      transition: "all 0.2s",
+                      opacity: isGeneratingArticle ? 0.6 : 1,
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isGeneratingArticle) {
+                        e.currentTarget.style.background = "#007bff";
+                        e.currentTarget.style.color = "white";
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isGeneratingArticle) {
+                        e.currentTarget.style.background = "transparent";
+                        e.currentTarget.style.color = "#007bff";
+                      }
+                    }}
+                  >
+                    {isGeneratingArticle
+                      ? "📝 Gerando artigo..."
+                      : "📝 Gerar artigo para base de conhecimento"}
+                  </button>
                 </div>
               ) : (
                 // Ticket ainda não resolvido - mostrar formulário
@@ -1705,6 +1967,174 @@ export default function TicketDetailPage() {
         onConfirm={confirmState.onConfirm}
         onCancel={handleCancel}
       />
+
+      {/* Modal de geração de artigo */}
+      {showArticleModal && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(0, 0, 0, 0.5)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000,
+          }}
+          onClick={() => {
+            if (!isSavingArticle) {
+              setShowArticleModal(false);
+              setGeneratedArticle({ title: "", content: "" });
+            }
+          }}
+        >
+          <div
+            style={{
+              background: "white",
+              borderRadius: "8px",
+              padding: "24px",
+              width: "90%",
+              maxWidth: "700px",
+              maxHeight: "80vh",
+              overflow: "auto",
+              boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2
+              style={{
+                margin: "0 0 20px 0",
+                fontSize: "20px",
+                fontWeight: "600",
+                color: "#212529",
+              }}
+            >
+              📝 Novo Artigo para Base de Conhecimento
+            </h2>
+
+            <div style={{ marginBottom: "16px" }}>
+              <label
+                style={{
+                  display: "block",
+                  marginBottom: "6px",
+                  fontWeight: "500",
+                  fontSize: "14px",
+                  color: "#495057",
+                }}
+              >
+                Título *
+              </label>
+              <input
+                type="text"
+                value={generatedArticle.title}
+                onChange={(e) =>
+                  setGeneratedArticle({ ...generatedArticle, title: e.target.value })
+                }
+                disabled={isSavingArticle}
+                style={{
+                  width: "100%",
+                  padding: "10px",
+                  border: "1px solid #ced4da",
+                  borderRadius: "4px",
+                  fontSize: "14px",
+                  fontFamily: "inherit",
+                }}
+                placeholder="Título do artigo"
+              />
+            </div>
+
+            <div style={{ marginBottom: "20px" }}>
+              <label
+                style={{
+                  display: "block",
+                  marginBottom: "6px",
+                  fontWeight: "500",
+                  fontSize: "14px",
+                  color: "#495057",
+                }}
+              >
+                Conteúdo *
+              </label>
+              <textarea
+                value={generatedArticle.content}
+                onChange={(e) =>
+                  setGeneratedArticle({ ...generatedArticle, content: e.target.value })
+                }
+                disabled={isSavingArticle}
+                rows={12}
+                style={{
+                  width: "100%",
+                  padding: "10px",
+                  border: "1px solid #ced4da",
+                  borderRadius: "4px",
+                  fontSize: "14px",
+                  fontFamily: "inherit",
+                  resize: "vertical",
+                }}
+                placeholder="Conteúdo do artigo"
+              />
+            </div>
+
+            <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
+              <button
+                onClick={() => {
+                  if (!isSavingArticle) {
+                    setShowArticleModal(false);
+                    setGeneratedArticle({ title: "", content: "" });
+                  }
+                }}
+                disabled={isSavingArticle}
+                style={{
+                  padding: "10px 20px",
+                  background: "transparent",
+                  color: "#6c757d",
+                  border: "1px solid #dee2e6",
+                  borderRadius: "6px",
+                  cursor: isSavingArticle ? "not-allowed" : "pointer",
+                  fontSize: "14px",
+                  fontWeight: "500",
+                  opacity: isSavingArticle ? 0.6 : 1,
+                }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleSaveArticle}
+                disabled={
+                  isSavingArticle ||
+                  !generatedArticle.title.trim() ||
+                  !generatedArticle.content.trim()
+                }
+                style={{
+                  padding: "10px 20px",
+                  background: "#28a745",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "6px",
+                  cursor:
+                    isSavingArticle ||
+                    !generatedArticle.title.trim() ||
+                    !generatedArticle.content.trim()
+                      ? "not-allowed"
+                      : "pointer",
+                  fontSize: "14px",
+                  fontWeight: "500",
+                  opacity:
+                    isSavingArticle ||
+                    !generatedArticle.title.trim() ||
+                    !generatedArticle.content.trim()
+                      ? 0.6
+                      : 1,
+                }}
+              >
+                {isSavingArticle ? "Salvando..." : "Salvar Artigo"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -54,6 +54,9 @@ namespace CSharp.DTOs
         public DateTime? EditedAt { get; set; }
         public Guid? EditedBy { get; set; }
         public string? EditedByUsername { get; set; }
+        public string? AISummary { get; set; } // Resumo das ações da triagem com IA
+        public string? AIConclusion { get; set; } // Síntese conclusiva da triagem
+        public DateTime? AISummaryGeneratedAt { get; set; } // Data de geração do resumo
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
         public Guid UserId { get; set; }
@@ -73,5 +76,12 @@ namespace CSharp.DTOs
         [Required]
         [MinLength(10, ErrorMessage = "A descrição deve ter pelo menos 10 caracteres")]
         public string TicketBody { get; set; } = string.Empty;
+    }
+
+    public class UpdateUrgencyDTO
+    {
+        [Required]
+        [Range(1, 3, ErrorMessage = "Urgência deve ser 1 (Baixa), 2 (Média) ou 3 (Alta)")]
+        public int Urgency { get; set; }
     }
 }
