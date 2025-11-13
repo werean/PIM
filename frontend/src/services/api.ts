@@ -28,8 +28,6 @@ export async function apiGet<T>(path: string, init?: RequestInit): Promise<T> {
 
 export async function apiPost<T>(path: string, body: unknown, init?: RequestInit): Promise<T> {
   const token = getCookie("token");
-  console.log("[apiPost] Token:", token ? "EXISTS" : "MISSING");
-  console.log("[apiPost] Path:", path);
   const headers: HeadersInit = { "Content-Type": "application/json" };
   if (token) {
     headers["Authorization"] = `Bearer ${token}`;
@@ -41,7 +39,6 @@ export async function apiPost<T>(path: string, body: unknown, init?: RequestInit
     body: JSON.stringify(body),
     ...init,
   });
-  console.log("[apiPost] Response status:", res.status);
   if (!res.ok) {
     const text = await res.text();
     try {

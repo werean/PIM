@@ -330,6 +330,97 @@ Conteúdo: [conteúdo gerado]";
         }
 
         /// <summary>
+        /// POST /api/knowledgebase/improve-text - Melhora um texto de artigo usando IA
+        /// </summary>
+        [HttpPost("improve-text")]
+        public async Task<ActionResult<GeneratedArticleDto>> ImproveText([FromBody] ImproveTextDto dto)
+        {
+            try
+            {
+                var userRoleClaim = User.FindFirst(ClaimTypes.Role)?.Value;
+                
+                // Apenas técnicos podem melhorar textos
+                if (userRoleClaim != "10")
+                    return Forbid();
+
+                if (string.IsNullOrWhiteSpace(dto.Title) || string.IsNullOrWhiteSpace(dto.Content))
+                    return BadRequest(new { error = "Título e conteúdo são obrigatórios" });
+
+                // Montar o prompt para a IA
+                var prompt = $@"Você é responsável por revisar e aprimorar artigos técnicos de uma base de conhecimento.
+
+A seguir estão o título e o conteúdo originais criados por um técnico humano:
+
+Título: {dto.Title}
+Conteúdo: {dto.Content}
+
+Melhore o texto mantendo o mesmo significado técnico, mas deixando-o mais claro, fluido e profissional.
+Aprimore a redação, a coesão e a estrutura, mantendo uma linguagem técnica e objetiva.
+Não altere o contexto nem os termos técnicos corretos.
+
+Responda no formato:
+Título: [título aprimorado]
+Conteúdo: [conteúdo aprimorado]";
+
+                // Chamar a IA (Ollama)
+                var ollamaServer = _configuration["OllamaServer"] 
+                    ?? Environment.GetEnvironmentVariable("OLLAMA_SERVER")
+                    ?? "http://localhost:11434/api/chat";
+
+                using var httpClient = _httpClientFactory.CreateClient();
+
+                var requestBody = new
+                {
+                    model = "qwen3-coder:480b-cloud",
+                    messages = new[]
+                    {
+                        new { role = "user", content = prompt }
+                    },
+                    stream = false,
+                    options = new
+                    {
+                        temperature = 0.7,
+                        top_p = 0.9,
+                        num_predict = 2048
+                    }
+                };
+
+                var json = JsonSerializer.Serialize(requestBody);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                var response = await httpClient.PostAsync(ollamaServer, content);
+                response.EnsureSuccessStatusCode();
+
+                var responseText = await response.Content.ReadAsStringAsync();
+                var responseDoc = JsonDocument.Parse(responseText);
+                var aiResponse = responseDoc.RootElement.GetProperty("message").GetProperty("content").GetString() ?? "";
+
+                // Parsear a resposta da IA
+                var titleMatch = Regex.Match(aiResponse, @"Título:\s*(.+?)(?:\n|$)", RegexOptions.IgnoreCase);
+                var contentMatch = Regex.Match(aiResponse, @"Conteúdo:\s*(.+)", RegexOptions.IgnoreCase | RegexOptions.Singleline);
+
+                var improvedTitle = titleMatch.Success 
+                    ? titleMatch.Groups[1].Value.Trim() 
+                    : dto.Title;
+
+                var improvedContent = contentMatch.Success 
+                    ? contentMatch.Groups[1].Value.Trim() 
+                    : aiResponse;
+
+                return Ok(new GeneratedArticleDto
+                {
+                    Title = improvedTitle,
+                    Content = improvedContent
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Erro ao melhorar texto com IA: {ex.Message}");
+                return StatusCode(500, new { error = "Erro ao melhorar texto com IA" });
+            }
+        }
+
+        /// <summary>
         /// DELETE /api/knowledgebase/{id} - Deleta um artigo (apenas técnicos)
         /// </summary>
         [HttpDelete("{id}")]

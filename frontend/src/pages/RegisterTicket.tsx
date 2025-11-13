@@ -43,7 +43,6 @@ export default function RegisterTicketPage() {
     if (isTechnician()) {
       setIsCreating(true);
       try {
-        console.log("Criando ticket como técnico...");
         await apiPost("/tickets", {
           title: title.trim(),
           ticketBody: ticketBody.trim(),
