@@ -692,31 +692,7 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
             setIsOpen(true);
             setIsMinimized(false);
           }}
-          style={{
-            position: "fixed",
-            bottom: "24px",
-            right: "24px",
-            width: "56px",
-            height: "56px",
-            borderRadius: "50%",
-            backgroundColor: "#007bff",
-            border: "none",
-            boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 1000,
-            transition: "transform 0.2s, box-shadow 0.2s",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.transform = "scale(1.1)";
-            e.currentTarget.style.boxShadow = "0 6px 16px rgba(0,0,0,0.2)";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.transform = "scale(1)";
-            e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.15)";
-          }}
+          className="ai-chat-button"
         >
           <svg
             width="28"
@@ -735,28 +711,10 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
 
       {/* Chat minimizado */}
       {isOpen && isMinimized && (
-        <div
-          onClick={() => setIsMinimized(false)}
-          style={{
-            position: "fixed",
-            bottom: "24px",
-            right: "24px",
-            width: "280px",
-            padding: "16px 20px",
-            backgroundColor: "#007bff",
-            color: "white",
-            borderRadius: "12px",
-            boxShadow: "0 8px 24px rgba(0,0,0,0.15)",
-            cursor: "pointer",
-            zIndex: 1000,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}
-        >
+        <div onClick={() => setIsMinimized(false)} className="ai-chat-minimized">
           <div>
-            <div style={{ fontWeight: "600", fontSize: "16px" }}>Assistente IA</div>
-            <div style={{ fontSize: "12px", opacity: 0.9 }}>
+            <div className="ai-chat-header__title-text">Assistente IA</div>
+            <div className="ai-chat-header__subtitle">
               {messages.length > 0 ? `${messages.length} mensagens` : "Clique para abrir"}
             </div>
           </div>
@@ -776,88 +734,49 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
 
       {/* Janela do chat (maximizado) */}
       {isOpen && !isMinimized && (
-        <div
-          style={{
-            position: "fixed",
-            bottom: "24px",
-            right: "24px",
-            width: "380px",
-            height: "560px",
-            backgroundColor: "white",
-            borderRadius: "12px",
-            boxShadow: "0 8px 24px rgba(0,0,0,0.15)",
-            display: "flex",
-            flexDirection: "column",
-            zIndex: 1000,
-            overflow: "hidden",
-          }}
-        >
+        <div className="ai-chat-window">
           {/* Header */}
-          <div
-            style={{
-              padding: "16px 20px",
-              backgroundColor: "#007bff",
-              color: "white",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
-            <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: "600", fontSize: "16px" }}>Assistente IA</div>
-              <div style={{ fontSize: "12px", opacity: 0.9 }}>
+          <div className="ai-chat-header">
+            <div className="ai-chat-header__title">
+              <div className="ai-chat-header__title-text">Assistente IA</div>
+              <div className="ai-chat-header__subtitle">
                 {isConnected ? "Online" : "Desconectado"}
                 {messages.length > 0 && ` • ${messages.length} mensagens`}
               </div>
             </div>
 
-            {/* Botão Minimizar */}
-            <button
-              onClick={() => setIsMinimized(true)}
-              style={{
-                background: "none",
-                border: "none",
-                color: "white",
-                cursor: "pointer",
-                fontSize: "20px",
-                lineHeight: "1",
-                padding: "4px 8px",
-                marginRight: "8px",
-              }}
-              title="Minimizar chat"
-            >
-              ➖
-            </button>
+            <div className="ai-chat-header__actions">
+              {/* Botão Minimizar */}
+              <button
+                onClick={() => setIsMinimized(true)}
+                className="ai-chat-header__btn ai-chat-header__btn--minimize"
+                title="Minimizar chat"
+              >
+                ➖
+              </button>
 
-            {/* Botão Fechar */}
-            <button
-              onClick={() => {
-                setIsOpen(false);
-                setIsMinimized(false);
-                // Ao fechar, salva e sincroniza
-                if (messages.length > 0) {
-                  saveSessionToStorage();
-                  syncToDatabase();
-                }
-                // Limpar WebSocket
-                if (wsRef.current) {
-                  wsRef.current.close();
-                  wsRef.current = null;
-                }
-                setIsConnected(false);
-              }}
-              style={{
-                background: "none",
-                border: "none",
-                color: "white",
-                cursor: "pointer",
-                fontSize: "24px",
-                lineHeight: "1",
-                padding: "0",
-              }}
-            >
-              ×
-            </button>
+              {/* Botão Fechar */}
+              <button
+                onClick={() => {
+                  setIsOpen(false);
+                  setIsMinimized(false);
+                  // Ao fechar, salva e sincroniza
+                  if (messages.length > 0) {
+                    saveSessionToStorage();
+                    syncToDatabase();
+                  }
+                  // Limpar WebSocket
+                  if (wsRef.current) {
+                    wsRef.current.close();
+                    wsRef.current = null;
+                  }
+                  setIsConnected(false);
+                }}
+                className="ai-chat-header__btn ai-chat-header__btn--close"
+              >
+                ×
+              </button>
+            </div>
           </div>
 
           {/* Status do Ollama */}

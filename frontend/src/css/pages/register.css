@@ -112,3 +112,30 @@
 .register-form__link:hover {
   text-decoration: underline;
 }
+
+/* ===================================
+   Mobile Responsive
+   =================================== */
+@media (max-width: 768px) {
+  .register-page {
+    padding: 16px;
+  }
+
+  .register-page__card {
+    padding: 24px 16px;
+    max-width: 100%;
+  }
+
+  .register-page__logo {
+    height: 80px;
+  }
+
+  .register-form__title {
+    font-size: 16px;
+  }
+
+  .register-form__input,
+  .register-form__select {
+    font-size: 16px; /* Evita zoom no iOS */
+  }
+}

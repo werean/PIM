@@ -183,3 +183,49 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* Triage Actions */
+.triage-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.triage-btn {
+  padding: 10px 20px;
+  font-size: 14px;
+  border-radius: 6px;
+  flex: 1;
+  min-width: 200px;
+}
+
+.btn--success.triage-btn {
+  background-color: #28a745;
+  color: white;
+  border: none;
+}
+
+.btn--success.triage-btn:hover:not(:disabled) {
+  background-color: #218838;
+}
+
+.btn--success.triage-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .triage-actions {
+    flex-direction: column;
+    width: 100%;
+    gap: 10px;
+  }
+
+  .triage-btn {
+    width: 100%;
+    min-width: auto;
+    padding: 12px 16px;
+    font-size: 13px;
+  }
+}

@@ -198,6 +198,13 @@ export default function TicketTriagePage() {
   const handleContactTechnician = async () => {
     if (!state) return;
 
+    // Verificar autenticação antes de prosseguir
+    if (!isAuthenticated()) {
+      showError("Sessão expirada. Faça login novamente.");
+      navigate("/login");
+      return;
+    }
+
     setIsCreatingTicket(true);
 
     try {
@@ -224,7 +231,12 @@ export default function TicketTriagePage() {
       navigate("/home");
     } catch (error) {
       console.error("Erro ao criar ticket:", error);
-      showError("Erro ao criar chamado. Tente novamente.");
+      if (error instanceof Error && error.message.includes("401")) {
+        showError("Sessão expirada. Faça login novamente.");
+        navigate("/login");
+      } else {
+        showError("Erro ao criar chamado. Tente novamente.");
+      }
     } finally {
       setIsCreatingTicket(false);
     }
@@ -232,6 +244,13 @@ export default function TicketTriagePage() {
 
   const handleProblemResolved = async () => {
     if (!state) return;
+
+    // Verificar autenticação antes de prosseguir
+    if (!isAuthenticated()) {
+      showError("Sessão expirada. Faça login novamente.");
+      navigate("/login");
+      return;
+    }
 
     setIsCreatingResolvedTicket(true);
 
@@ -261,7 +280,12 @@ export default function TicketTriagePage() {
       navigate("/home");
     } catch (error) {
       console.error("Erro ao criar ticket resolvido:", error);
-      showError("Erro ao criar chamado. Tente novamente.");
+      if (error instanceof Error && error.message.includes("401")) {
+        showError("Sessão expirada. Faça login novamente.");
+        navigate("/login");
+      } else {
+        showError("Erro ao criar chamado. Tente novamente.");
+      }
     } finally {
       setIsCreatingResolvedTicket(false);
     }
@@ -330,6 +354,28 @@ export default function TicketTriagePage() {
           </div>
         </div>
 
+        {/* Botões de ação (aparecem após primeira resposta) */}
+        {aiResponseCount >= 1 && (
+          <div className="triage-actions" style={{ marginBottom: "20px" }}>
+            <button
+              onClick={handleProblemResolved}
+              disabled={isCreatingResolvedTicket || isCreatingTicket}
+              className="btn btn--success triage-btn"
+            >
+              {isCreatingResolvedTicket ? "Criando..." : "✓ Meu problema foi resolvido"}
+            </button>
+            {aiResponseCount >= 3 && (
+              <button
+                onClick={handleContactTechnician}
+                disabled={isCreatingTicket || isCreatingResolvedTicket}
+                className="btn btn--primary triage-btn"
+              >
+                {isCreatingTicket ? "Criando..." : "Falar com um técnico"}
+              </button>
+            )}
+          </div>
+        )}
+
         {/* Chat com IA */}
         <div
           style={{
@@ -346,9 +392,6 @@ export default function TicketTriagePage() {
             style={{
               padding: "16px 20px",
               borderBottom: "1px solid #e9ecef",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
             }}
           >
             <div>
@@ -361,39 +404,6 @@ export default function TicketTriagePage() {
                   ` • ${aiResponseCount} resposta${aiResponseCount > 1 ? "s" : ""}`}
               </p>
             </div>
-            {aiResponseCount >= 3 && (
-              <div style={{ display: "flex", gap: "12px" }}>
-                <button
-                  onClick={handleProblemResolved}
-                  disabled={isCreatingResolvedTicket || isCreatingTicket}
-                  className="btn btn--success"
-                  style={{
-                    padding: "10px 20px",
-                    fontSize: "14px",
-                    backgroundColor: "#28a745",
-                    color: "white",
-                    border: "none",
-                    borderRadius: "6px",
-                    cursor:
-                      isCreatingResolvedTicket || isCreatingTicket ? "not-allowed" : "pointer",
-                    opacity: isCreatingResolvedTicket || isCreatingTicket ? 0.6 : 1,
-                  }}
-                >
-                  {isCreatingResolvedTicket ? "Criando..." : "✓ Meu problema foi resolvido"}
-                </button>
-                <button
-                  onClick={handleContactTechnician}
-                  disabled={isCreatingTicket || isCreatingResolvedTicket}
-                  className="btn btn--primary"
-                  style={{
-                    padding: "10px 20px",
-                    fontSize: "14px",
-                  }}
-                >
-                  {isCreatingTicket ? "Criando..." : "Falar com um técnico"}
-                </button>
-              </div>
-            )}
           </div>
 
           {/* Mensagens */}

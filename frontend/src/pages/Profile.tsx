@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import PasswordInput from "../components/PasswordInput";
 import Sidebar from "../components/Sidebar";
+import BottomNav from "../components/BottomNav";
 import type { ToastType } from "../components/Toast";
 import Toast from "../components/Toast";
 import UserBadgeSmall from "../components/UserBadge";
@@ -240,44 +241,19 @@ export default function ProfilePage() {
   return (
     <>
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
-      <div style={{ display: "flex", minHeight: "100vh" }}>
+      <div className="detail-page">
         <Sidebar />
 
-        <div
-          style={{
-            marginLeft: "240px",
-            width: "calc(100% - 240px)",
-            minHeight: "100vh",
-            background: "#f8f9fa",
-          }}
-        >
-          <header
-            style={{
-              background: "#ffffff",
-              borderBottom: "1px solid #e9ecef",
-              padding: "12px 20px",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
-            <div style={{ fontSize: "12px", color: "#6c757d" }}>
-              <span
-                style={{ cursor: "pointer", transition: "color 0.15s" }}
-                onClick={() => navigate("/home")}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.color = "#212529";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.color = "#6c757d";
-                }}
-              >
+        <div className="detail-page__content">
+          <header className="detail-page__header">
+            <div className="detail-page__breadcrumb">
+              <span className="detail-page__breadcrumb-link" onClick={() => navigate("/home")}>
                 Home
               </span>{" "}
-              / <strong style={{ color: "#212529" }}>Meu Perfil</strong>
+              / <strong>Meu Perfil</strong>
             </div>
 
-            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <div className="detail-page__user-section">
               <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                 <UserBadgeSmall size={28} fontSize={11} />
                 <span
@@ -296,51 +272,18 @@ export default function ProfilePage() {
                   deleteCookie("user");
                   navigate("/login");
                 }}
-                style={{
-                  background: "transparent",
-                  color: "#6c757d",
-                  border: "1px solid #dee2e6",
-                  borderRadius: "3px",
-                  padding: "6px 12px",
-                  cursor: "pointer",
-                  fontSize: "12px",
-                  fontWeight: "400",
-                  transition: "all 0.15s",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = "#dc3545";
-                  e.currentTarget.style.color = "#dc3545";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = "#dee2e6";
-                  e.currentTarget.style.color = "#6c757d";
-                }}
+                className="btn btn--secondary btn--sm"
               >
                 Sair
               </button>
             </div>
           </header>
 
-          <main style={{ padding: "24px", maxWidth: "900px", margin: "0 auto" }}>
+          <main className="detail-page__main">
             {/* Card de Informações do Usuário */}
-            <div
-              style={{
-                background: "#ffffff",
-                border: "1px solid #e9ecef",
-                borderRadius: "6px",
-                padding: "32px",
-                marginBottom: "24px",
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "flex-start",
-                  gap: "24px",
-                  marginBottom: "32px",
-                }}
-              >
-                <div style={{ position: "relative" }}>
+            <div className="profile-card">
+              <div className="profile-header">
+                <div className="profile-avatar">
                   {profileImage ? (
                     <img
                       src={profileImage}
@@ -365,53 +308,23 @@ export default function ProfilePage() {
                     id="profile-image-input"
                   />
                 </div>
-                <div style={{ flex: 1 }}>
-                  <h2
-                    style={{
-                      margin: "0 0 12px 0",
-                      fontSize: "24px",
-                      color: "#212529",
-                    }}
-                  >
-                    {name}
-                  </h2>
+                <div className="profile-info">
+                  <h2 className="profile-name">{name}</h2>
                   <div
+                    className="profile-role-badge"
                     style={{
-                      display: "inline-block",
-                      padding: "4px 12px",
                       background: userRole === "10" ? "#e3f2fd" : "#f3e5f5",
                       color: userRole === "10" ? "#1976d2" : "#7b1fa2",
-                      borderRadius: "12px",
-                      fontSize: "12px",
-                      fontWeight: "500",
-                      marginBottom: "12px",
                     }}
                   >
                     {roleLabel}
                   </div>
-                  <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
+                  <div className="profile-actions">
                     <button
                       type="button"
                       onClick={() => document.getElementById("profile-image-input")?.click()}
-                      style={{
-                        padding: "6px 12px",
-                        background: "transparent",
-                        color: "#6c5ce7",
-                        border: "1px solid #6c5ce7",
-                        borderRadius: "4px",
-                        fontSize: "12px",
-                        fontWeight: "500",
-                        cursor: "pointer",
-                        transition: "all 0.15s",
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.background = "#6c5ce7";
-                        e.currentTarget.style.color = "#ffffff";
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.background = "transparent";
-                        e.currentTarget.style.color = "#6c5ce7";
-                      }}
+                      className="btn btn--secondary btn--sm"
+                      style={{ color: "#6c5ce7", borderColor: "#6c5ce7" }}
                     >
                       {profileImage ? "Alterar foto" : "Adicionar foto"}
                     </button>
@@ -419,25 +332,7 @@ export default function ProfilePage() {
                       <button
                         type="button"
                         onClick={handleRemoveImage}
-                        style={{
-                          padding: "6px 12px",
-                          background: "transparent",
-                          color: "#dc3545",
-                          border: "1px solid #dc3545",
-                          borderRadius: "4px",
-                          fontSize: "12px",
-                          fontWeight: "500",
-                          cursor: "pointer",
-                          transition: "all 0.15s",
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.background = "#dc3545";
-                          e.currentTarget.style.color = "#ffffff";
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.background = "transparent";
-                          e.currentTarget.style.color = "#dc3545";
-                        }}
+                        className="btn btn--danger-outline btn--sm"
                       >
                         Remover foto
                       </button>
@@ -447,70 +342,32 @@ export default function ProfilePage() {
               </div>
 
               <form onSubmit={handleSaveProfile}>
-                <div style={{ marginBottom: "20px" }}>
-                  <label
-                    style={{
-                      display: "block",
-                      fontSize: "13px",
-                      fontWeight: "500",
-                      color: "#495057",
-                      marginBottom: "6px",
-                    }}
-                  >
-                    Nome completo
-                  </label>
+                <div className="profile-form-group">
+                  <label className="profile-form-label">Nome completo</label>
                   <input
                     type="text"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     disabled={!isEditing}
-                    style={{
-                      width: "100%",
-                      padding: "10px 12px",
-                      fontSize: "14px",
-                      border: "1px solid #e0e0e0",
-                      borderRadius: "4px",
-                      background: isEditing ? "#ffffff" : "#f8f9fa",
-                      color: "#212529",
-                      boxSizing: "border-box",
-                      cursor: isEditing ? "text" : "not-allowed",
-                    }}
+                    className="profile-form-input"
+                    style={{ background: isEditing ? "#ffffff" : "#f8f9fa" }}
                   />
                 </div>
 
-                <div style={{ marginBottom: "20px" }}>
-                  <label
-                    style={{
-                      display: "block",
-                      fontSize: "13px",
-                      fontWeight: "500",
-                      color: "#495057",
-                      marginBottom: "6px",
-                    }}
-                  >
-                    E-mail
-                  </label>
+                <div className="profile-form-group">
+                  <label className="profile-form-label">E-mail</label>
                   <input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     disabled={!isEditing}
                     placeholder="seu@email.com"
-                    style={{
-                      width: "100%",
-                      padding: "10px 12px",
-                      fontSize: "14px",
-                      border: "1px solid #e0e0e0",
-                      borderRadius: "4px",
-                      background: isEditing ? "#ffffff" : "#f8f9fa",
-                      color: "#212529",
-                      boxSizing: "border-box",
-                      cursor: isEditing ? "text" : "not-allowed",
-                    }}
+                    className="profile-form-input"
+                    style={{ background: isEditing ? "#ffffff" : "#f8f9fa" }}
                   />
                 </div>
 
-                <div style={{ display: "flex", gap: "12px", marginTop: "8px" }}>
+                <div className="profile-button-group">
                   {!isEditing ? (
                     <button
                       type="button"
@@ -519,76 +376,24 @@ export default function ProfilePage() {
                         e.stopPropagation();
                         setIsEditing(true);
                       }}
-                      style={{
-                        padding: "10px 20px",
-                        background: "#6c5ce7",
-                        color: "#ffffff",
-                        border: "none",
-                        borderRadius: "4px",
-                        fontSize: "14px",
-                        fontWeight: "500",
-                        cursor: "pointer",
-                        transition: "all 0.15s",
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.background = "#5b4cdb";
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.background = "#6c5ce7";
-                      }}
+                      className="btn btn--primary"
                     >
                       Editar Perfil
                     </button>
                   ) : (
                     <>
-                      <button
-                        type="submit"
-                        style={{
-                          padding: "8px 16px",
-                          background: "#6c5ce7",
-                          color: "#ffffff",
-                          border: "none",
-                          borderRadius: "3px",
-                          fontSize: "13px",
-                          fontWeight: "500",
-                          cursor: "pointer",
-                          transition: "all 0.15s",
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.background = "#5b4cdb";
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.background = "#6c5ce7";
-                        }}
-                      >
+                      <button type="submit" className="btn btn--primary btn--sm">
                         Salvar
                       </button>
                       <button
                         type="button"
                         onClick={() => {
                           setIsEditing(false);
-                          // Restaura os valores originais
                           setName(originalData.name);
                           setEmail(originalData.email);
                           setProfileImage(originalData.profileImage);
                         }}
-                        style={{
-                          padding: "8px 16px",
-                          background: "transparent",
-                          color: "#6c757d",
-                          border: "1px solid #e0e0e0",
-                          borderRadius: "3px",
-                          fontSize: "13px",
-                          fontWeight: "400",
-                          cursor: "pointer",
-                          transition: "all 0.15s",
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.borderColor = "#6c757d";
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.borderColor = "#e0e0e0";
-                        }}
+                        className="btn btn--secondary btn--sm"
                       >
                         Cancelar
                       </button>
@@ -599,37 +404,14 @@ export default function ProfilePage() {
             </div>
 
             {/* Card de Alteração de Senha */}
-            <div
-              style={{
-                background: "#ffffff",
-                border: "1px solid #e9ecef",
-                borderRadius: "6px",
-                padding: "32px",
-              }}
-            >
-              <h3
-                style={{
-                  margin: "0 0 20px 0",
-                  fontSize: "18px",
-                  color: "#212529",
-                }}
-              >
+            <div className="profile-card">
+              <h3 style={{ margin: "0 0 20px 0", fontSize: "18px", color: "#212529" }}>
                 Alterar Senha
               </h3>
 
               <form onSubmit={handleChangePassword}>
-                <div style={{ marginBottom: "16px" }}>
-                  <label
-                    style={{
-                      display: "block",
-                      fontSize: "13px",
-                      fontWeight: "500",
-                      color: "#495057",
-                      marginBottom: "6px",
-                    }}
-                  >
-                    Senha atual
-                  </label>
+                <div className="profile-form-group">
+                  <label className="profile-form-label">Senha atual</label>
                   <PasswordInput
                     id="current-password"
                     value={currentPassword}
@@ -639,18 +421,8 @@ export default function ProfilePage() {
                   />
                 </div>
 
-                <div style={{ marginBottom: "16px" }}>
-                  <label
-                    style={{
-                      display: "block",
-                      fontSize: "13px",
-                      fontWeight: "500",
-                      color: "#495057",
-                      marginBottom: "6px",
-                    }}
-                  >
-                    Nova senha
-                  </label>
+                <div className="profile-form-group">
+                  <label className="profile-form-label">Nova senha</label>
                   <PasswordInput
                     id="new-password"
                     value={newPassword}
@@ -660,18 +432,8 @@ export default function ProfilePage() {
                   />
                 </div>
 
-                <div style={{ marginBottom: "20px" }}>
-                  <label
-                    style={{
-                      display: "block",
-                      fontSize: "13px",
-                      fontWeight: "500",
-                      color: "#495057",
-                      marginBottom: "6px",
-                    }}
-                  >
-                    Confirmar nova senha
-                  </label>
+                <div className="profile-form-group">
+                  <label className="profile-form-label">Confirmar nova senha</label>
                   <PasswordInput
                     id="confirm-password"
                     value={confirmPassword}
@@ -684,30 +446,7 @@ export default function ProfilePage() {
                 <button
                   type="submit"
                   disabled={!currentPassword || !newPassword || !confirmPassword}
-                  style={{
-                    padding: "8px 16px",
-                    background:
-                      currentPassword && newPassword && confirmPassword ? "#6c5ce7" : "#e9ecef",
-                    color:
-                      currentPassword && newPassword && confirmPassword ? "#ffffff" : "#adb5bd",
-                    border: "none",
-                    borderRadius: "3px",
-                    fontSize: "13px",
-                    fontWeight: "500",
-                    cursor:
-                      currentPassword && newPassword && confirmPassword ? "pointer" : "not-allowed",
-                    transition: "all 0.15s",
-                  }}
-                  onMouseEnter={(e) => {
-                    if (currentPassword && newPassword && confirmPassword) {
-                      e.currentTarget.style.background = "#5b4cdb";
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (currentPassword && newPassword && confirmPassword) {
-                      e.currentTarget.style.background = "#6c5ce7";
-                    }
-                  }}
+                  className="btn btn--primary btn--sm"
                 >
                   Alterar Senha
                 </button>
@@ -716,6 +455,7 @@ export default function ProfilePage() {
           </main>
         </div>
       </div>
+      <BottomNav />
     </>
   );
 }

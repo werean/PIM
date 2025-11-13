@@ -144,60 +144,23 @@ export default function KnowledgeBase() {
 
       <main className="home-page">
         <section className="home-page__filters">
-          <div
-            style={{
-              background: "#fff",
-              padding: "12px 16px",
-              borderRadius: "6px",
-              boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
-              border: "1px solid #e9ecef",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: "16px",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-              <div
-                style={{
-                  width: "4px",
-                  height: "40px",
-                  borderRadius: "2px",
-                  background: "linear-gradient(135deg, #6c5ce7 0%, #a29bfe 100%)",
-                }}
-              />
-              <div>
-                <div
-                  style={{
-                    fontSize: "11px",
-                    color: "#6c757d",
-                    fontWeight: "500",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.5px",
-                  }}
-                >
-                  Total de Artigos
-                </div>
-                <div
-                  style={{
-                    fontSize: "20px",
-                    fontWeight: "700",
-                    color: "#212529",
-                    marginTop: "2px",
-                  }}
-                >
-                  {articles.length}
-                </div>
+          <div className="summary-card">
+            <div className="summary-card__content">
+              <div className="summary-card__indicator summary-card__indicator--purple" />
+              <div className="summary-card__info">
+                <p className="summary-card__label">Total de Artigos</p>
+                <p className="summary-card__value">{articles.length}</p>
               </div>
             </div>
             {!isLoading && articles.length > 0 && (
-              <button
-                className="btn btn--primary"
-                onClick={() => navigate("/knowledgebase/create")}
-                style={{ whiteSpace: "nowrap" }}
-              >
-                Criar Artigo
-              </button>
+              <div className="summary-card__action">
+                <button
+                  className="btn btn--primary"
+                  onClick={() => navigate("/knowledgebase/create")}
+                >
+                  Criar Artigo
+                </button>
+              </div>
             )}
           </div>
         </section>

@@ -244,6 +244,8 @@
   font-weight: var(--font-weight-medium);
   display: inline-block;
   border: var(--border-width-thin) solid;
+  min-width: 80px;
+  text-align: center;
 }
 
 .status-badge--1 {
@@ -850,4 +852,291 @@
 
 .modal-button--warning:hover {
   opacity: 0.9;
+}
+
+/* ===================================
+   Button Component - BEM
+   =================================== */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-sm) var(--spacing-lg);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  border: none;
+  transition: var(--transition-all);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn--primary {
+  background: var(--color-primary);
+  color: var(--color-text-white);
+  border: 1px solid var(--color-primary);
+}
+
+.btn--primary:hover:not(:disabled) {
+  background: var(--color-primary-dark);
+  border-color: var(--color-primary-dark);
+}
+
+.btn--secondary {
+  background: var(--color-bg-white);
+  color: var(--color-text-secondary);
+  border: var(--border-default);
+}
+
+.btn--secondary:hover:not(:disabled) {
+  background: var(--color-bg-primary);
+  border-color: var(--color-border-dark);
+}
+
+.btn--info {
+  background: var(--color-primary);
+  color: var(--color-text-white);
+}
+
+.btn--info:hover:not(:disabled) {
+  background: var(--color-primary-dark);
+}
+
+.btn--danger {
+  background: var(--color-error);
+  color: var(--color-text-white);
+}
+
+.btn--danger:hover:not(:disabled) {
+  background: var(--color-error-dark);
+}
+
+.btn--danger-outline {
+  background: transparent;
+  color: var(--color-error);
+  border: 1px solid var(--color-error);
+}
+
+.btn--danger-outline:hover:not(:disabled) {
+  background: var(--color-error);
+  color: var(--color-text-white);
+}
+
+.btn--sm {
+  padding: 4px 8px;
+  font-size: 11px;
+  border-radius: 3px;
+}
+
+.btn--md {
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: var(--font-size-sm);
+}
+
+.btn--lg {
+  padding: var(--spacing-md) var(--spacing-xl);
+  font-size: var(--font-size-lg);
+}
+
+/* ===================================
+   Mobile Responsive Styles
+   =================================== */
+@media (max-width: 768px) {
+  /* Hide sidebar on mobile */
+  .sidebar {
+    display: none;
+  }
+
+  /* Adjust main content layout - remove sidebar margin */
+  .page-layout__main {
+    margin-left: 0;
+    width: 100vw;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  /* Add padding bottom to prevent bottom nav overlap */
+  main,
+  .main-content,
+  .home-page,
+  .tickets-page,
+  .page-layout__main {
+    padding-bottom: 80px;
+  }
+
+  /* Adjust page header for mobile */
+  .page-header {
+    padding: var(--spacing-sm) var(--spacing-md);
+  }
+
+  /* Prevent horizontal scroll on all containers */
+  .page-layout,
+  body,
+  html {
+    overflow-x: hidden;
+    max-width: 100vw;
+    width: 100%;
+  }
+
+  /* Ensure all content containers are properly sized */
+  * {
+    max-width: 100vw;
+  }
+
+  /* Filter cards responsive */
+  .filter-card {
+    padding: var(--spacing-sm) var(--spacing-md);
+    font-size: var(--font-size-sm);
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Page header breadcrumbs */
+  .page-header__breadcrumb {
+    font-size: var(--font-size-sm);
+  }
+
+  /* Tickets table responsive */
+  .tickets-table {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .tickets-table__table {
+    width: 100%;
+    font-size: 11px;
+    display: table;
+  }
+
+  .tickets-table__head-cell {
+    padding: 8px 6px;
+    font-size: 9px;
+    white-space: nowrap;
+  }
+
+  .tickets-table__cell {
+    padding: 8px 6px;
+    font-size: 11px;
+  }
+
+  .tickets-table__cell--id {
+    min-width: 50px;
+  }
+
+  .tickets-table__cell--title {
+    max-width: 120px;
+    min-width: 100px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .tickets-table__cell--date {
+    font-size: 10px;
+    white-space: nowrap;
+  }
+
+  .tickets-table__cell--center {
+    padding: 16px 8px;
+  }
+
+  /* Hide urgency column on very small screens */
+  .tickets-table__head-cell:nth-child(5),
+  .tickets-table__cell:nth-child(5) {
+    display: none;
+  }
+
+  /* Badges compact in mobile */
+  .status-badge,
+  .urgency-badge {
+    padding: 2px 6px;
+    font-size: 9px;
+    white-space: nowrap;
+  }
+
+  .status-badge {
+    min-width: 70px;
+    text-align: center;
+  }
+
+  /* Form responsive */
+  .form {
+    padding: var(--spacing-md);
+  }
+
+  .form__group {
+    margin-bottom: var(--spacing-md);
+  }
+
+  .form__input,
+  .form__select,
+  .form__textarea {
+    width: 100%;
+    font-size: 16px; /* Evita zoom no iOS */
+    box-sizing: border-box;
+  }
+
+  .form__textarea {
+    min-height: 120px;
+  }
+
+  .form__actions {
+    flex-direction: column;
+    gap: var(--spacing-xs);
+  }
+
+  .form__actions button {
+    width: 100%;
+  }
+
+  /* Modal responsive */
+  .modal {
+    width: 95vw;
+    max-width: 95vw;
+    margin: 16px;
+  }
+
+  .modal-header {
+    padding: var(--spacing-md);
+  }
+
+  .modal-body {
+    padding: var(--spacing-md);
+    max-height: 60vh;
+    overflow-y: auto;
+  }
+
+  .modal-footer {
+    padding: var(--spacing-md);
+    flex-direction: column;
+    gap: var(--spacing-xs);
+  }
+
+  .modal-footer button {
+    width: 100%;
+  }
+
+  /* Toast mobile */
+  .toast-container {
+    bottom: 80px; /* Acima do bottom nav */
+    right: var(--spacing-sm);
+    left: var(--spacing-sm);
+  }
+
+  .toast {
+    min-width: auto;
+    max-width: 100%;
+  }
 }

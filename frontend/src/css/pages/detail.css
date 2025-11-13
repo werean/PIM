@@ -1,0 +1,476 @@
+/* ===================================
+   Detail Pages - Profile & Ticket Detail
+   =================================== */
+
+.detail-page {
+  display: flex;
+  min-height: 100vh;
+}
+
+.detail-page__content {
+  margin-left: var(--sidebar-width);
+  width: calc(100% - var(--sidebar-width));
+  min-height: 100vh;
+  background: var(--color-bg-primary);
+}
+
+.detail-page__header {
+  background: var(--color-bg-white);
+  border-bottom: var(--border-light);
+  padding: 12px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.detail-page__breadcrumb {
+  font-size: 12px;
+  color: var(--color-text-tertiary);
+}
+
+.detail-page__breadcrumb-link {
+  cursor: pointer;
+  transition: color 0.15s;
+}
+
+.detail-page__breadcrumb-link:hover {
+  color: var(--color-text-primary);
+}
+
+.detail-page__user-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.detail-page__main {
+  padding: 24px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+/* Profile specific */
+.profile-card {
+  background: var(--color-bg-white);
+  border: var(--border-light);
+  border-radius: var(--radius-md);
+  padding: 32px;
+  margin-bottom: 24px;
+}
+
+.profile-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 24px;
+  margin-bottom: 32px;
+}
+
+.profile-avatar {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.profile-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.profile-name {
+  margin: 0 0 12px 0;
+  font-size: 24px;
+  color: var(--color-text-primary);
+  word-wrap: break-word;
+}
+
+.profile-role-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  margin-bottom: 12px;
+}
+
+.detail-page__breadcrumb {
+  font-size: 12px;
+  color: #6c757d;
+}
+
+.detail-page__breadcrumb-link {
+  cursor: pointer;
+  transition: color 0.15s;
+}
+
+.detail-page__breadcrumb-link:hover {
+  color: #212529;
+}
+
+.detail-page__user-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.profile-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.profile-form-group {
+  margin-bottom: 20px;
+}
+
+.profile-form-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  margin-bottom: 6px;
+}
+
+.profile-form-input {
+  width: 100%;
+  padding: 10px 12px;
+  font-size: 14px;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  box-sizing: border-box;
+}
+
+.profile-form-input:disabled {
+  background: var(--color-bg-primary);
+  cursor: not-allowed;
+}
+
+.profile-button-group {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+/* Ticket Detail specific */
+.ticket-detail-container {
+  padding: 24px;
+}
+
+.ticket-detail-card {
+  background: var(--color-bg-white);
+  border: var(--border-light);
+  border-radius: var(--radius-md);
+  padding: 24px;
+  margin-bottom: 20px;
+}
+
+.ticket-detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.ticket-detail-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin: 0 0 12px 0;
+  word-wrap: break-word;
+}
+
+.ticket-detail-meta {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.ticket-detail-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.ticket-comments {
+  max-height: 400px;
+  overflow-y: auto;
+  margin-bottom: 16px;
+}
+
+.ticket-comment {
+  padding: 12px;
+  margin-bottom: 12px;
+  background: var(--color-bg-primary);
+  border-radius: var(--radius-sm);
+}
+
+.ticket-comment-form {
+  display: flex;
+  gap: 8px;
+  flex-direction: column;
+}
+
+/* Ticket Detail Specific Styles */
+.ticket-detail__card {
+  background: white;
+  border-radius: 4px;
+  padding: 16px;
+  margin-bottom: 16px;
+  border: 1px solid #e9ecef;
+}
+
+.ticket-detail__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  margin-bottom: 12px;
+  gap: 12px;
+}
+
+.ticket-detail__title-section {
+  flex: 1;
+  min-width: 0;
+}
+
+.ticket-detail__status-badge {
+  flex-shrink: 0;
+}
+
+.ticket-detail__meta-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.ticket-detail__meta-label {
+  margin: 0;
+  font-weight: 600;
+  font-size: 14px;
+  color: #495057;
+  white-space: nowrap;
+}
+
+.ticket-detail__meta-value {
+  margin: 0;
+  word-break: break-word;
+  font-size: 14px;
+  color: #212529;
+}
+
+.ticket-detail__pause-btn {
+  padding: 8px 16px;
+  background: #f2a400;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background 0.2s;
+  white-space: nowrap;
+}
+
+.ticket-detail__pause-btn--resume {
+  background: #28a745;
+}
+
+.ticket-detail__pause-btn:hover:not(:disabled) {
+  background: #d89000;
+}
+
+.ticket-detail__pause-btn--resume:hover:not(:disabled) {
+  background: #218838;
+}
+
+.ticket-detail__pause-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.ticket-detail__manage-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  gap: 12px;
+}
+
+.ticket-detail__main {
+  padding: 20px;
+}
+
+/* ===================================
+   Mobile Responsive
+   =================================== */
+@media (max-width: 768px) {
+  .detail-page__content {
+    margin-left: 0;
+    width: 100vw;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  .detail-page__header {
+    padding: 8px 12px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .detail-page__breadcrumb {
+    font-size: 11px;
+  }
+
+  .detail-page__user-section {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .detail-page__main {
+    padding: 12px 8px;
+    max-width: 100%;
+    width: 100%;
+  }
+
+  /* Profile mobile */
+  .profile-card {
+    padding: 16px;
+    margin-bottom: 16px;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .profile-header {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .profile-avatar {
+    flex-shrink: 0;
+  }
+
+  .profile-info {
+    width: 100%;
+  }
+
+  .profile-name {
+    font-size: 20px;
+  }
+
+  .profile-actions {
+    justify-content: center;
+    width: 100%;
+  }
+
+  .profile-actions button {
+    flex: 1;
+    min-width: 120px;
+  }
+
+  .profile-form-input {
+    font-size: 16px; /* Evita zoom no iOS */
+  }
+
+  .profile-button-group {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .profile-button-group button {
+    width: 100%;
+  }
+
+  /* Ticket Detail mobile */
+  .ticket-detail-container {
+    padding: 12px 8px;
+    max-width: 100%;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .ticket-detail-card {
+    padding: 16px;
+    margin-bottom: 16px;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .ticket-detail-header {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .ticket-detail-title {
+    font-size: 18px;
+  }
+
+  .ticket-detail-meta {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .ticket-detail-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .ticket-detail-actions button {
+    width: 100%;
+  }
+
+  .ticket-comments {
+    max-height: 300px;
+  }
+
+  .ticket-comment-form {
+    width: 100%;
+  }
+
+  .ticket-comment-form textarea {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .ticket-comment-form button {
+    width: 100%;
+  }
+
+  /* Ticket Detail - novos estilos responsivos */
+  .ticket-detail__header {
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-start;
+  }
+
+  .ticket-detail__status-badge {
+    align-self: flex-start;
+  }
+
+  .ticket-detail__meta-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  .ticket-detail__pause-btn {
+    width: 100%;
+    font-size: 13px;
+    padding: 10px 12px;
+  }
+
+  .ticket-detail__manage-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .ticket-detail__main {
+    padding: 12px 8px;
+  }
+}

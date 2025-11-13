@@ -201,24 +201,7 @@ export default function TrashPage() {
             e.stopPropagation();
             handlePermanentDelete(ticket.id!, ticket.title);
           }}
-          style={{
-            padding: "4px 8px",
-            backgroundColor: "transparent",
-            color: "#dc3545",
-            border: "1px solid #dc3545",
-            borderRadius: "3px",
-            fontSize: "11px",
-            cursor: "pointer",
-            transition: "all 0.15s",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = "#dc3545";
-            e.currentTarget.style.color = "white";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = "transparent";
-            e.currentTarget.style.color = "#dc3545";
-          }}
+          className="btn btn--danger-outline btn--sm"
         >
           Apagar
         </button>
@@ -232,42 +215,12 @@ export default function TrashPage() {
 
       <main className="home-page">
         <section className="home-page__filters">
-          <div
-            style={{
-              background: "#fff",
-              padding: "12px 16px",
-              borderRadius: "6px",
-              boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
-              border: "1px solid #e9ecef",
-              display: "flex",
-              alignItems: "center",
-              gap: "12px",
-            }}
-          >
-            <div
-              style={{
-                width: "4px",
-                height: "40px",
-                borderRadius: "2px",
-                background: "linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)",
-              }}
-            />
-            <div>
-              <div
-                style={{
-                  fontSize: "11px",
-                  color: "#6c757d",
-                  fontWeight: "500",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.5px",
-                }}
-              >
-                Tickets na Lixeira
-              </div>
-              <div
-                style={{ fontSize: "20px", fontWeight: "700", color: "#212529", marginTop: "2px" }}
-              >
-                {tickets.length}
+          <div className="summary-card">
+            <div className="summary-card__content">
+              <div className="summary-card__indicator summary-card__indicator--red" />
+              <div className="summary-card__info">
+                <p className="summary-card__label">Tickets na Lixeira</p>
+                <p className="summary-card__value">{tickets.length}</p>
               </div>
             </div>
           </div>

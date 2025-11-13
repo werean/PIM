@@ -116,3 +116,53 @@
   border-radius: 50%;
   display: inline-block;
 }
+
+/* ===================================
+   Mobile Responsive
+   =================================== */
+@media (max-width: 768px) {
+  .data-table {
+    margin: 0 8px 16px 8px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    width: calc(100% - 16px);
+  }
+
+  .data-table__table {
+    font-size: 11px;
+    width: 100%;
+    display: table;
+  }
+
+  .data-table__head-cell {
+    padding: 8px 6px;
+    font-size: 9px;
+    white-space: nowrap;
+  }
+
+  .data-table__cell {
+    padding: 8px 6px;
+    font-size: 11px;
+  }
+
+  .data-table__cell--title {
+    max-width: 120px;
+    min-width: 100px;
+  }
+
+  .data-table__cell--id {
+    min-width: 50px;
+  }
+
+  .data-table__cell--center {
+    padding: 16px 8px;
+  }
+
+  /* Esconder colunas menos importantes em mobile */
+  .data-table__head-cell:nth-child(6),
+  .data-table__cell:nth-child(6),
+  .data-table__head-cell:nth-child(7),
+  .data-table__cell:nth-child(7) {
+    display: none;
+  }
+}

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import AIChat from "../components/AIChat";
+import BottomNav from "../components/BottomNav";
 import ConfirmModal from "../components/ConfirmModal";
 import Sidebar from "../components/Sidebar";
 import UserBadge from "../components/UserBadge";
@@ -566,62 +567,23 @@ export default function TicketDetailPage() {
   }
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh" }}>
+    <div className="detail-page">
       <Sidebar />
 
-      <div
-        style={{
-          marginLeft: "240px",
-          width: "calc(100% - 240px)",
-          minHeight: "100vh",
-          background: "#f8f9fa",
-        }}
-      >
-        <header
-          style={{
-            background: "#ffffff",
-            borderBottom: "1px solid #e9ecef",
-            padding: "12px 20px",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
-          <div
-            style={{
-              fontSize: "12px",
-              color: "#6c757d",
-            }}
-          >
-            <span
-              style={{ cursor: "pointer", transition: "color 0.15s" }}
-              onClick={() => navigate("/home")}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.color = "#212529";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.color = "#6c757d";
-              }}
-            >
+      <div className="detail-page__content">
+        <header className="detail-page__header">
+          <div className="detail-page__breadcrumb">
+            <span className="detail-page__breadcrumb-link" onClick={() => navigate("/home")}>
               Home
             </span>{" "}
             /{" "}
-            <span
-              style={{ cursor: "pointer", transition: "color 0.15s" }}
-              onClick={() => navigate("/home")}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.color = "#212529";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.color = "#6c757d";
-              }}
-            >
+            <span className="detail-page__breadcrumb-link" onClick={() => navigate("/home")}>
               Chamados
             </span>{" "}
-            / <strong style={{ color: "#212529" }}>#{ticket.id}</strong>
+            / <strong>#{ticket.id}</strong>
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <div className="detail-page__user-section">
             <div
               style={{
                 display: "flex",
@@ -664,32 +626,14 @@ export default function TicketDetailPage() {
                 deleteCookie("user");
                 navigate("/login");
               }}
-              style={{
-                background: "transparent",
-                color: "#6c757d",
-                border: "1px solid #dee2e6",
-                padding: "6px 12px",
-                borderRadius: "3px",
-                cursor: "pointer",
-                fontSize: "12px",
-                fontWeight: "400",
-                transition: "all 0.15s",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = "#dc3545";
-                e.currentTarget.style.color = "#dc3545";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = "#dee2e6";
-                e.currentTarget.style.color = "#6c757d";
-              }}
+              className="btn btn--secondary btn--sm"
             >
               Sair
             </button>
           </div>
         </header>
 
-        <main style={{ padding: "20px" }}>
+        <main className="ticket-detail__main">
           <div style={{ marginBottom: "20px" }}>
             <Link to="/home" style={{ color: "#007bff", textDecoration: "none" }}>
               ← Voltar para lista de chamados
@@ -697,24 +641,9 @@ export default function TicketDetailPage() {
           </div>
 
           {/* Informações do Ticket */}
-          <div
-            style={{
-              background: "white",
-              borderRadius: "4px",
-              padding: "16px",
-              marginBottom: "16px",
-              border: "1px solid #e9ecef",
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "start",
-                marginBottom: "12px",
-              }}
-            >
-              <div>
+          <div className="ticket-detail__card">
+            <div className="ticket-detail__header">
+              <div className="ticket-detail__title-section">
                 <h1
                   style={{
                     margin: "0 0 6px 0",
@@ -731,6 +660,7 @@ export default function TicketDetailPage() {
                 </p>
               </div>
               <span
+                className="ticket-detail__status-badge"
                 style={{
                   display: "inline-block",
                   padding: "4px 10px",
@@ -937,17 +867,8 @@ export default function TicketDetailPage() {
                 gap: "16px",
               }}
             >
-              <div style={{ display: "flex", alignItems: "baseline", gap: "8px" }}>
-                <p
-                  style={{
-                    margin: 0,
-                    fontWeight: "600",
-                    fontSize: "14px",
-                    color: "#495057",
-                  }}
-                >
-                  Urgência:
-                </p>
+              <div className="ticket-detail__meta-row">
+                <p className="ticket-detail__meta-label">Urgência:</p>
                 {isEditingUrgency ? (
                   <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
                     <select
@@ -1019,18 +940,9 @@ export default function TicketDetailPage() {
                   </>
                 )}
               </div>
-              <div style={{ display: "flex", alignItems: "baseline", gap: "8px" }}>
-                <p
-                  style={{
-                    margin: 0,
-                    fontWeight: "600",
-                    fontSize: "14px",
-                    color: "#495057",
-                  }}
-                >
-                  Última atualização:
-                </p>
-                <p style={{ margin: 0 }}>{formatDateTime(ticket.updatedAt)}</p>
+              <div className="ticket-detail__meta-row">
+                <p className="ticket-detail__meta-label">Última atualização:</p>
+                <p className="ticket-detail__meta-value">{formatDateTime(ticket.updatedAt)}</p>
               </div>
             </div>
           </div>
@@ -1793,14 +1705,7 @@ export default function TicketDetailPage() {
               ) : (
                 // Ticket ainda não resolvido - mostrar formulário
                 <div>
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      marginBottom: "16px",
-                    }}
-                  >
+                  <div className="ticket-detail__manage-header">
                     <h3
                       style={{
                         margin: 0,
@@ -1815,30 +1720,9 @@ export default function TicketDetailPage() {
                       type="button"
                       onClick={handleTogglePending}
                       disabled={isSettingPending}
-                      style={{
-                        padding: "8px 16px",
-                        background: ticket.status === 2 ? "#28a745" : "#f2a400",
-                        color: "white",
-                        border: "none",
-                        borderRadius: "6px",
-                        cursor: isSettingPending ? "not-allowed" : "pointer",
-                        fontSize: "14px",
-                        fontWeight: "500",
-                        transition: "background 0.2s",
-                        opacity: isSettingPending ? 0.6 : 1,
-                      }}
-                      onMouseEnter={(e) => {
-                        if (!isSettingPending) {
-                          e.currentTarget.style.background =
-                            ticket.status === 2 ? "#218838" : "#d89000";
-                        }
-                      }}
-                      onMouseLeave={(e) => {
-                        if (!isSettingPending) {
-                          e.currentTarget.style.background =
-                            ticket.status === 2 ? "#28a745" : "#f2a400";
-                        }
-                      }}
+                      className={`ticket-detail__pause-btn ${
+                        ticket.status === 2 ? "ticket-detail__pause-btn--resume" : ""
+                      }`}
                     >
                       {isSettingPending
                         ? ticket.status === 2
@@ -2135,6 +2019,7 @@ export default function TicketDetailPage() {
           </div>
         </div>
       )}
+      <BottomNav />
     </div>
   );
 }

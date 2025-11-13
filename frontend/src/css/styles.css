@@ -14,9 +14,12 @@
 @import "./components/status.css";
 @import "./components/filters.css";
 @import "./components/table.css";
+@import "./components/ai-chat.css";
+@import "./BottomNav.css";
 
 /* Páginas */
 @import "./pages/login.css";
 @import "./pages/home.css";
 @import "./pages/register.css";
 @import "./pages/ticket.css";
+@import "./pages/detail.css";
