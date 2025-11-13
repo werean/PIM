@@ -184,13 +184,23 @@ namespace CSharp.Services
             return true;
         }
 
-        public async Task<bool> ResolveTicketAsync(int id, string resolutionMessage)
+        public async Task<bool> ResolveTicketAsync(int id, string resolutionMessage, bool autoApprove = false)
         {
             var ticket = await _context.Tickets.FindAsync(id);
             if (ticket == null) return false;
             
-            // Quando técnico resolve, fica aguardando aprovação do usuário
-            ticket.Status = TicketStatus.PendingApproval;
+            if (autoApprove)
+            {
+                // Quando o próprio usuário resolve, aprova automaticamente
+                ticket.Status = TicketStatus.Resolved;
+                ticket.ResolutionApproved = true;
+            }
+            else
+            {
+                // Quando técnico resolve, fica aguardando aprovação do usuário
+                ticket.Status = TicketStatus.PendingApproval;
+            }
+            
             ticket.ResolutionMessage = resolutionMessage;
             ticket.UpdatedAt = DateTimeHelper.GetBrasiliaTime();
             

@@ -816,7 +816,7 @@ export default function TicketDetailPage() {
                         e.currentTarget.style.color = "#dc3545";
                       }}
                     >
-                      🗑️
+                      Apagar️
                     </button>
                   )}
                 </div>

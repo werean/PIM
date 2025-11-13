@@ -74,7 +74,7 @@
 
    ```tsx
    <Link to="/home?trash=true" className="sidenav__submenu-item">
-     🗑️ Lixeira
+     Apagar️ Lixeira
    </Link>
    ```
 
@@ -110,7 +110,7 @@
    ```tsx
    {
      isTechnician() && (
-       <button onClick={() => handleSoftDelete(ticket.id)}>🗑️ Mover para Lixeira</button>
+       <button onClick={() => handleSoftDelete(ticket.id)}>Apagar️ Mover para Lixeira</button>
      );
    }
    ```
@@ -168,7 +168,7 @@
 1. Ticket não é removido do banco
 2. `IsDeleted = true`, `DeletedAt = now`
 3. Some da listagem normal
-4. Aparece apenas em "🗑️ Lixeira"
+4. Aparece apenas em "Apagar️ Lixeira"
 5. Técnico pode restaurar se necessário
 
 ## 📝 Notas Importantes

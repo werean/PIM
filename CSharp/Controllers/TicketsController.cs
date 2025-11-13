@@ -189,15 +189,27 @@ namespace CSharp.Controllers
                     return BadRequest(new { message = "Mensagem de resolução deve ter no mínimo 10 caracteres" });
                 }
 
+                var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
                 var userRoleClaim = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
                 
-                // Apenas técnicos podem resolver tickets
-                if (userRoleClaim != "10")
+                // Buscar o ticket para verificar o dono
+                var ticket = await _service.GetByIdAsync(id);
+                if (ticket == null)
+                    return NotFound(new { message = "Ticket não encontrado" });
+                
+                // Permitir se for técnico OU se for o próprio criador do ticket
+                bool isTechnician = userRoleClaim == "10";
+                bool isOwner = userIdClaim != null && ticket.UserId.ToString() == userIdClaim;
+                
+                if (!isTechnician && !isOwner)
                 {
                     return Forbid();
                 }
                 
-                var ok = await _service.ResolveTicketAsync(id, dto.ResolutionMessage);
+                // Se for o próprio usuário resolvendo, aprovar automaticamente
+                bool autoApprove = isOwner && !isTechnician;
+                
+                var ok = await _service.ResolveTicketAsync(id, dto.ResolutionMessage, autoApprove);
                 if (!ok) return NotFound(new { message = "Ticket não encontrado" });
                 return Ok(new { message = "Ticket resolvido com sucesso" });
             }

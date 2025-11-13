@@ -43,14 +43,15 @@ export default function RegisterTicketPage() {
     if (isTechnician()) {
       setIsCreating(true);
       try {
-        const response = await apiPost<{ id: number }>("/tickets", {
+        console.log("Criando ticket como técnico...");
+        await apiPost("/tickets", {
           title: title.trim(),
           ticketBody: ticketBody.trim(),
           urgency: parseInt(urgency, 10),
         });
 
         showSuccess("Chamado criado com sucesso!");
-        navigate(`/tickets/${response.id}`);
+        navigate("/home");
       } catch (error) {
         console.error("Erro ao criar ticket:", error);
         showError("Erro ao criar chamado. Tente novamente.");
@@ -123,7 +124,7 @@ export default function RegisterTicketPage() {
               Cancelar
             </button>
             <button type="submit" className="btn btn--primary" disabled={isCreating}>
-              Continuar
+              {isTechnician() ? "Criar Ticket" : "Continuar"}
             </button>
           </div>
         </form>

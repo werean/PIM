@@ -220,7 +220,7 @@ export default function TrashPage() {
             e.currentTarget.style.color = "#dc3545";
           }}
         >
-          🗑️
+          Apagar
         </button>
       ),
     },
