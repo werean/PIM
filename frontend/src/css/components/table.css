@@ -123,8 +123,7 @@
 @media (max-width: 768px) {
   .data-table {
     margin: 0 8px 16px 8px;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
+    overflow-x: hidden;
     width: calc(100% - 16px);
   }
 
