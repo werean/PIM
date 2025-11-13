@@ -9,6 +9,7 @@
 @import "./components/list.css";
 @import "./components/card.css";
 @import "./components/layout.css";
+@import "./components/page-layout.css";
 @import "./components/sidenav.css";
 @import "./components/topbar.css";
 @import "./components/status.css";

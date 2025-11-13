@@ -1,0 +1,23 @@
+/* Page Layout Component */
+
+.page-layout {
+  display: flex;
+  min-height: 100vh;
+}
+
+.page-layout__main {
+  flex: 1;
+  margin-left: var(--sidebar-width);
+  width: calc(100% - var(--sidebar-width));
+  min-height: 100vh;
+  background: #f8f9fa;
+}
+
+/* Mobile Responsive - Add padding to prevent bottom nav overlap */
+@media (max-width: 768px) {
+  .page-layout__main {
+    margin-left: 0;
+    width: 100%;
+    padding-bottom: 64px; /* Bottom nav + minimal spacing */
+  }
+}

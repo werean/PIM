@@ -311,6 +311,7 @@
     width: 100vw;
     max-width: 100%;
     overflow-x: hidden;
+    padding-bottom: 64px; /* Height of bottom nav + minimal spacing */
   }
 
   .detail-page__header {
