@@ -4,6 +4,7 @@ import { useToast } from "../hooks/useToast";
 import { apiGet, apiPost } from "../services/api";
 import { getCookie } from "../utils/cookies";
 import ConfirmModal from "./ConfirmModal";
+import Spinner from "./Spinner";
 
 interface Message {
   id: number;
@@ -793,7 +794,7 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
                       transition: "background-color 0.2s",
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = "#5a4bd1";
+                      e.currentTarget.style.backgroundColor = "#8b7cf5";
                     }}
                     onMouseLeave={(e) => {
                       e.currentTarget.style.backgroundColor = "#6c5ce7";
@@ -821,7 +822,7 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
                       transition: "background-color 0.2s",
                     }}
                     onMouseEnter={(e) => {
-                      if (!isManagingOllama) e.currentTarget.style.backgroundColor = "#218838";
+                      if (!isManagingOllama) e.currentTarget.style.backgroundColor = "#4ade80";
                     }}
                     onMouseLeave={(e) => {
                       e.currentTarget.style.backgroundColor = "#28a745";
@@ -850,7 +851,7 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
                     }}
                     onMouseEnter={(e) => {
                       if (!(isCheckingOllama || isLoadingModels)) {
-                        e.currentTarget.style.backgroundColor = "#5a6268";
+                        e.currentTarget.style.backgroundColor = "#9ca3af";
                       }
                     }}
                     onMouseLeave={(e) => {
@@ -901,7 +902,7 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
                   transition: "background-color 0.2s",
                 }}
                 onMouseEnter={(e) => {
-                  if (!isManagingOllama) e.currentTarget.style.backgroundColor = "#c82333";
+                  if (!isManagingOllama) e.currentTarget.style.backgroundColor = "#f87171";
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.backgroundColor = "#dc3545";
@@ -1070,7 +1071,7 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
                 }}
                 onMouseEnter={(e) => {
                   if (!(isPullingModel || isLoadingModels || isDeletingModel)) {
-                    e.currentTarget.style.backgroundColor = "#c82333";
+                    e.currentTarget.style.backgroundColor = "#f87171";
                   }
                 }}
                 onMouseLeave={(e) => {
@@ -1337,7 +1338,7 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
               />
               <button
                 onClick={handleSend}
-                disabled={!isConnected || isSending || !inputMessage.trim() || isPullingModel}
+                disabled={!isConnected || isPullingModel || (!isSending && !inputMessage.trim())}
                 style={{
                   padding: "10px 16px",
                   height: "40px",
@@ -1346,29 +1347,39 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
                   border: "none",
                   borderRadius: "8px",
                   cursor:
-                    !isConnected || isSending || !inputMessage.trim() || isPullingModel
+                    !isConnected || isPullingModel || (!isSending && !inputMessage.trim())
                       ? "not-allowed"
                       : "pointer",
                   fontSize: "14px",
                   fontWeight: "500",
                   opacity:
-                    !isConnected || isSending || !inputMessage.trim() || isPullingModel ? 0.6 : 1,
+                    !isConnected || isPullingModel || (!isSending && !inputMessage.trim())
+                      ? 0.6
+                      : 1,
                   transition: "background-color 0.2s",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   boxSizing: "border-box",
+                  minWidth: "90px",
+                  outline: "none",
                 }}
                 onMouseEnter={(e) => {
                   if (!(!isConnected || isSending || !inputMessage.trim() || isPullingModel)) {
-                    e.currentTarget.style.backgroundColor = "#5a4bd1";
+                    e.currentTarget.style.backgroundColor = "#8b7cf5";
                   }
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.backgroundColor = isPullingModel ? "#ffc107" : "#6c5ce7";
                 }}
               >
-                {isPullingModel ? "Baixando..." : isSending ? "..." : "Enviar"}
+                {isPullingModel ? (
+                  "Baixando..."
+                ) : isSending ? (
+                  <Spinner size={18} color="white" />
+                ) : (
+                  "Enviar"
+                )}
               </button>
             </div>
           </div>

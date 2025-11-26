@@ -5,6 +5,7 @@ import { apiPost } from "../services/api";
 import { useToast } from "../hooks/useToast";
 import PageLayout from "../components/PageLayout";
 import PageHeader from "../components/PageHeader";
+import Spinner from "../components/Spinner";
 
 interface Message {
   id: number;
@@ -357,7 +358,7 @@ export default function TicketTriagePage() {
               disabled={isCreatingResolvedTicket || isCreatingTicket}
               className="btn btn--success triage-btn"
             >
-              {isCreatingResolvedTicket ? "Criando..." : "✓ Meu problema foi resolvido"}
+              {isCreatingResolvedTicket ? "Criando..." : "Meu problema foi resolvido"}
             </button>
             {aiResponseCount >= 3 && (
               <button
@@ -486,14 +487,14 @@ export default function TicketTriagePage() {
               backgroundColor: "white",
             }}
           >
-            <div style={{ display: "flex", gap: "12px", alignItems: "flex-end" }}>
-              <textarea
+            <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+              <input
+                type="text"
                 value={inputMessage}
                 onChange={(e) => setInputMessage(e.target.value)}
                 onKeyPress={handleKeyPress}
                 placeholder="Digite sua resposta..."
                 disabled={!isConnected || isSending}
-                rows={2}
                 style={{
                   flex: 1,
                   padding: "10px 12px",
@@ -501,20 +502,38 @@ export default function TicketTriagePage() {
                   borderRadius: "8px",
                   fontSize: "14px",
                   fontFamily: "inherit",
-                  resize: "none",
                   outline: "none",
+                  height: "40px",
+                  boxSizing: "border-box",
                 }}
               />
               <button
                 onClick={handleSend}
-                disabled={!isConnected || isSending || !inputMessage.trim()}
-                className="btn btn--primary"
+                disabled={!isConnected || (!isSending && !inputMessage.trim())}
                 style={{
                   padding: "10px 20px",
                   fontSize: "14px",
+                  height: "40px",
+                  boxSizing: "border-box",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  minWidth: "90px",
+                  backgroundColor: "#6c5ce7",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "6px",
+                  fontWeight: "500",
+                  cursor:
+                    !isConnected || (!isSending && !inputMessage.trim())
+                      ? "not-allowed"
+                      : "pointer",
+                  opacity: !isConnected || (!isSending && !inputMessage.trim()) ? 0.6 : 1,
+                  transition: "background-color 0.2s",
+                  outline: "none",
                 }}
               >
-                {isSending ? "..." : "Enviar"}
+                {isSending ? <Spinner size={18} color="white" /> : "Enviar"}
               </button>
             </div>
           </div>

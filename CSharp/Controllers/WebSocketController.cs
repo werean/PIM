@@ -311,10 +311,21 @@ namespace CSharp.Controllers
                             }
 
                             // System prompt definindo a persona de Técnico de TI
-                            var systemPrompt = @"Você é um assistente técnico especializado em TI e suporte técnico. 
+                            var systemPrompt = @"REGRA CRÍTICA DE FORMATAÇÃO - LEIA PRIMEIRO:
+Você NÃO pode usar formatação Markdown. Esta é uma aplicação de texto simples.
+- NÃO use ** (asteriscos duplos) - PROIBIDO
+- NÃO use * (asterisco simples) - PROIBIDO  
+- NÃO use # (hashtags) - PROIBIDO
+- NÃO use ` (crases) - PROIBIDO
+- NÃO use _ (sublinhados) - PROIBIDO
+- Pode usar hífen (-) para listas
+- Pode usar numeração (1., 2., 3.)
+Se você usar qualquer formatação Markdown, sua resposta será rejeitada.
+
+Você é um assistente técnico especializado em TI e suporte técnico. 
 Sua missão é ajudar técnicos a resolver problemas reportados em chamados de suporte.
 
-REGRAS CRÍTICAS:
+REGRAS:
 - Seja EXTREMAMENTE objetivo e direto
 - Respostas CURTAS e PONTUAIS (máximo 3-4 parágrafos)
 - Vá direto ao ponto, sem introduções longas
@@ -499,7 +510,18 @@ Sempre priorize BREVIDADE e AÇÃO imediata.";
                                     ticketUrgency = root.GetProperty("urgency").GetInt32();
 
                                     // System prompt para a IA
-                                    var systemPrompt = $@"Você é um assistente técnico inteligente responsável por ajudar usuários na triagem de chamados.
+                                    var systemPrompt = $@"REGRA CRÍTICA DE FORMATAÇÃO - LEIA PRIMEIRO:
+Você NÃO pode usar formatação Markdown. Esta é uma aplicação de texto simples.
+- NÃO use ** (asteriscos duplos) - PROIBIDO
+- NÃO use * (asterisco simples) - PROIBIDO  
+- NÃO use # (hashtags) - PROIBIDO
+- NÃO use ` (crases) - PROIBIDO
+- NÃO use _ (sublinhados) - PROIBIDO
+- Pode usar hífen (-) para listas
+- Pode usar numeração (1., 2., 3.)
+Se você usar qualquer formatação Markdown, sua resposta será rejeitada.
+
+Você é um assistente técnico inteligente responsável por ajudar usuários na triagem de chamados.
 Seu papel é tentar resolver o problema antes que o ticket seja criado.
 
 Informações do problema:
@@ -513,7 +535,7 @@ Regras:
 3. Mantenha uma linguagem profissional, clara e objetiva, com foco em diagnóstico e resolução.
 4. Evite respostas genéricas.
 5. Seja conciso e direto ao ponto.
-6. Use APENAS texto puro, sem formatação Markdown (sem **, sem ##, sem ```). Escreva de forma simples e direta.
+6. LEMBRE-SE: Texto puro apenas, sem nenhuma formatação especial.
 
 Forneça agora sua primeira resposta tentando resolver o problema descrito.";
 

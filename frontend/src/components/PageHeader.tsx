@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { useUserProfile } from "../contexts/UserProfileContext";
 import { getCurrentUserName } from "../services/api";
 import { deleteCookie } from "../utils/cookies";
 import UserBadge from "./UserBadge";
@@ -12,11 +13,9 @@ interface PageHeaderProps {
  * Header semântico com breadcrumb navigation e user info
  * Segue padrão BEM para nomenclatura de classes
  */
-export default function PageHeader({
-  breadcrumbs,
-  className = "",
-}: PageHeaderProps) {
+export default function PageHeader({ breadcrumbs, className = "" }: PageHeaderProps) {
   const navigate = useNavigate();
+  const { profile } = useUserProfile();
 
   const handleLogout = () => {
     deleteCookie("token");
@@ -29,9 +28,7 @@ export default function PageHeader({
       <nav className="page-header__breadcrumb" aria-label="Breadcrumb">
         {breadcrumbs.map((crumb, index) => (
           <span key={index} className="page-header__breadcrumb-item">
-            {index > 0 && (
-              <span className="page-header__breadcrumb-separator"> / </span>
-            )}
+            {index > 0 && <span className="page-header__breadcrumb-separator"> / </span>}
             {crumb.path ? (
               <button
                 onClick={() => navigate(crumb.path!)}
@@ -41,9 +38,7 @@ export default function PageHeader({
                 {crumb.label}
               </button>
             ) : (
-              <strong className="page-header__breadcrumb-current">
-                {crumb.label}
-              </strong>
+              <strong className="page-header__breadcrumb-current">{crumb.label}</strong>
             )}
           </span>
         ))}
@@ -57,14 +52,12 @@ export default function PageHeader({
           aria-label="Ver perfil"
         >
           <UserBadge size={28} fontSize={11} />
-          <span className="page-header__user-name">{getCurrentUserName()}</span>
+          <span className="page-header__user-name">
+            {profile?.username || getCurrentUserName()}
+          </span>
         </button>
 
-        <button
-          onClick={handleLogout}
-          className="page-header__logout-button"
-          type="button"
-        >
+        <button onClick={handleLogout} className="page-header__logout-button" type="button">
           Sair
         </button>
       </div>

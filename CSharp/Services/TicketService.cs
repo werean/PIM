@@ -370,7 +370,18 @@ namespace CSharp.Services
                     return "";
                 }).Where(s => !string.IsNullOrEmpty(s)));
 
-                var summaryPrompt = $@"Analise a seguinte conversa entre o usuário e o assistente técnico de triagem:
+                var summaryPrompt = $@"REGRA CRÍTICA DE FORMATAÇÃO - LEIA PRIMEIRO:
+Você NÃO pode usar formatação Markdown. Esta é uma aplicação de texto simples.
+- NÃO use ** (asteriscos duplos) - PROIBIDO
+- NÃO use * (asterisco simples) - PROIBIDO  
+- NÃO use # (hashtags) - PROIBIDO
+- NÃO use ` (crases) - PROIBIDO
+- NÃO use _ (sublinhados) - PROIBIDO
+- Pode usar hífen (-) para listas
+- Pode usar numeração (1., 2., 3.)
+Se você usar qualquer formatação Markdown, sua resposta será rejeitada.
+
+Analise a seguinte conversa entre o usuário e o assistente técnico de triagem:
 
 {conversationText}
 
@@ -379,6 +390,8 @@ Gere dois textos separados:
 1. RESUMO DAS AÇÕES: Liste todas as ações que o assistente solicitou ao usuário executar durante a conversa (testes, verificações, configurações, etc.). Seja específico e direto.
 
 2. SÍNTESE E HIPÓTESES: Produza uma síntese conclusiva com as hipóteses e deduções sobre a causa provável do problema, baseada nas informações coletadas. Ao final, sugira um nível de urgência (Baixa, Média ou Alta) com base na gravidade do problema identificado.
+
+LEMBRE-SE: Texto puro apenas, sem nenhuma formatação especial (sem **, sem #, sem `)
 
 Formate sua resposta EXATAMENTE assim:
 [RESUMO]

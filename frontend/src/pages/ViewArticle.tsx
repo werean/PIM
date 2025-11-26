@@ -143,7 +143,7 @@ export default function ViewArticle() {
             ) : (
               <>
                 <button
-                  className="btn btn--secondary"
+                  className="btn btn--cancel"
                   onClick={handleCancelEdit}
                   disabled={isSubmitting}
                 >

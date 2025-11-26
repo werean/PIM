@@ -116,7 +116,7 @@ export default function RegisterTicketPage() {
           <div className="form__actions">
             <button
               type="button"
-              className="btn btn--secondary"
+              className="btn btn--cancel"
               onClick={() => navigate("/home")}
               disabled={isCreating}
             >

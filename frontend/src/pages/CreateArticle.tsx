@@ -5,6 +5,7 @@ import { apiPost } from "../services/api";
 import PageHeader from "../components/PageHeader";
 import PageLayout from "../components/PageLayout";
 import FormField from "../components/FormField";
+import Spinner from "../components/Spinner";
 
 export default function CreateArticle() {
   const [title, setTitle] = useState("");
@@ -140,7 +141,7 @@ export default function CreateArticle() {
           <div className="form__actions">
             <button
               type="button"
-              className="btn btn--secondary"
+              className="btn btn--cancel"
               onClick={() => navigate("/knowledgebase")}
               disabled={isSubmitting || isGenerating}
             >
@@ -155,9 +156,19 @@ export default function CreateArticle() {
                 backgroundColor: "#17a2b8",
                 borderColor: "#17a2b8",
                 color: "white",
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
               }}
             >
-              {isGenerating ? "Gerando..." : "🤖 Melhorar texto com IA"}
+              {isGenerating ? (
+                <>
+                  <Spinner size={16} color="white" />
+                  Gerando...
+                </>
+              ) : (
+                "🤖 Melhorar texto com IA"
+              )}
             </button>
             <button
               type="submit"
@@ -289,13 +300,20 @@ export default function CreateArticle() {
                 style={{
                   padding: "10px 20px",
                   background: "transparent",
-                  color: "#6c757d",
-                  border: "1px solid #dee2e6",
+                  color: "#dc3545",
+                  border: "1px solid #dc3545",
                   borderRadius: "6px",
                   cursor: isSavingImproved ? "not-allowed" : "pointer",
                   fontSize: "14px",
                   fontWeight: "500",
                   opacity: isSavingImproved ? 0.6 : 1,
+                  transition: "all 0.15s",
+                }}
+                onMouseEnter={(e) => {
+                  if (!isSavingImproved) e.currentTarget.style.backgroundColor = "#fce8ea";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = "transparent";
                 }}
               >
                 Cancelar

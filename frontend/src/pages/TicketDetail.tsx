@@ -4,7 +4,9 @@ import AIChat from "../components/AIChat";
 import BottomNav from "../components/BottomNav";
 import ConfirmModal from "../components/ConfirmModal";
 import Sidebar from "../components/Sidebar";
+import Spinner from "../components/Spinner";
 import UserBadge from "../components/UserBadge";
+import { useUserProfile } from "../contexts/UserProfileContext";
 import { useConfirm } from "../hooks/useConfirm";
 import { useToast } from "../hooks/useToast";
 import type { Comment, CreateCommentPayload, Ticket } from "../services/api";
@@ -66,6 +68,7 @@ function formatDateTime(dateStr?: string) {
 export default function TicketDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { profile } = useUserProfile();
   const { showSuccess, showError, showWarning, showInfo } = useToast();
   const { confirm, confirmState, handleCancel } = useConfirm();
   const [ticket, setTicket] = useState<Ticket | null>(null);
@@ -786,7 +789,7 @@ export default function TicketDetailPage() {
                   fontWeight: "500",
                 }}
               >
-                {getCurrentUserName()}
+                {profile?.username || getCurrentUserName()}
               </span>
             </div>
             <button
@@ -907,8 +910,8 @@ export default function TicketDetailPage() {
                         transition: "all 0.15s",
                       }}
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = "#dc3545";
-                        e.currentTarget.style.color = "white";
+                        e.currentTarget.style.backgroundColor = "#fce8ea";
+                        e.currentTarget.style.color = "#dc3545";
                       }}
                       onMouseLeave={(e) => {
                         e.currentTarget.style.backgroundColor = "transparent";
@@ -966,8 +969,8 @@ export default function TicketDetailPage() {
                         transition: "all 0.15s",
                       }}
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = "#28a745";
-                        e.currentTarget.style.color = "white";
+                        e.currentTarget.style.backgroundColor = "#e8f5ea";
+                        e.currentTarget.style.color = "#28a745";
                       }}
                       onMouseLeave={(e) => {
                         e.currentTarget.style.backgroundColor = "transparent";
@@ -985,18 +988,18 @@ export default function TicketDetailPage() {
                       style={{
                         padding: "5px 12px",
                         backgroundColor: "transparent",
-                        color: "#6c757d",
-                        border: "1px solid #dee2e6",
+                        color: "#dc3545",
+                        border: "1px solid #dc3545",
                         borderRadius: "3px",
                         fontSize: "12px",
                         cursor: "pointer",
                         transition: "all 0.15s",
                       }}
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.borderColor = "#6c757d";
+                        e.currentTarget.style.backgroundColor = "#fce8ea";
                       }}
                       onMouseLeave={(e) => {
-                        e.currentTarget.style.borderColor = "#dee2e6";
+                        e.currentTarget.style.backgroundColor = "transparent";
                       }}
                     >
                       Cancelar
@@ -1073,11 +1076,18 @@ export default function TicketDetailPage() {
                       style={{
                         padding: "4px 8px",
                         fontSize: "11px",
-                        background: "#6c757d",
-                        color: "white",
-                        border: "none",
+                        background: "transparent",
+                        color: "#dc3545",
+                        border: "1px solid #dc3545",
                         borderRadius: "3px",
                         cursor: "pointer",
+                        transition: "all 0.15s",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = "#fce8ea";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = "transparent";
                       }}
                     >
                       Cancelar
@@ -1506,8 +1516,8 @@ export default function TicketDetailPage() {
                     }}
                     onMouseEnter={(e) => {
                       if (!isApprovingResolution) {
-                        e.currentTarget.style.backgroundColor = "#28a745";
-                        e.currentTarget.style.color = "white";
+                        e.currentTarget.style.backgroundColor = "#e8f5ea";
+                        e.currentTarget.style.color = "#28a745";
                       }
                     }}
                     onMouseLeave={(e) => {
@@ -1601,8 +1611,8 @@ export default function TicketDetailPage() {
                       transition: "all 0.15s",
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = "#dc3545";
-                      e.currentTarget.style.color = "white";
+                      e.currentTarget.style.backgroundColor = "#fce8ea";
+                      e.currentTarget.style.color = "#dc3545";
                     }}
                     onMouseLeave={(e) => {
                       e.currentTarget.style.backgroundColor = "transparent";
@@ -1786,8 +1796,8 @@ export default function TicketDetailPage() {
                   }}
                   onMouseEnter={(e) => {
                     if (!sending && message.trim()) {
-                      e.currentTarget.style.background = "#007bff";
-                      e.currentTarget.style.color = "white";
+                      e.currentTarget.style.background = "#e8f3fc";
+                      e.currentTarget.style.color = "#007bff";
                     }
                   }}
                   onMouseLeave={(e) => {
@@ -1910,11 +1920,15 @@ export default function TicketDetailPage() {
                       fontWeight: "500",
                       transition: "all 0.2s",
                       opacity: isGeneratingArticle ? 0.6 : 1,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: "8px",
                     }}
                     onMouseEnter={(e) => {
                       if (!isGeneratingArticle) {
-                        e.currentTarget.style.background = "#007bff";
-                        e.currentTarget.style.color = "white";
+                        e.currentTarget.style.background = "#e8f3fc";
+                        e.currentTarget.style.color = "#007bff";
                       }
                     }}
                     onMouseLeave={(e) => {
@@ -1924,9 +1938,14 @@ export default function TicketDetailPage() {
                       }
                     }}
                   >
-                    {isGeneratingArticle
-                      ? "📝 Gerando artigo..."
-                      : "📝 Gerar artigo para base de conhecimento"}
+                    {isGeneratingArticle ? (
+                      <>
+                        <Spinner size={16} color="#007bff" />
+                        Gerando artigo...
+                      </>
+                    ) : (
+                      "📝 Gerar artigo para base de conhecimento"
+                    )}
                   </button>
                 </div>
               ) : (
@@ -2041,7 +2060,7 @@ export default function TicketDetailPage() {
                       }}
                       onMouseEnter={(e) => {
                         if (!isResolvingTicket && resolutionMessage.trim().length >= 10) {
-                          e.currentTarget.style.background = "#218838";
+                          e.currentTarget.style.background = "#4ade80";
                         }
                       }}
                       onMouseLeave={(e) => {
@@ -2200,13 +2219,20 @@ export default function TicketDetailPage() {
                 style={{
                   padding: "10px 20px",
                   background: "transparent",
-                  color: "#6c757d",
-                  border: "1px solid #dee2e6",
+                  color: "#dc3545",
+                  border: "1px solid #dc3545",
                   borderRadius: "6px",
                   cursor: isSavingArticle ? "not-allowed" : "pointer",
                   fontSize: "14px",
                   fontWeight: "500",
                   opacity: isSavingArticle ? 0.6 : 1,
+                  transition: "all 0.15s",
+                }}
+                onMouseEnter={(e) => {
+                  if (!isSavingArticle) e.currentTarget.style.backgroundColor = "#fce8ea";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = "transparent";
                 }}
               >
                 Cancelar

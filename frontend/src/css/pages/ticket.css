@@ -176,7 +176,7 @@
 }
 
 .chat-input-form__submit:hover:not(:disabled) {
-  background: #5a3b8a;
+  background: #8b7cf5;
 }
 
 .chat-input-form__submit:disabled {
@@ -206,7 +206,7 @@
 }
 
 .btn--success.triage-btn:hover:not(:disabled) {
-  background-color: #218838;
+  background-color: #5cb85c;
 }
 
 .btn--success.triage-btn:disabled {

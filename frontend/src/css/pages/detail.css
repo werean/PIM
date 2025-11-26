@@ -278,11 +278,11 @@
 }
 
 .ticket-detail__pause-btn:hover:not(:disabled) {
-  background: #d89000;
+  background: #f5c35a;
 }
 
 .ticket-detail__pause-btn--resume:hover:not(:disabled) {
-  background: #218838;
+  background: #5cb85c;
 }
 
 .ticket-detail__pause-btn:disabled {

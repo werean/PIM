@@ -6,11 +6,11 @@ import BottomNav from "../components/BottomNav";
 import type { ToastType } from "../components/Toast";
 import Toast from "../components/Toast";
 import UserBadgeSmall from "../components/UserBadge";
+import { useUserProfile } from "../contexts/UserProfileContext";
 import {
   changePassword,
   getCurrentUserName,
   getCurrentUserRole,
-  getMyProfile,
   updateMyProfile,
 } from "../services/api";
 import { deleteCookie, isAuthenticated } from "../utils/cookies";
@@ -48,6 +48,11 @@ function UserBadge({ size = 80 }: { size?: number }) {
 
 export default function ProfilePage() {
   const navigate = useNavigate();
+  const {
+    profile,
+    updateProfileImage: updateGlobalProfileImage,
+    refreshProfile,
+  } = useUserProfile();
   const [name, setName] = useState(getCurrentUserName());
   const [email, setEmail] = useState("");
   const [profileImage, setProfileImage] = useState<string | null>(null);
@@ -79,7 +84,7 @@ export default function ProfilePage() {
       const reader = new FileReader();
       reader.onloadend = () => {
         setProfileImage(reader.result as string);
-        showToast("Imagem carregada com sucesso!", "success");
+        showToast("Foto carregada. Clique em 'Salvar Foto' para confirmar.", "info");
       };
       reader.readAsDataURL(file);
     }
@@ -87,6 +92,29 @@ export default function ProfilePage() {
 
   const handleRemoveImage = () => {
     setProfileImage(null);
+    showToast("Foto removida. Clique em 'Salvar Foto' para confirmar.", "info");
+  };
+
+  // Verifica se a foto foi alterada
+  const hasImageChanged = profileImage !== originalData.profileImage;
+
+  // Salvar apenas a foto
+  const handleSaveImage = async () => {
+    try {
+      await updateMyProfile({ profileImage });
+
+      // Atualiza os dados originais
+      const newProfileImage = profileImage;
+      setOriginalData((prev) => ({ ...prev, profileImage: newProfileImage }));
+
+      // Atualiza a imagem no contexto global para todos os componentes
+      updateGlobalProfileImage(newProfileImage);
+
+      showToast("Foto atualizada com sucesso!", "success");
+    } catch (error) {
+      console.error("Erro ao atualizar foto:", error);
+      showToast(error instanceof Error ? error.message : "Erro ao atualizar foto", "error");
+    }
   };
 
   useEffect(() => {
@@ -95,23 +123,18 @@ export default function ProfilePage() {
       return;
     }
 
-    // Carregar perfil do usuário
-    getMyProfile()
-      .then((profile) => {
-        setName(profile.username);
-        setEmail(profile.email);
-        setProfileImage(profile.profileImage || null);
-        setOriginalData({
-          name: profile.username,
-          email: profile.email,
-          profileImage: profile.profileImage || null,
-        });
-      })
-      .catch((error) => {
-        console.error("Erro ao carregar perfil:", error);
-        showToast("Erro ao carregar perfil do usuário", "error");
+    // Usar dados do contexto quando disponíveis (apenas na primeira carga)
+    if (profile && !originalData.name) {
+      setName(profile.username);
+      setEmail(profile.email);
+      setProfileImage(profile.profileImage || null);
+      setOriginalData({
+        name: profile.username,
+        email: profile.email,
+        profileImage: profile.profileImage || null,
       });
-  }, [navigate]);
+    }
+  }, [navigate, profile, originalData.name]);
 
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -171,6 +194,14 @@ export default function ProfilePage() {
         email: email,
         profileImage: profileImage,
       });
+
+      // Atualiza a imagem no contexto global para todos os componentes
+      if (profileImage !== originalData.profileImage) {
+        updateGlobalProfileImage(profileImage);
+      }
+
+      // Atualiza o perfil completo no contexto
+      await refreshProfile();
 
       showToast("Perfil atualizado com sucesso!", "success");
       setIsEditing(false);
@@ -263,7 +294,7 @@ export default function ProfilePage() {
                     fontWeight: "500",
                   }}
                 >
-                  {getCurrentUserName()}
+                  {profile?.username || getCurrentUserName()}
                 </span>
               </div>
               <button
@@ -337,6 +368,24 @@ export default function ProfilePage() {
                         Remover foto
                       </button>
                     )}
+                    {hasImageChanged && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={handleSaveImage}
+                          className="btn btn--primary btn--sm"
+                        >
+                          Salvar Foto
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setProfileImage(originalData.profileImage)}
+                          className="btn btn--cancel btn--sm"
+                        >
+                          Cancelar
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
@@ -393,7 +442,7 @@ export default function ProfilePage() {
                           setEmail(originalData.email);
                           setProfileImage(originalData.profileImage);
                         }}
-                        className="btn btn--secondary btn--sm"
+                        className="btn btn--cancel btn--sm"
                       >
                         Cancelar
                       </button>

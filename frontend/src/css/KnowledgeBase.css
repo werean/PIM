@@ -16,8 +16,9 @@
 }
 
 .knowledge-base__card:hover {
-  border-color: var(--color-primary);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-color: var(--color-primary-light);
+  box-shadow: 0 2px 8px rgba(108, 92, 231, 0.15);
+  background: #faf9ff;
 }
 
 .knowledge-base__card-header {

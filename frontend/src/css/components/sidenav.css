@@ -28,7 +28,7 @@
   transition: all color 0.3s;
 }
 .sidenav__toggle:hover {
-  color: #3c2357;
+  color: #d4c5e8;
 }
 .sidenav__nav {
   flex: 1 1 auto;
@@ -56,6 +56,6 @@
 }
 .sidenav__submenu-item:hover,
 .sidenav__submenu-item--active {
-  background-color: #6f5683;
-  color: #3c2357;
+  background-color: #e8e5fc;
+  color: #6c5ce7;
 }

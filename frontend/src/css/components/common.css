@@ -817,14 +817,14 @@
 }
 
 .modal-button--secondary {
-  background: var(--color-bg-white);
-  color: var(--color-text-secondary);
-  border: var(--border-default);
+  background: transparent;
+  color: var(--color-error);
+  border: 1px solid var(--color-error);
 }
 
 .modal-button--secondary:hover {
-  background: var(--color-bg-primary);
-  border-color: var(--color-border-dark);
+  background: var(--color-error-pastel);
+  color: var(--color-error);
 }
 
 .modal-button--info {
@@ -885,8 +885,8 @@
 }
 
 .btn--primary:hover:not(:disabled) {
-  background: var(--color-primary-dark);
-  border-color: var(--color-primary-dark);
+  background: var(--color-primary-light);
+  border-color: var(--color-primary-light);
 }
 
 .btn--secondary {
@@ -900,13 +900,25 @@
   border-color: var(--color-border-dark);
 }
 
+/* Botão de Cancelar - estilo danger outline */
+.btn--cancel {
+  background: transparent;
+  color: var(--color-error);
+  border: 1px solid var(--color-error);
+}
+
+.btn--cancel:hover:not(:disabled) {
+  background: var(--color-error-pastel);
+  color: var(--color-error);
+}
+
 .btn--info {
   background: var(--color-primary);
   color: var(--color-text-white);
 }
 
 .btn--info:hover:not(:disabled) {
-  background: var(--color-primary-dark);
+  background: var(--color-primary-light);
 }
 
 .btn--danger {
@@ -915,7 +927,7 @@
 }
 
 .btn--danger:hover:not(:disabled) {
-  background: var(--color-error-dark);
+  background: var(--color-error-hover);
 }
 
 .btn--danger-outline {
@@ -925,8 +937,8 @@
 }
 
 .btn--danger-outline:hover:not(:disabled) {
-  background: var(--color-error);
-  color: var(--color-text-white);
+  background: var(--color-error-pastel);
+  color: var(--color-error);
 }
 
 .btn--sm {

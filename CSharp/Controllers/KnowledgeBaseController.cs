@@ -249,7 +249,23 @@ namespace CSharp.Controllers
                     return BadRequest(new { error = "O ticket não possui uma solução registrada" });
 
                 // Montar o prompt para a IA
-                var prompt = $@"Você é responsável por transformar soluções de tickets de suporte técnico em artigos para a base de conhecimento de uma empresa.
+                var prompt = $@"REGRA CRÍTICA DE FORMATAÇÃO - LEIA PRIMEIRO:
+Você NÃO pode usar formatação Markdown. Esta é uma aplicação de texto simples.
+- NÃO use ** (asteriscos duplos) - PROIBIDO
+- NÃO use * (asterisco simples) - PROIBIDO  
+- NÃO use # (hashtags) - PROIBIDO
+- NÃO use ` (crases) - PROIBIDO
+- NÃO use _ (sublinhados) - PROIBIDO
+- Pode usar hífen (-) para listas
+- Pode usar numeração (1., 2., 3.)
+Se você usar qualquer formatação Markdown, sua resposta será rejeitada.
+
+REGRA DE ESTRUTURA - MUITO IMPORTANTE:
+- NÃO comece o conteúdo com introduções genéricas como ""Este documento descreve..."", ""Este artigo explica..."", ""O objetivo deste artigo...""
+- NÃO escreva parágrafos introdutórios ou contextualizações
+- Vá DIRETO ao conteúdo prático e útil
+
+Você é responsável por transformar soluções de tickets de suporte técnico em artigos para a base de conhecimento de uma empresa.
 
 A seguir estão as informações do ticket encerrado:
 
@@ -262,14 +278,15 @@ Com base nesses dados, gere:
 2. Um conteúdo completo em formato de artigo técnico, com linguagem objetiva e estruturada.
 
 O conteúdo deve:
-- Explicar o problema enfrentado.
-- Descrever o procedimento de solução adotado.
-- Apontar boas práticas ou observações que possam ajudar outros técnicos ou usuários em casos semelhantes.
-- Evitar menções a pessoas, datas ou IDs específicos.
+- Começar diretamente explicando o problema ou a solução, sem introduções genéricas
+- Descrever o procedimento de solução adotado com um passo a passo detalhado
+- Apontar boas práticas ou observações que possam ajudar outros técnicos ou usuários
+- Evitar menções a pessoas, datas ou IDs específicos
+- LEMBRE-SE: Texto puro apenas, sem nenhuma formatação especial (sem **, sem #, sem `)
 
 Responda no seguinte formato:
 Título: [título gerado]
-Conteúdo: [conteúdo gerado]";
+Conteúdo: [conteúdo gerado, sem introdução genérica]";
 
                 // Chamar a IA (Ollama)
                 var ollamaServer = _configuration["OllamaServer"] 
@@ -347,20 +364,45 @@ Conteúdo: [conteúdo gerado]";
                     return BadRequest(new { error = "Título e conteúdo são obrigatórios" });
 
                 // Montar o prompt para a IA
-                var prompt = $@"Você é responsável por revisar e aprimorar artigos técnicos de uma base de conhecimento.
+                var prompt = $@"REGRA CRÍTICA DE FORMATAÇÃO - LEIA PRIMEIRO:
+Você NÃO pode usar formatação Markdown. Esta é uma aplicação de texto simples.
+- NÃO use ** (asteriscos duplos) - PROIBIDO
+- NÃO use * (asterisco simples) - PROIBIDO  
+- NÃO use # (hashtags) - PROIBIDO
+- NÃO use ` (crases) - PROIBIDO
+- NÃO use _ (sublinhados) - PROIBIDO
+- Pode usar hífen (-) para listas
+- Pode usar numeração (1., 2., 3.)
+Se você usar qualquer formatação Markdown, sua resposta será rejeitada.
+
+REGRA DE ESTRUTURA - MUITO IMPORTANTE:
+- NÃO comece o conteúdo com introduções genéricas como ""Este documento descreve..."", ""Este artigo explica..."", ""O objetivo deste artigo...""
+- NÃO escreva parágrafos introdutórios ou contextualizações
+- Vá DIRETO ao conteúdo prático e útil
+
+Você é responsável por revisar, aprimorar e ELABORAR artigos técnicos de uma base de conhecimento.
 
 A seguir estão o título e o conteúdo originais criados por um técnico humano:
 
 Título: {dto.Title}
 Conteúdo: {dto.Content}
 
-Melhore o texto mantendo o mesmo significado técnico, mas deixando-o mais claro, fluido e profissional.
-Aprimore a redação, a coesão e a estrutura, mantendo uma linguagem técnica e objetiva.
-Não altere o contexto nem os termos técnicos corretos.
+Sua tarefa é:
+1. ELABORAR e EXPANDIR o conteúdo original, transformando ideias simples em instruções detalhadas
+2. Criar um passo a passo completo e detalhado quando aplicável
+3. Adicionar explicações claras para cada etapa
+4. Incluir dicas úteis, observações importantes e possíveis problemas comuns
+5. Manter uma linguagem técnica mas acessível
+6. Melhorar a redação, coesão e estrutura do texto
+7. LEMBRE-SE: Texto puro apenas, sem nenhuma formatação especial (sem **, sem #, sem `)
+8. LEMBRE-SE: Comece direto com o conteúdo, sem introduções genéricas
+
+Se o técnico escreveu apenas uma ideia ou esboço, desenvolva-a completamente.
+Se já é um passo a passo, detalhe mais cada etapa com explicações adicionais.
 
 Responda no formato:
 Título: [título aprimorado]
-Conteúdo: [conteúdo aprimorado]";
+Conteúdo: [conteúdo elaborado e detalhado, sem introdução genérica]";
 
                 // Chamar a IA (Ollama)
                 var ollamaServer = _configuration["OllamaServer"] 

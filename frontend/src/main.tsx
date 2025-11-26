@@ -4,6 +4,7 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 
 // Contextos
 import { ToastProvider } from "./contexts/ToastContext";
+import { UserProfileProvider } from "./contexts/UserProfileContext";
 
 // Estilos
 import "./css/styles.css";
@@ -25,22 +26,24 @@ import ViewArticlePage from "./pages/ViewArticle";
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <ToastProvider>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<LoginPage />} />
-          <Route path="/home" element={<HomePage />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterUserPage />} />
-          <Route path="/ticket/new" element={<RegisterTicketPage />} />
-          <Route path="/ticket/:id" element={<TicketDetailPage />} />
-          <Route path="/ticket-triage" element={<TicketTriagePage />} />
-          <Route path="/trash" element={<TrashPage />} />
-          <Route path="/profile" element={<ProfilePage />} />
-          <Route path="/knowledgebase" element={<KnowledgeBasePage />} />
-          <Route path="/knowledgebase/create" element={<CreateArticlePage />} />
-          <Route path="/knowledgebase/:id" element={<ViewArticlePage />} />
-        </Routes>
-      </BrowserRouter>
+      <UserProfileProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<LoginPage />} />
+            <Route path="/home" element={<HomePage />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterUserPage />} />
+            <Route path="/ticket/new" element={<RegisterTicketPage />} />
+            <Route path="/ticket/:id" element={<TicketDetailPage />} />
+            <Route path="/ticket-triage" element={<TicketTriagePage />} />
+            <Route path="/trash" element={<TrashPage />} />
+            <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/knowledgebase" element={<KnowledgeBasePage />} />
+            <Route path="/knowledgebase/create" element={<CreateArticlePage />} />
+            <Route path="/knowledgebase/:id" element={<ViewArticlePage />} />
+          </Routes>
+        </BrowserRouter>
+      </UserProfileProvider>
     </ToastProvider>
   </StrictMode>
 );
