@@ -6,6 +6,9 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { ToastProvider } from "./contexts/ToastContext";
 import { UserProfileProvider } from "./contexts/UserProfileContext";
 
+// Componentes
+import PrivateRoute from "./components/PrivateRoute";
+
 // Estilos
 import "./css/styles.css";
 import "./css/KnowledgeBase.css";
@@ -29,18 +32,84 @@ createRoot(document.getElementById("root")!).render(
       <UserProfileProvider>
         <BrowserRouter>
           <Routes>
+            {/* Rotas públicas */}
             <Route path="/" element={<LoginPage />} />
-            <Route path="/home" element={<HomePage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterUserPage />} />
-            <Route path="/ticket/new" element={<RegisterTicketPage />} />
-            <Route path="/ticket/:id" element={<TicketDetailPage />} />
-            <Route path="/ticket-triage" element={<TicketTriagePage />} />
-            <Route path="/trash" element={<TrashPage />} />
-            <Route path="/profile" element={<ProfilePage />} />
-            <Route path="/knowledgebase" element={<KnowledgeBasePage />} />
-            <Route path="/knowledgebase/create" element={<CreateArticlePage />} />
-            <Route path="/knowledgebase/:id" element={<ViewArticlePage />} />
+
+            {/* Rotas protegidas */}
+            <Route
+              path="/home"
+              element={
+                <PrivateRoute>
+                  <HomePage />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/ticket/new"
+              element={
+                <PrivateRoute>
+                  <RegisterTicketPage />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/ticket/:id"
+              element={
+                <PrivateRoute>
+                  <TicketDetailPage />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/ticket-triage"
+              element={
+                <PrivateRoute>
+                  <TicketTriagePage />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/trash"
+              element={
+                <PrivateRoute>
+                  <TrashPage />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/profile"
+              element={
+                <PrivateRoute>
+                  <ProfilePage />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/knowledgebase"
+              element={
+                <PrivateRoute>
+                  <KnowledgeBasePage />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/knowledgebase/create"
+              element={
+                <PrivateRoute>
+                  <CreateArticlePage />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/knowledgebase/:id"
+              element={
+                <PrivateRoute>
+                  <ViewArticlePage />
+                </PrivateRoute>
+              }
+            />
           </Routes>
         </BrowserRouter>
       </UserProfileProvider>

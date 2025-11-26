@@ -10,7 +10,7 @@
   border-top: 1px solid var(--color-sidebar-border);
   box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.2);
   z-index: 1000;
-  padding: 8px 0;
+  padding: 4px 0;
 }
 
 .bottom-nav__item {
@@ -19,26 +19,26 @@
   align-items: center;
   justify-content: center;
   flex: 1;
-  padding: 8px 4px;
+  padding: 4px 4px;
   text-decoration: none;
   color: var(--color-sidebar-text);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 500;
   transition: all 0.2s ease;
-  min-height: 56px;
+  min-height: 44px;
   position: relative;
 }
 
 .bottom-nav__icon {
-  width: 24px;
-  height: 24px;
-  margin-bottom: 4px;
+  width: 20px;
+  height: 20px;
+  margin-bottom: 2px;
   stroke-width: 2;
   stroke: currentColor;
 }
 
 .bottom-nav__label {
-  font-size: 11px;
+  font-size: 10px;
   text-align: center;
   line-height: 1.2;
 }

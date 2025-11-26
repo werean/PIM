@@ -7,6 +7,16 @@ const _meta = (
 ).env;
 export const BASE_URL = _meta?.VITE_API_URL ?? (_meta?.DEV ? "http://localhost:8080" : "");
 
+// Função para lidar com erro 401 - redireciona para login
+function handleUnauthorized() {
+  // Remove o cookie expirado
+  document.cookie = "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+  // Redireciona para login se não estiver já na página de login
+  if (!window.location.pathname.includes("/login")) {
+    window.location.href = "/login";
+  }
+}
+
 export async function apiGet<T>(path: string, init?: RequestInit): Promise<T> {
   const token = getCookie("token");
   const headers: HeadersInit = { "Content-Type": "application/json" };
@@ -19,6 +29,12 @@ export async function apiGet<T>(path: string, init?: RequestInit): Promise<T> {
     headers,
     ...init,
   });
+
+  if (res.status === 401) {
+    handleUnauthorized();
+    throw new Error(`GET ${path} failed: 401 Unauthorized`);
+  }
+
   if (!res.ok) {
     const text = await res.text();
     throw new Error(`GET ${path} failed: ${res.status} ${text}`);
@@ -44,6 +60,11 @@ export async function apiPost<T>(path: string, body: unknown, init?: RequestInit
   // Se for redirect, ignorar e tratar como sucesso
   if (res.type === "opaqueredirect" || res.status === 0) {
     return {} as T;
+  }
+
+  if (res.status === 401) {
+    handleUnauthorized();
+    throw new Error(`POST ${path} failed: 401 Unauthorized`);
   }
 
   if (!res.ok) {
@@ -80,6 +101,12 @@ export async function apiPut<T>(path: string, body: unknown, init?: RequestInit)
     body: JSON.stringify(body),
     ...init,
   });
+
+  if (res.status === 401) {
+    handleUnauthorized();
+    throw new Error(`PUT ${path} failed: 401 Unauthorized`);
+  }
+
   if (!res.ok) {
     const text = await res.text();
     try {
@@ -97,6 +124,48 @@ export async function apiPut<T>(path: string, body: unknown, init?: RequestInit)
     }
   }
   return res.json() as Promise<T>;
+}
+
+export async function apiDelete<T>(path: string, body?: unknown, init?: RequestInit): Promise<T> {
+  const token = getCookie("token");
+  const headers: HeadersInit = { "Content-Type": "application/json" };
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
+  const res = await fetch(`${BASE_URL}${path}`, {
+    method: "DELETE",
+    headers,
+    body: body ? JSON.stringify(body) : undefined,
+    ...init,
+  });
+
+  if (res.status === 401) {
+    handleUnauthorized();
+    throw new Error(`DELETE ${path} failed: 401 Unauthorized`);
+  }
+
+  if (!res.ok) {
+    const text = await res.text();
+    try {
+      const data = JSON.parse(text);
+      const error = new Error(
+        `DELETE ${path} failed: ${res.status} ${data?.message || data?.error || text}`
+      ) as Error & { response?: { data: unknown } };
+      error.response = { data };
+      throw error;
+    } catch (parseError) {
+      if ((parseError as Error & { response?: unknown }).response) {
+        throw parseError;
+      }
+      throw new Error(`DELETE ${path} failed: ${res.status} ${text}`);
+    }
+  }
+
+  // Tentar retornar JSON, mas se não houver corpo, retornar vazio
+  const text = await res.text();
+  if (!text) return {} as T;
+  return JSON.parse(text) as T;
 }
 
 export type Role = 5 | 10; // 5 = Usuário, 10 = Técnico
