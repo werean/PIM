@@ -12,17 +12,20 @@ namespace CSharp.Controllers
     public class WebSocketController : ControllerBase
     {
         private readonly TicketAISessionService _aiSessionService;
+        private readonly TicketNotificationService _notificationService;
         private readonly ILogger<WebSocketController> _logger;
         private readonly IConfiguration _configuration;
         private readonly IHttpClientFactory _httpClientFactory;
 
         public WebSocketController(
             TicketAISessionService aiSessionService,
+            TicketNotificationService notificationService,
             ILogger<WebSocketController> logger,
             IConfiguration configuration,
             IHttpClientFactory httpClientFactory)
         {
             _aiSessionService = aiSessionService;
+            _notificationService = notificationService;
             _logger = logger;
             _configuration = configuration;
             _httpClientFactory = httpClientFactory;
@@ -59,6 +62,92 @@ namespace CSharp.Controllers
             else
             {
                 HttpContext.Response.StatusCode = StatusCodes.Status400BadRequest;
+            }
+        }
+
+        /// <summary>
+        /// Endpoint WebSocket para notificações em tempo real de um ticket (comentários, atualizações)
+        /// </summary>
+        [HttpGet("ticket/{ticketId}/notifications")]
+        public async Task GetTicketNotifications(int ticketId)
+        {
+            if (HttpContext.WebSockets.IsWebSocketRequest)
+            {
+                using var webSocket = await HttpContext.WebSockets.AcceptWebSocketAsync();
+                await HandleTicketNotificationConnection(webSocket, ticketId);
+            }
+            else
+            {
+                HttpContext.Response.StatusCode = StatusCodes.Status400BadRequest;
+            }
+        }
+
+        /// <summary>
+        /// Mantém conexão WebSocket aberta para receber notificações do ticket
+        /// </summary>
+        private async Task HandleTicketNotificationConnection(WebSocket webSocket, int ticketId)
+        {
+            _logger.LogInformation($"[WS Notifications] Cliente conectado ao ticket {ticketId}");
+            
+            // Registrar conexão no serviço de notificações
+            _notificationService.AddConnection(ticketId, webSocket);
+
+            var buffer = new byte[1024];
+            
+            try
+            {
+                // Enviar confirmação de conexão
+                var welcomeMessage = JsonSerializer.Serialize(new
+                {
+                    type = "connected",
+                    ticketId,
+                    message = "Conectado às notificações do ticket"
+                });
+                await webSocket.SendAsync(
+                    new ArraySegment<byte>(Encoding.UTF8.GetBytes(welcomeMessage)),
+                    WebSocketMessageType.Text,
+                    true,
+                    CancellationToken.None);
+
+                // Manter conexão aberta até cliente desconectar
+                while (webSocket.State == WebSocketState.Open)
+                {
+                    var result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
+                    
+                    if (result.CloseStatus.HasValue)
+                    {
+                        _logger.LogInformation($"[WS Notifications] Cliente desconectou do ticket {ticketId}");
+                        break;
+                    }
+
+                    // Processar ping/pong para manter conexão viva
+                    if (result.MessageType == WebSocketMessageType.Text)
+                    {
+                        var message = Encoding.UTF8.GetString(buffer, 0, result.Count);
+                        if (message == "ping")
+                        {
+                            await webSocket.SendAsync(
+                                new ArraySegment<byte>(Encoding.UTF8.GetBytes("pong")),
+                                WebSocketMessageType.Text,
+                                true,
+                                CancellationToken.None);
+                        }
+                    }
+                }
+            }
+            catch (WebSocketException ex)
+            {
+                _logger.LogWarning($"[WS Notifications] WebSocket error para ticket {ticketId}: {ex.Message}");
+            }
+            finally
+            {
+                // Remover conexão ao desconectar
+                _notificationService.RemoveConnection(ticketId, webSocket);
+                
+                if (webSocket.State == WebSocketState.Open)
+                {
+                    await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Conexão encerrada", CancellationToken.None);
+                }
             }
         }
 
@@ -188,7 +277,7 @@ namespace CSharp.Controllers
                     {
                         var message = Encoding.UTF8.GetString(buffer, 0, receiveResult.Count);
                         string promptText = message;
-                        string modelName = "qwen3:0.6b"; // modelo padrão
+                        string modelName = "gpt-oss:120b-cloud"; // modelo padrão
 
                         // Tentar parsear como JSON para extrair os campos "prompt" e "model"
                         try
@@ -435,10 +524,11 @@ Forneça agora sua primeira resposta tentando resolver o problema descrito.";
                                         ?? Environment.GetEnvironmentVariable("OLLAMA_SERVER")
                                         ?? "http://localhost:11434/api/chat";
                                     using var httpClient = _httpClientFactory.CreateClient();
+                                    httpClient.Timeout = TimeSpan.FromMinutes(5);
 
                                     var requestBody = new
                                     {
-                                        model = "qwen3-coder:480b-cloud",
+                                        model = "gpt-oss:120b-cloud",
                                         messages = conversationHistory,
                                         stream = true,
                                         options = new
@@ -452,24 +542,24 @@ Forneça agora sua primeira resposta tentando resolver o problema descrito.";
                                     var json = JsonSerializer.Serialize(requestBody);
                                     var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-                                    var response = await httpClient.PostAsync(ollamaServer, content);
+                                    _logger.LogInformation("[TRIAGE INITIAL] Enviando request para Ollama...");
+                                    
+                                    // IMPORTANTE: Usar ResponseHeadersRead para streaming real
+                                    var request = new HttpRequestMessage(HttpMethod.Post, ollamaServer)
+                                    {
+                                        Content = content
+                                    };
+                                    var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
                                     response.EnsureSuccessStatusCode();
 
                                     _logger.LogInformation("[TRIAGE INITIAL] Iniciando streaming da primeira resposta");
                                     var fullResponse = "";
                                     using (var stream = await response.Content.ReadAsStreamAsync())
-                                    using (var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: false, bufferSize: 1))
+                                    using (var reader = new StreamReader(stream, Encoding.UTF8))
                                     {
-                                        var currentLine = new StringBuilder();
-                                        
-                                        while (!reader.EndOfStream)
+                                        string? line;
+                                        while ((line = await reader.ReadLineAsync()) != null)
                                         {
-                                            var ch = (char)reader.Read();
-                                            if (ch == '\n')
-                                            {
-                                                var line = currentLine.ToString();
-                                                currentLine.Clear();
-                                                
                                                 if (string.IsNullOrWhiteSpace(line)) continue;
 
                                                 try
@@ -497,6 +587,7 @@ Forneça agora sua primeira resposta tentando resolver o problema descrito.";
                                                                 {
                                                                     fullResponse += cleanChunk;
                                                                     await SendRawMessage(webSocket, cleanChunk);
+                                                                    _logger.LogDebug($"[STREAM] Enviado chunk: {cleanChunk.Length} chars");
                                                                 }
                                                             }
                                                         }
@@ -511,11 +602,6 @@ Forneça agora sua primeira resposta tentando resolver o problema descrito.";
                                                 {
                                                     _logger.LogError($"[ERROR PARSE] {ex.Message}");
                                                 }
-                                            }
-                                            else
-                                            {
-                                                currentLine.Append(ch);
-                                            }
                                         }
                                     }
 
@@ -539,10 +625,11 @@ Forneça agora sua primeira resposta tentando resolver o problema descrito.";
                                         ?? Environment.GetEnvironmentVariable("OLLAMA_SERVER")
                                         ?? "http://localhost:11434/api/chat";
                                     using var httpClient = _httpClientFactory.CreateClient();
+                                    httpClient.Timeout = TimeSpan.FromMinutes(5);
 
                                     var requestBody = new
                                     {
-                                        model = "qwen3-coder:480b-cloud",
+                                        model = "gpt-oss:120b-cloud",
                                         messages = conversationHistory,
                                         stream = true,
                                         options = new
@@ -556,24 +643,24 @@ Forneça agora sua primeira resposta tentando resolver o problema descrito.";
                                     var json = JsonSerializer.Serialize(requestBody);
                                     var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-                                    var response = await httpClient.PostAsync(ollamaServer, content);
+                                    _logger.LogInformation("[TRIAGE MESSAGE] Enviando request para Ollama...");
+                                    
+                                    // IMPORTANTE: Usar ResponseHeadersRead para streaming real
+                                    var request = new HttpRequestMessage(HttpMethod.Post, ollamaServer)
+                                    {
+                                        Content = content
+                                    };
+                                    var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
                                     response.EnsureSuccessStatusCode();
 
                                     _logger.LogInformation("[TRIAGE MESSAGE] Iniciando streaming da resposta");
                                     var fullResponse = "";
                                     using (var stream = await response.Content.ReadAsStreamAsync())
-                                    using (var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: false, bufferSize: 1))
+                                    using (var reader = new StreamReader(stream, Encoding.UTF8))
                                     {
-                                        var currentLine = new StringBuilder();
-                                        
-                                        while (!reader.EndOfStream)
+                                        string? line;
+                                        while ((line = await reader.ReadLineAsync()) != null)
                                         {
-                                            var ch = (char)reader.Read();
-                                            if (ch == '\n')
-                                            {
-                                                var line = currentLine.ToString();
-                                                currentLine.Clear();
-                                                
                                                 if (string.IsNullOrWhiteSpace(line)) continue;
 
                                                 try
@@ -601,6 +688,7 @@ Forneça agora sua primeira resposta tentando resolver o problema descrito.";
                                                                 {
                                                                     fullResponse += cleanChunk;
                                                                     await SendRawMessage(webSocket, cleanChunk);
+                                                                    _logger.LogDebug($"[STREAM] Enviado chunk: {cleanChunk.Length} chars");
                                                                 }
                                                             }
                                                         }
@@ -615,11 +703,6 @@ Forneça agora sua primeira resposta tentando resolver o problema descrito.";
                                                 {
                                                     _logger.LogError($"[ERROR PARSE] {ex.Message}");
                                                 }
-                                            }
-                                            else
-                                            {
-                                                currentLine.Append(ch);
-                                            }
                                         }
                                     }
 

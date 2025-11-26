@@ -37,8 +37,15 @@ export async function apiPost<T>(path: string, body: unknown, init?: RequestInit
     method: "POST",
     headers,
     body: JSON.stringify(body),
+    redirect: "manual", // Não seguir redirects automaticamente
     ...init,
   });
+
+  // Se for redirect, ignorar e tratar como sucesso
+  if (res.type === "opaqueredirect" || res.status === 0) {
+    return {} as T;
+  }
+
   if (!res.ok) {
     const text = await res.text();
     try {

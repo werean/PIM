@@ -88,7 +88,7 @@ namespace CSharp.Controllers
             var availableModels = new[]
             {
                 // Modelos ultra-leves (< 1B) - PRIORITÁRIOS
-                new { name = "qwen3:0.6b", description = "600MB (recomendado)", size = "600MB" },
+                new { name = "gpt-oss:120b-cloud", description = "120B Cloud (recomendado)", size = "Cloud" },
                 
                 // Modelos leves (1B)
                 new { name = "llama3.2:1b", description = "1.3GB (recomendado)", size = "1.3GB" },
@@ -108,7 +108,7 @@ namespace CSharp.Controllers
 
         /// <summary>
         /// POST /api/ollama/models/pull - Baixa um modelo do Ollama
-        /// Body: { "model": "qwen3:0.6b" }
+        /// Body: { "model": "gpt-oss:120b-cloud" }
         /// </summary>
         [HttpPost("models/pull")]
         public async Task<IActionResult> PullModel([FromBody] PullModelRequest request)
@@ -179,7 +179,7 @@ namespace CSharp.Controllers
 
         /// <summary>
         /// POST /api/ollama/models/check - Verifica se um modelo existe localmente
-        /// Body: { "model": "qwen3:0.6b" }
+        /// Body: { "model": "gpt-oss:120b-cloud" }
         /// </summary>
         [HttpPost("models/check")]
         public async Task<IActionResult> CheckModel([FromBody] CheckModelRequest request)
@@ -236,7 +236,7 @@ namespace CSharp.Controllers
 
         /// <summary>
         /// DELETE /api/ollama/models/delete - Remove um modelo do Ollama
-        /// Body: { "model": "qwen3:0.6b" }
+        /// Body: { "model": "gpt-oss:120b-cloud" }
         /// </summary>
         [HttpDelete("models/delete")]
         public async Task<IActionResult> DeleteModel([FromBody] DeleteModelRequest request)

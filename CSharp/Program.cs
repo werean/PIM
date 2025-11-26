@@ -29,6 +29,7 @@ builder.Services.AddScoped<AttachmentService>();
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<TicketAISessionService>();
 builder.Services.AddScoped<AIMessageService>();
+builder.Services.AddSingleton<TicketNotificationService>(); // Singleton para manter conexões WebSocket
 builder.Services.AddHttpClient();
 
 // Configuração JWT

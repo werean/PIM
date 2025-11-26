@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import AIChat from "../components/AIChat";
 import BottomNav from "../components/BottomNav";
@@ -7,10 +7,11 @@ import Sidebar from "../components/Sidebar";
 import UserBadge from "../components/UserBadge";
 import { useConfirm } from "../hooks/useConfirm";
 import { useToast } from "../hooks/useToast";
-import type { CreateCommentPayload, Ticket } from "../services/api";
+import type { Comment, CreateCommentPayload, Ticket } from "../services/api";
 import {
   apiGet,
   apiPost,
+  BASE_URL,
   getCurrentUserId,
   getCurrentUserName,
   isTechnician,
@@ -87,7 +88,50 @@ export default function TicketDetailPage() {
   const [generatedArticle, setGeneratedArticle] = useState({ title: "", content: "" });
   const [isSavingArticle, setIsSavingArticle] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const notificationWsRef = useRef<WebSocket | null>(null);
   const currentUserId = getCurrentUserId();
+
+  // Função para adicionar comentário ao ticket (usado pelo WebSocket)
+  const addCommentToTicket = useCallback((newComment: Comment) => {
+    setTicket((prev) => {
+      if (!prev) return prev;
+
+      // O backend pode enviar id ou Id (camelCase vs PascalCase)
+      const commentId = (newComment as any).id || (newComment as any).Id;
+      const commentUserId = (newComment as any).userId || (newComment as any).UserId;
+      const commentBody = (newComment as any).commentBody || (newComment as any).CommentBody;
+      const commentTicketId = (newComment as any).ticketId || (newComment as any).TicketId;
+      const commentCreatedAt = (newComment as any).createdAt || (newComment as any).CreatedAt;
+      const commentUsername = (newComment as any).username || (newComment as any).Username;
+
+      // Verificar se o comentário tem id válido
+      if (!commentId) {
+        console.warn("[WS] Comentário recebido sem ID válido:", newComment);
+        return prev;
+      }
+
+      // Verificar se o comentário já existe para evitar duplicatas
+      const exists = prev.comments?.some((c) => c.id === commentId);
+      if (exists) {
+        return prev;
+      }
+
+      // Normalizar o comentário para o formato esperado
+      const normalizedComment: Comment = {
+        id: commentId,
+        ticketId: commentTicketId,
+        commentBody: commentBody,
+        createdAt: commentCreatedAt,
+        userId: commentUserId,
+        username: commentUsername,
+      };
+
+      return {
+        ...prev,
+        comments: [...(prev.comments || []), normalizedComment],
+      };
+    });
+  }, []);
 
   // Proteção de rota
   useEffect(() => {
@@ -95,6 +139,86 @@ export default function TicketDetailPage() {
       navigate("/login");
     }
   }, [navigate]);
+
+  // WebSocket para notificações em tempo real
+  useEffect(() => {
+    if (!id) return;
+
+    // Construir URL do WebSocket
+    const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    const wsHost = BASE_URL.replace(/^https?:\/\//, "").replace(/\/$/, "");
+    const wsUrl = `${wsProtocol}//${wsHost}/api/websocket/ticket/${id}/notifications`;
+
+    const ws = new WebSocket(wsUrl);
+    notificationWsRef.current = ws;
+
+    ws.onopen = () => {
+      // WebSocket conectado
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        // Ignorar mensagens de pong
+        if (event.data === "pong") {
+          return;
+        }
+
+        const data = JSON.parse(event.data);
+
+        // Ignorar mensagem de conexão inicial
+        if (data.type === "connected") {
+          return;
+        }
+
+        if (data.type === "new_comment") {
+          // Novo comentário recebido
+          const comment = data.data as Comment;
+
+          // Pegar userId atual do cookie (não usar o ref para evitar stale closures)
+          const myUserId = getCurrentUserId();
+
+          // Comparar IDs ignorando case (GUID pode vir em formatos diferentes)
+          const commentUserId = String(comment.userId || "").toLowerCase();
+          const currentUserIdLower = String(myUserId || "").toLowerCase();
+
+          if (commentUserId !== currentUserIdLower) {
+            addCommentToTicket(comment);
+          }
+        } else if (data.type === "ticket_update") {
+          // Ticket foi atualizado - recarregar
+          apiGet<Ticket>(`/tickets/${id}`).then(setTicket).catch(console.error);
+        }
+      } catch (err) {
+        // Ignorar erros de parse para mensagens simples como "pong"
+        if (event.data !== "pong") {
+          console.error("[WS Notifications] Erro ao processar mensagem:", err, event.data);
+        }
+      }
+    };
+
+    ws.onerror = (error) => {
+      console.error("[WS Notifications] Erro:", error);
+    };
+
+    ws.onclose = () => {
+      // WebSocket desconectado
+    };
+
+    // Ping periódico para manter conexão viva
+    const pingInterval = setInterval(() => {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send("ping");
+      }
+    }, 30000);
+
+    return () => {
+      clearInterval(pingInterval);
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.close();
+      }
+      notificationWsRef.current = null;
+    };
+  }, [id, addCommentToTicket]); // Removido currentUserId para evitar reconexões
 
   // Carregar ticket
   useEffect(() => {
@@ -130,21 +254,27 @@ export default function TicketDetailPage() {
 
   async function handleSendMessage(e: FormEvent) {
     e.preventDefault();
+    e.stopPropagation();
+
+    // Prevenir qualquer navegação
+    if (e.nativeEvent) {
+      e.nativeEvent.stopImmediatePropagation();
+    }
 
     // Validação
     if (!message.trim()) {
       setError("Mensagem não pode estar vazia");
-      return;
+      return false;
     }
 
     if (message.trim().length < 3) {
       setError("Mensagem deve ter no mínimo 3 caracteres");
-      return;
+      return false;
     }
 
     if (!id) {
       setError("ID do ticket inválido");
-      return;
+      return false;
     }
 
     setSending(true);
@@ -156,14 +286,20 @@ export default function TicketDetailPage() {
         commentBody: message.trim(),
       };
 
-      console.log("Enviando comentário...");
-      await apiPost("/comments", payload);
-      console.log("Comentário enviado com sucesso");
+      // Salvar mensagem antes de limpar
+      const sentMessage = message.trim();
+      setMessage(""); // Limpar input imediatamente para UX
 
-      // Recarregar ticket para atualizar comentários
-      const updatedTicket = await apiGet<Ticket>(`/tickets/${id}`);
-      setTicket(updatedTicket);
-      setMessage("");
+      const response = await apiPost<Comment>("/comments", payload);
+
+      // Adicionar o comentário localmente (já será notificado via WebSocket para outros)
+      if (response && response.id) {
+        addCommentToTicket(response);
+      } else {
+        // Se não veio resposta completa, recarregar ticket
+        const updatedTicket = await apiGet<Ticket>(`/tickets/${id}`);
+        setTicket(updatedTicket);
+      }
     } catch (err: unknown) {
       console.error("Erro ao enviar mensagem:", err);
       const error = err as {
@@ -213,11 +349,9 @@ export default function TicketDetailPage() {
     setError(null);
 
     try {
-      console.log(`Resolvendo ticket ${id}...`);
       await apiPost(`/tickets/${id}/resolve`, {
         resolutionMessage: resolutionMessage.trim(),
       });
-      console.log("Ticket resolvido com sucesso");
 
       // Recarregar ticket para atualizar status
       const updatedTicket = await apiGet<Ticket>(`/tickets/${id}`);
@@ -263,14 +397,10 @@ export default function TicketDetailPage() {
     try {
       if (ticket?.status === 2) {
         // Se está pendente, retomar (voltar para status 1 - Aberto)
-        console.log(`Tentando reabrir ticket ${id}...`);
         await apiPost(`/tickets/${id}/reopen`, {});
-        console.log("Ticket reaberto com sucesso");
       } else {
         // Se está aberto, pausar (status 2 - Pendente)
-        console.log(`Tentando pausar ticket ${id}...`);
         await apiPost(`/tickets/${id}/pending`, {});
-        console.log("Ticket pausado com sucesso");
       }
 
       // Recarregar ticket para atualizar status
@@ -1088,13 +1218,14 @@ export default function TicketDetailPage() {
               ) : (
                 ticket.comments.map((comment) => {
                   const isOwn = comment.userId === currentUserId;
-                  const isRejectedSolution = comment.commentBody.startsWith("[SOLUÇÃO REJEITADA]");
-                  const isRejectedDeletion = comment.commentBody.startsWith("[EXCLUSÃO RECUSADA]");
+                  const commentText = comment.commentBody || "";
+                  const isRejectedSolution = commentText.startsWith("[SOLUÇÃO REJEITADA]");
+                  const isRejectedDeletion = commentText.startsWith("[EXCLUSÃO RECUSADA]");
                   const messageContent = isRejectedSolution
-                    ? comment.commentBody.replace("[SOLUÇÃO REJEITADA]\n\n", "")
+                    ? commentText.replace("[SOLUÇÃO REJEITADA]\n\n", "")
                     : isRejectedDeletion
-                    ? comment.commentBody.replace("[EXCLUSÃO RECUSADA]\n\n", "")
-                    : comment.commentBody;
+                    ? commentText.replace("[EXCLUSÃO RECUSADA]\n\n", "")
+                    : commentText;
 
                   return (
                     <div
@@ -1495,9 +1626,12 @@ export default function TicketDetailPage() {
               )}
               <form
                 onSubmit={handleSendMessage}
-                style={{ display: "flex", gap: "8px", alignItems: "stretch" }}
+                action="javascript:void(0);"
+                method="dialog"
+                style={{ display: "flex", gap: "8px", alignItems: "center" }}
               >
-                <textarea
+                <input
+                  type="text"
                   placeholder={
                     ticket.status === 3 && !isTechnician()
                       ? "Ticket resolvido e aprovado"
@@ -1512,17 +1646,17 @@ export default function TicketDetailPage() {
                     (ticket.status === 5 && !isTechnician()) ||
                     (ticket.status === 3 && !isTechnician())
                   }
-                  rows={2}
                   style={{
                     flex: 1,
                     margin: 0,
-                    resize: "none",
                     fontFamily: "inherit",
-                    padding: "10px",
+                    padding: "10px 12px",
                     fontSize: "13px",
                     border: "1px solid #e0e0e0",
                     borderRadius: "3px",
                     outline: "none",
+                    height: "40px",
+                    boxSizing: "border-box",
                     opacity:
                       (ticket.status === 5 && !isTechnician()) ||
                       (ticket.status === 3 && !isTechnician())
@@ -1536,7 +1670,12 @@ export default function TicketDetailPage() {
                   }}
                 />
                 <button
-                  type="submit"
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleSendMessage(e as unknown as FormEvent);
+                  }}
                   disabled={
                     sending ||
                     !message.trim() ||
@@ -1545,7 +1684,9 @@ export default function TicketDetailPage() {
                   }
                   style={{
                     margin: 0,
-                    padding: "0 16px",
+                    padding: "10px 16px",
+                    height: "40px",
+                    boxSizing: "border-box",
                     background: "transparent",
                     color: "#007bff",
                     border: "1px solid #007bff",
@@ -1556,6 +1697,9 @@ export default function TicketDetailPage() {
                     transition: "all 0.15s",
                     opacity: sending || !message.trim() ? 0.5 : 1,
                     minWidth: "80px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
                   }}
                   onMouseEnter={(e) => {
                     if (!sending && message.trim()) {

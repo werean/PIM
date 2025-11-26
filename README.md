@@ -91,7 +91,7 @@ Após instalar o Ollama, você pode baixar modelos diretamente pela interface do
 
 ```bash
 # Modelo recomendado (leve e rápido)
-ollama pull qwen3:0.6b
+ollama pull gpt-oss:120b-cloud
 
 # Outros modelos disponíveis
 ollama pull llama3.2:1b

@@ -88,7 +88,6 @@ export default function TicketTriagePage() {
     wsRef.current = ws;
 
     ws.onopen = () => {
-      console.log("WebSocket de triagem conectado");
       setIsConnected(true);
 
       // Enviar informações iniciais do problema automaticamente
@@ -107,10 +106,8 @@ export default function TicketTriagePage() {
 
     ws.onmessage = (event) => {
       const text = event.data;
-      console.log("[WS RECEIVED]", text.substring(0, 50)); // DEBUG
 
       if (text === "[FIM]") {
-        console.log("[WS] Recebeu [FIM], finalizando mensagem"); // DEBUG
         if (isFinalizingMessage.current) return;
         isFinalizingMessage.current = true;
 
@@ -131,7 +128,6 @@ export default function TicketTriagePage() {
 
       currentStreamText.current += text;
       setStreamingMessage(currentStreamText.current);
-      console.log("[WS] Stream atual:", currentStreamText.current.length, "chars"); // DEBUG
 
       streamTimeoutRef.current = window.setTimeout(() => {
         if (isFinalizingMessage.current) return;
@@ -155,7 +151,6 @@ export default function TicketTriagePage() {
     };
 
     ws.onclose = () => {
-      console.log("WebSocket desconectado");
       setIsConnected(false);
       currentStreamText.current = "";
       setStreamingMessage("");

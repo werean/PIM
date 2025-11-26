@@ -110,7 +110,7 @@ Sempre priorize BREVIDADE e AÇÃO imediata.";
 
                 var requestBody = new
                 {
-                    model = "qwen3:0.6b",
+                    model = "gpt-oss:120b-cloud",
                     messages = new[]
                     {
                         new { role = "system", content = systemPrompt },

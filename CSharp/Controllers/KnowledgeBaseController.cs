@@ -280,7 +280,7 @@ Conteúdo: [conteúdo gerado]";
 
                 var requestBody = new
                 {
-                    model = "qwen3-coder:480b-cloud",
+                    model = "gpt-oss:120b-cloud",
                     messages = new[]
                     {
                         new { role = "user", content = prompt }
@@ -371,7 +371,7 @@ Conteúdo: [conteúdo aprimorado]";
 
                 var requestBody = new
                 {
-                    model = "qwen3-coder:480b-cloud",
+                    model = "gpt-oss:120b-cloud",
                     messages = new[]
                     {
                         new { role = "user", content = prompt }

@@ -54,7 +54,7 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
   const [isConnected, setIsConnected] = useState(false);
   const [streamingMessage, setStreamingMessage] = useState("");
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
-  const [selectedModel, setSelectedModel] = useState("qwen3:0.6b");
+  const [selectedModel, setSelectedModel] = useState("gpt-oss:120b-cloud");
   const [availableModels, setAvailableModels] = useState<OllamaModel[]>([]);
   const [isLoadingModels, setIsLoadingModels] = useState(false);
   const [isPullingModel, setIsPullingModel] = useState(false);
@@ -104,7 +104,6 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
     };
 
     localStorage.setItem(sessionKey, JSON.stringify(session));
-    console.log(`✅ Sessão salva localmente (${messages.length} mensagens)`);
   }, [messages, sessionKey]);
 
   // Restaurar sessão do localStorage
@@ -126,7 +125,6 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
       if (restoredMessages.length > 0) {
         messageIdCounter.current = restoredMessages.length;
         setMessages(restoredMessages);
-        console.log(`✅ Sessão restaurada (${restoredMessages.length} mensagens)`);
         // Se restaurou mensagens, não deve mostrar prompt inicial
         initialPromptSet.current = true;
         return true;
@@ -153,8 +151,6 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
           content: msg.text,
         });
       }
-
-      console.log(`✅ Sessão sincronizada com banco (${messages.length} mensagens)`);
     } catch (error) {
       console.error("❌ Erro ao sincronizar com banco:", error);
     }
@@ -191,7 +187,6 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
       setTimeout(async () => {
         await checkOllamaStatus();
         // Carregar lista de modelos após Ollama iniciar
-        console.log("[startOllama] Ollama iniciado, carregando modelos...");
         await loadModels();
         setIsManagingOllama(false);
       }, 3000);
@@ -231,7 +226,6 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
 
   // Função para carregar modelos (pode ser chamada de qualquer lugar)
   const loadModels = useCallback(async () => {
-    console.log("[loadModels] Carregando lista de modelos...");
     setIsLoadingModels(true);
 
     let localModels: OllamaModel[] = [];
@@ -241,10 +235,8 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
       // Tentar listar modelos locais (pode falhar se Ollama não estiver rodando)
       const localResponse = await apiGet<{ models: OllamaModel[] }>("/api/ollama/models");
       localModels = localResponse.models || [];
-      console.log("[loadModels] Modelos locais:", localModels.length);
     } catch {
       // Ollama pode não estar rodando
-      console.log("[loadModels] Não foi possível listar modelos locais");
     }
 
     try {
@@ -253,15 +245,14 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
         "/api/ollama/models/available"
       );
       availableModelsForDownload = availableResponse.models || [];
-      console.log("[loadModels] Modelos disponíveis:", availableModelsForDownload.length);
     } catch (error) {
       console.error("Erro ao buscar modelos disponíveis:", error);
       // Se falhar, usar lista padrão
       availableModelsForDownload = [
         {
-          name: "qwen3:0.6b",
-          description: "600MB (recomendado)",
-          size: "600MB",
+          name: "gpt-oss:120b-cloud",
+          description: "120B Cloud (recomendado)",
+          size: "Cloud",
         },
         {
           name: "llama3.2:1b",
@@ -302,14 +293,13 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
 
     if (allModels.length > 0) {
       setAvailableModels(allModels as OllamaModel[]);
-      console.log("[loadModels] Total de modelos configurados:", allModels.length);
     } else {
       // Último fallback
       setAvailableModels([
         {
-          name: "qwen3:0.6b",
-          description: "600MB (recomendado)",
-          size: "600MB",
+          name: "gpt-oss:120b-cloud",
+          description: "120B Cloud (recomendado)",
+          size: "Cloud",
         },
       ]);
     }
@@ -331,14 +321,10 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
   // Função para verificar e baixar modelo se necessário
   const ensureModelAvailable = async (modelName: string): Promise<boolean> => {
     try {
-      console.log(`[ensureModelAvailable] Verificando modelo: ${modelName}`);
-
       // Verificar se modelo existe
       const response = await apiPost<{ exists: boolean }>("/api/ollama/models/check", {
         model: modelName,
       });
-
-      console.log(`[ensureModelAvailable] Modelo existe:`, response.exists);
 
       if (response.exists) {
         return true;
@@ -353,14 +339,11 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
         variant: "info",
       });
 
-      console.log(`[ensureModelAvailable] Usuário confirmou download:`, confirmDownload);
-
       if (!confirmDownload) {
         return false;
       }
 
       // Iniciar download com progresso
-      console.log(`[ensureModelAvailable] Iniciando download do modelo ${modelName}...`);
       setIsPullingModel(true);
       setPullProgress({
         model: modelName,
@@ -374,7 +357,6 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
         // Simular progresso realista baseado no tempo
         let progress = 0;
 
-        console.log(`[ensureModelAvailable] Configurando intervalo de progresso...`);
         progressInterval = window.setInterval(() => {
           // Progresso mais lento no início, mais rápido no meio, muito lento no final
           if (progress < 10) {
@@ -408,11 +390,9 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
         }, 3000); // Atualizar a cada 3 segundos
 
         // Aguardar o download completo (backend agora aguarda)
-        console.log(`[ensureModelAvailable] Enviando requisição de pull para o backend...`);
         const pullResponse = await apiPost("/api/ollama/models/pull", {
           model: modelName,
         });
-        console.log(`[ensureModelAvailable] Resposta do pull:`, pullResponse);
 
         if (progressInterval) clearInterval(progressInterval);
         setPullProgress({
@@ -421,13 +401,10 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
           progress: 100,
         });
 
-        console.log(`[ensureModelAvailable] Download concluído com sucesso!`);
-
         setTimeout(async () => {
           setPullProgress(null);
           setIsPullingModel(false);
           // Recarregar lista de modelos para mostrar o modelo como baixado
-          console.log("[ensureModelAvailable] Recarregando lista de modelos...");
           await loadModels();
         }, 3000);
 
@@ -504,7 +481,6 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
           // Atualizar contador de IDs
           messageIdCounter.current = Math.max(...loadedMessages.map((m) => m.id));
           setMessages(loadedMessages);
-          console.log(`✅ Histórico carregado do banco (${loadedMessages.length} mensagens)`);
 
           // Se tem histórico, marca que o prompt inicial não deve ser mostrado
           initialPromptSet.current = true;
@@ -559,7 +535,6 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
     wsRef.current = ws;
 
     ws.onopen = () => {
-      console.log("WebSocket conectado");
       setIsConnected(true);
 
       // Pré-preencher APENAS se não houver mensagens E ainda não foi definido
@@ -625,7 +600,6 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
     };
 
     ws.onclose = () => {
-      console.log("WebSocket desconectado");
       setIsConnected(false);
 
       // Limpa estados ao fechar
@@ -752,7 +726,7 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
                 className="ai-chat-header__btn ai-chat-header__btn--minimize"
                 title="Minimizar chat"
               >
-                ➖
+                −
               </button>
 
               {/* Botão Fechar */}
@@ -773,6 +747,7 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
                   setIsConnected(false);
                 }}
                 className="ai-chat-header__btn ai-chat-header__btn--close"
+                title="Fechar chat"
               >
                 ×
               </button>
@@ -808,16 +783,23 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
                     style={{
                       flex: 1,
                       padding: "8px 12px",
-                      backgroundColor: "#007bff",
+                      backgroundColor: "#6c5ce7",
                       color: "white",
                       border: "none",
                       borderRadius: "6px",
                       fontSize: "12px",
                       fontWeight: "500",
                       cursor: "pointer",
+                      transition: "background-color 0.2s",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = "#5a4bd1";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = "#6c5ce7";
                     }}
                   >
-                    📥 Instalar Ollama
+                    Instalar Ollama
                   </button>
                 </div>
               ) : (
@@ -836,15 +818,21 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
                       fontWeight: "500",
                       cursor: isManagingOllama ? "not-allowed" : "pointer",
                       opacity: isManagingOllama ? 0.6 : 1,
+                      transition: "background-color 0.2s",
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isManagingOllama) e.currentTarget.style.backgroundColor = "#218838";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = "#28a745";
                     }}
                   >
-                    {isManagingOllama ? "⏳ Iniciando..." : "▶️ Iniciar Ollama"}
+                    {isManagingOllama ? "Iniciando..." : "Iniciar Ollama"}
                   </button>
                   <button
                     onClick={async () => {
                       await checkOllamaStatus();
                       // Recarregar lista de modelos ao verificar status
-                      console.log("[RefreshButton] Verificando status e recarregando modelos...");
                       await loadModels();
                     }}
                     disabled={isCheckingOllama || isLoadingModels}
@@ -858,9 +846,18 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
                       fontWeight: "500",
                       cursor: isCheckingOllama || isLoadingModels ? "not-allowed" : "pointer",
                       opacity: isCheckingOllama || isLoadingModels ? 0.6 : 1,
+                      transition: "background-color 0.2s",
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!(isCheckingOllama || isLoadingModels)) {
+                        e.currentTarget.style.backgroundColor = "#5a6268";
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = "#6c757d";
                     }}
                   >
-                    {isCheckingOllama || isLoadingModels ? "⏳" : "🔄"}
+                    {isCheckingOllama || isLoadingModels ? "..." : "Atualizar"}
                   </button>
                 </div>
               )}
@@ -892,7 +889,7 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
                 onClick={stopOllama}
                 disabled={isManagingOllama}
                 style={{
-                  padding: "4px 12px",
+                  padding: "4px 8px",
                   backgroundColor: "#dc3545",
                   color: "white",
                   border: "none",
@@ -901,9 +898,16 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
                   fontWeight: "500",
                   cursor: isManagingOllama ? "not-allowed" : "pointer",
                   opacity: isManagingOllama ? 0.6 : 1,
+                  transition: "background-color 0.2s",
+                }}
+                onMouseEnter={(e) => {
+                  if (!isManagingOllama) e.currentTarget.style.backgroundColor = "#c82333";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = "#dc3545";
                 }}
               >
-                {isManagingOllama ? "⏳" : "⏹️ Parar"}
+                {isManagingOllama ? "Parando..." : "Parar"}
               </button>
             </div>
           )}
@@ -916,6 +920,7 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
               borderBottom: "1px solid #dee2e6",
               display: "flex",
               alignItems: "center",
+              justifyContent: "space-around",
               gap: "8px",
             }}
           >
@@ -925,9 +930,10 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
                 fontSize: "12px",
                 fontWeight: "500",
                 color: "#6c757d",
+                whiteSpace: "nowrap",
               }}
             >
-              🤖 Modelo:
+              Modelo:
             </label>
             <select
               id="model-select"
@@ -939,7 +945,8 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
                 (ollamaStatus !== null && !ollamaStatus.isRunning)
               }
               style={{
-                flex: 1,
+                minWidth: "120px",
+                maxWidth: "160px",
                 padding: "6px 10px",
                 borderRadius: "6px",
                 border: "1px solid #ced4da",
@@ -984,7 +991,9 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
               )}
             </select>
             {isPullingModel && !pullProgress?.error && (
-              <span style={{ fontSize: "12px", color: "#ffc107" }}>⏳ Baixando...</span>
+              <span style={{ fontSize: "12px", color: "#ffc107", fontWeight: "500" }}>
+                Baixando...
+              </span>
             )}
             {/* Botão de remover modelo (só aparece se o modelo selecionado estiver baixado) */}
             {availableModels.find((m) => m.name === selectedModel)?.downloaded && (
@@ -1001,7 +1010,6 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
 
                   setIsDeletingModel(true);
                   try {
-                    console.log(`[DeleteModel] Removendo modelo: ${selectedModel}`);
                     const response = await fetch("http://localhost:8080/api/ollama/models/delete", {
                       method: "DELETE",
                       headers: {
@@ -1010,12 +1018,9 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
                       body: JSON.stringify({ model: selectedModel }),
                     });
 
-                    console.log(`[DeleteModel] Status da resposta:`, response.status);
-
                     // Tentar ler o JSON, mas não falhar se estiver vazio
                     let responseData = null;
                     const responseText = await response.text();
-                    console.log(`[DeleteModel] Resposta em texto:`, responseText);
 
                     if (responseText) {
                       try {
@@ -1031,17 +1036,14 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
                       throw new Error(errorMessage);
                     }
 
-                    console.log(`[DeleteModel] Modelo removido com sucesso!`);
                     showSuccess(`Modelo "${selectedModel}" removido com sucesso!`);
 
                     // Recarregar lista de modelos para refletir a remoção
-                    console.log("[DeleteModel] Recarregando lista de modelos...");
                     await loadModels();
 
                     // Se o modelo removido era o selecionado, selecionar o primeiro disponível
-                    setSelectedModel("qwen3:0.6b");
+                    setSelectedModel("gpt-oss:120b-cloud");
                   } catch (error: unknown) {
-                    console.error(`[DeleteModel] Erro:`, error);
                     const err = error as { message?: string };
                     const errorMessage = err.message || "Erro ao remover modelo";
                     showError(`Erro ao remover modelo: ${errorMessage}`);
@@ -1051,11 +1053,11 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
                 }}
                 disabled={isPullingModel || isLoadingModels || isDeletingModel}
                 style={{
-                  padding: "6px 12px",
+                  padding: "4px 8px",
                   backgroundColor: "#dc3545",
                   color: "white",
                   border: "none",
-                  borderRadius: "6px",
+                  borderRadius: "4px",
                   fontSize: "11px",
                   fontWeight: "500",
                   cursor:
@@ -1063,10 +1065,20 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
                       ? "not-allowed"
                       : "pointer",
                   opacity: isPullingModel || isLoadingModels || isDeletingModel ? 0.6 : 1,
+                  transition: "background-color 0.2s",
+                  whiteSpace: "nowrap",
+                }}
+                onMouseEnter={(e) => {
+                  if (!(isPullingModel || isLoadingModels || isDeletingModel)) {
+                    e.currentTarget.style.backgroundColor = "#c82333";
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = "#dc3545";
                 }}
                 title="Remover modelo"
               >
-                {isDeletingModel ? "⏳ Removendo..." : "Apagar️ Remover"}
+                {isDeletingModel ? "Removendo..." : "Remover"}
               </button>
             )}
           </div>
@@ -1171,7 +1183,7 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
                     style={{
                       width: `${pullProgress.progress}%`,
                       height: "100%",
-                      backgroundColor: pullProgress.progress === 100 ? "#28a745" : "#007bff",
+                      backgroundColor: pullProgress.progress === 100 ? "#28a745" : "#a29bfe",
                       transition: "width 0.3s ease",
                     }}
                   />
@@ -1246,7 +1258,7 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
                         maxWidth: "80%",
                         padding: "10px 14px",
                         borderRadius: "12px",
-                        backgroundColor: msg.isUser ? "#007bff" : "white",
+                        backgroundColor: msg.isUser ? "#6c5ce7" : "white",
                         color: msg.isUser ? "white" : "#212529",
                         fontSize: "14px",
                         lineHeight: "1.5",
@@ -1301,8 +1313,9 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
               backgroundColor: "white",
             }}
           >
-            <div style={{ display: "flex", gap: "8px", alignItems: "flex-end" }}>
-              <textarea
+            <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+              <input
+                type="text"
                 value={inputMessage}
                 onChange={(e) => setInputMessage(e.target.value)}
                 onKeyPress={handleKeyPress}
@@ -1310,16 +1323,16 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
                   isPullingModel ? "Aguarde o download do modelo..." : "Digite sua mensagem..."
                 }
                 disabled={!isConnected || isSending || isPullingModel}
-                rows={2}
                 style={{
                   flex: 1,
                   padding: "10px 12px",
+                  height: "40px",
                   border: "1px solid #ced4da",
                   borderRadius: "8px",
                   fontSize: "14px",
                   fontFamily: "inherit",
-                  resize: "none",
                   outline: "none",
+                  boxSizing: "border-box",
                 }}
               />
               <button
@@ -1327,7 +1340,8 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
                 disabled={!isConnected || isSending || !inputMessage.trim() || isPullingModel}
                 style={{
                   padding: "10px 16px",
-                  backgroundColor: isPullingModel ? "#ffc107" : "#007bff",
+                  height: "40px",
+                  backgroundColor: isPullingModel ? "#ffc107" : "#6c5ce7",
                   color: "white",
                   border: "none",
                   borderRadius: "8px",
@@ -1339,9 +1353,22 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
                   fontWeight: "500",
                   opacity:
                     !isConnected || isSending || !inputMessage.trim() || isPullingModel ? 0.6 : 1,
+                  transition: "background-color 0.2s",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  boxSizing: "border-box",
+                }}
+                onMouseEnter={(e) => {
+                  if (!(!isConnected || isSending || !inputMessage.trim() || isPullingModel)) {
+                    e.currentTarget.style.backgroundColor = "#5a4bd1";
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = isPullingModel ? "#ffc107" : "#6c5ce7";
                 }}
               >
-                {isPullingModel ? "⏳ Baixando..." : isSending ? "..." : "Enviar"}
+                {isPullingModel ? "Baixando..." : isSending ? "..." : "Enviar"}
               </button>
             </div>
           </div>

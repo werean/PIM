@@ -49,7 +49,7 @@ h3 {
   font-size: var(--font-size-2xl);
 }
 
-button {
+button:not(.ai-chat-header__btn):not(.ai-chat-window button) {
   border-radius: var(--radius-xl);
   border: var(--border-light);
   padding: var(--padding-btn-sm);
@@ -63,7 +63,7 @@ button {
   box-shadow: var(--shadow-soft);
 }
 
-button:hover {
+button:hover:not(.btn):not([class*="btn--"]):not(.ai-chat-header__btn):not(.ai-chat-window button) {
   border-color: var(--color-primary);
   color: var(--color-primary-dark);
   background-color: var(--color-bg-light);

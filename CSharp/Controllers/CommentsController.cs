@@ -12,7 +12,13 @@ namespace CSharp.Controllers
     public class CommentsController : ControllerBase
     {
         private readonly CommentService _service;
-        public CommentsController(CommentService service) => _service = service;
+        private readonly TicketNotificationService _notificationService;
+        
+        public CommentsController(CommentService service, TicketNotificationService notificationService)
+        {
+            _service = service;
+            _notificationService = notificationService;
+        }
 
         [HttpGet("ticket/{ticketId}")]
         [Authorize]
@@ -70,7 +76,23 @@ namespace CSharp.Controllers
                     return BadRequest(new { message = "Não foi possível criar o comentário" });
                 }
 
-                return CreatedAtAction(nameof(GetByTicket), new { ticketId = comment.TicketId }, comment);
+                // Buscar o username para o DTO
+                var user = await _service.GetUserById(userId);
+                var commentDto = new CommentListDTO
+                {
+                    Id = comment.Id,
+                    TicketId = comment.TicketId,
+                    CommentBody = comment.CommentBody,
+                    CreatedAt = comment.CreatedAt,
+                    UserId = comment.UserId,
+                    Username = user?.Username ?? "Usuário"
+                };
+
+                // Notificar clientes conectados via WebSocket
+                await _notificationService.NotifyNewComment(dto.TicketId, commentDto);
+
+                // Retornar OK com o comentário (evita redirects do CreatedAtAction)
+                return Ok(commentDto);
             }
             catch (Exception ex)
             {

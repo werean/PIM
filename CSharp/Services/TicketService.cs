@@ -390,7 +390,7 @@ Formate sua resposta EXATAMENTE assim:
                 using var httpClient = new HttpClient();
                 var requestBody = new
                 {
-                    model = "qwen3-coder:480b-cloud",
+                    model = "gpt-oss:120b-cloud",
                     prompt = summaryPrompt,
                     stream = false,
                     options = new

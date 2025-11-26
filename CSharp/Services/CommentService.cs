@@ -50,5 +50,10 @@ namespace CSharp.Services
             await _context.SaveChangesAsync();
             return comment;
         }
+
+        public async Task<User?> GetUserById(Guid userId)
+        {
+            return await _context.Users.FindAsync(userId);
+        }
     }
 }
