@@ -87,6 +87,7 @@ export default function TicketDetailPage() {
   const [showArticleModal, setShowArticleModal] = useState(false);
   const [generatedArticle, setGeneratedArticle] = useState({ title: "", content: "" });
   const [isSavingArticle, setIsSavingArticle] = useState(false);
+  const [isLoadingAiSummary, setIsLoadingAiSummary] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const notificationWsRef = useRef<WebSocket | null>(null);
   const currentUserId = getCurrentUserId();
@@ -246,6 +247,44 @@ export default function TicketDetailPage() {
       mounted = false;
     };
   }, [id]);
+
+  // Polling para verificar se o resumo da triagem foi gerado
+  useEffect(() => {
+    if (!id || !ticket || !isTechnician()) return;
+
+    // Se já tem resumo, não precisa fazer polling
+    if (ticket.aiSummary) {
+      setIsLoadingAiSummary(false);
+      return;
+    }
+
+    // Se não tem resumo, iniciar polling
+    setIsLoadingAiSummary(true);
+
+    const pollInterval = setInterval(async () => {
+      try {
+        const updatedTicket = await apiGet<Ticket>(`/tickets/${id}`);
+        if (updatedTicket.aiSummary) {
+          setTicket(updatedTicket);
+          setIsLoadingAiSummary(false);
+          clearInterval(pollInterval);
+        }
+      } catch {
+        // Ignorar erros de polling
+      }
+    }, 3000); // Verificar a cada 3 segundos
+
+    // Timeout de 2 minutos para parar de fazer polling
+    const timeout = setTimeout(() => {
+      clearInterval(pollInterval);
+      setIsLoadingAiSummary(false);
+    }, 120000);
+
+    return () => {
+      clearInterval(pollInterval);
+      clearTimeout(timeout);
+    };
+  }, [id, ticket?.aiSummary]);
 
   // Scroll para última mensagem
   useEffect(() => {
@@ -1078,7 +1117,7 @@ export default function TicketDetailPage() {
           </div>
 
           {/* Card de Resumo da IA (aparece apenas para técnicos) */}
-          {isTechnician() && ticket.aiSummary && (
+          {isTechnician() && (ticket.aiSummary || isLoadingAiSummary) && (
             <div
               style={{
                 background: "#ffffff",
@@ -1106,61 +1145,105 @@ export default function TicketDetailPage() {
                 )}
               </div>
 
-              <div
-                style={{
-                  marginBottom: "12px",
-                }}
-              >
-                <p
+              {isLoadingAiSummary && !ticket.aiSummary ? (
+                <div
                   style={{
-                    margin: "0 0 6px 0",
-                    fontSize: "12px",
-                    fontWeight: "600",
-                    color: "#6c757d",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.5px",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    padding: "24px",
+                    gap: "12px",
                   }}
                 >
-                  Ações Realizadas
-                </p>
-                <p
-                  style={{
-                    margin: 0,
-                    fontSize: "13px",
-                    lineHeight: "1.6",
-                    whiteSpace: "pre-wrap",
-                    color: "#212529",
-                  }}
-                >
-                  {ticket.aiSummary}
-                </p>
-              </div>
-
-              {ticket.aiConclusion && (
-                <div>
-                  <p
+                  <div
                     style={{
-                      margin: "0 0 6px 0",
-                      fontSize: "12px",
-                      fontWeight: "600",
-                      color: "#6c757d",
-                      textTransform: "uppercase",
-                      letterSpacing: "0.5px",
+                      width: "32px",
+                      height: "32px",
+                      border: "3px solid #e9ecef",
+                      borderTopColor: "#007bff",
+                      borderRadius: "50%",
+                      animation: "spin 1s linear infinite",
                     }}
-                  >
-                    Hipóteses e Conclusões
-                  </p>
+                  />
                   <p
                     style={{
                       margin: 0,
                       fontSize: "13px",
-                      lineHeight: "1.6",
-                      whiteSpace: "pre-wrap",
+                      color: "#6c757d",
+                      textAlign: "center",
                     }}
                   >
-                    {ticket.aiConclusion}
+                    Gerando resumo da triagem inteligente...
                   </p>
+                  <style>
+                    {`
+                      @keyframes spin {
+                        to { transform: rotate(360deg); }
+                      }
+                    `}
+                  </style>
                 </div>
+              ) : (
+                <>
+                  <div
+                    style={{
+                      marginBottom: "12px",
+                    }}
+                  >
+                    <p
+                      style={{
+                        margin: "0 0 6px 0",
+                        fontSize: "12px",
+                        fontWeight: "600",
+                        color: "#6c757d",
+                        textTransform: "uppercase",
+                        letterSpacing: "0.5px",
+                      }}
+                    >
+                      Ações Realizadas
+                    </p>
+                    <p
+                      style={{
+                        margin: 0,
+                        fontSize: "13px",
+                        lineHeight: "1.6",
+                        whiteSpace: "pre-wrap",
+                        color: "#212529",
+                      }}
+                    >
+                      {ticket.aiSummary}
+                    </p>
+                  </div>
+
+                  {ticket.aiConclusion && (
+                    <div>
+                      <p
+                        style={{
+                          margin: "0 0 6px 0",
+                          fontSize: "12px",
+                          fontWeight: "600",
+                          color: "#6c757d",
+                          textTransform: "uppercase",
+                          letterSpacing: "0.5px",
+                        }}
+                      >
+                        Hipóteses e Conclusões
+                      </p>
+                      <p
+                        style={{
+                          margin: 0,
+                          fontSize: "13px",
+                          lineHeight: "1.6",
+                          whiteSpace: "pre-wrap",
+                          color: "#212529",
+                        }}
+                      >
+                        {ticket.aiConclusion}
+                      </p>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           )}

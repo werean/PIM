@@ -593,8 +593,8 @@ export default function AIChat({ ticketId, ticketTitle, ticketBody }: AIChatProp
       }, 2000); // 2 segundos de timeout de segurança
     };
 
-    ws.onerror = (error) => {
-      console.error("Erro no WebSocket:", error);
+    ws.onerror = () => {
+      // Erro de conexão WebSocket - não crítico
       setIsConnected(false);
       setIsSending(false);
     };

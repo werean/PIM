@@ -144,8 +144,8 @@ export default function TicketTriagePage() {
       }, 2000);
     };
 
-    ws.onerror = (error) => {
-      console.error("Erro no WebSocket:", error);
+    ws.onerror = () => {
+      // Erro de conexão WebSocket - não crítico
       setIsConnected(false);
       setIsSending(false);
     };
